@@ -51,6 +51,8 @@
 
   # Networking
   networking.networkmanager.enable = true;
+  hardware.bluetooth.enable = true;
+  hardware.bluetooth.powerOnBoot = true;
 
   # System packages
   environment.systemPackages = with pkgs; [
@@ -61,7 +63,7 @@
     curl
     wget
   ];
-
+  
   # Nix settings
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];

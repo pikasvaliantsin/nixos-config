@@ -12,7 +12,6 @@
     
     # Терминал
     alacritty
-    kitty
     
     # Утилиты
     tree
@@ -37,15 +36,22 @@
 
     # Шрифты
     jetbrains-mono
+    inter-nerdfont
+    font-awesome
+    material-design-icons
+    nerd-fonts.symbols-only
 
     # Hyprpanel
     amdgpu_top
     bluez
-    bluez-utils
     power-profiles-daemon
     hyprpicker
     btop
     matugen
     hyprpanel
+
+    # Work
+    jetbrains-toolbox
+    thunderbird
   ];
 }
