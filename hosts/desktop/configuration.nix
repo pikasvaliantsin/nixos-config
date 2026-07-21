@@ -28,6 +28,8 @@
     keyMap = "us";
   };
 
+  programs.hyprland.enable = true;
+
   # Audio
   services.pipewire = {
     enable = true;
