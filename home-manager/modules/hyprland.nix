@@ -7,7 +7,8 @@
     monitor=eDP-1, 1920x1080@60, 3440x0, 1
 
     # Exec once
-    exec-once = waybar &
+    #exec-once = waybar &
+    exec-once = hyprpanel &
     exec-once = dunst &
 
     # Input

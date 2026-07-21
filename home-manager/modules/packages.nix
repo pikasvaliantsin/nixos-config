@@ -34,5 +34,18 @@
     # Браузеры
     firefox
     google-chrome
+
+    # Шрифты
+    jetbrains-mono
+
+    # Hyprpanel
+    amdgpu_top
+    bluez
+    bluez-utils
+    power-profiles-daemon
+    hyprpicker
+    btop
+    matugen
+    hyprpanel
   ];
 }
