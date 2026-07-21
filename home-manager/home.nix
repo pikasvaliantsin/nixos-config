@@ -28,6 +28,8 @@
     grim
     slurp
     wl-clipboard
+    firefox
+    google-chrome
   ];
 
   # Fish Shell
@@ -114,7 +116,8 @@
     
     # Input
     input {
-      kb_layout = us
+      kb_layout = us,ru
+      kb_options=grp:win_space_toggle
       follow_mouse = 1
       natural_scroll = no
     }
@@ -148,9 +151,9 @@
     bind = SUPER, Q, exec, alacritty
     bind = SUPER, E, exec, yazi
     bind = SUPER, R, exec, wofi --show drun
-    bind = SUPER, SPACE, exec, wofi --show drun
+    bind = SUPER, B, exec, firefox
     bind = SUPER, F, fullscreen
-    bind = SUPER, V, togglefloating
+    bind = SUPER, T, togglefloating
     bind = SUPER, H, movefocus, l
     bind = SUPER, L, movefocus, r
     bind = SUPER, K, movefocus, u
