@@ -30,6 +30,7 @@
     wl-clipboard
     firefox
     google-chrome
+    jetbrains-mono
   ];
 
   # Fish Shell
@@ -145,23 +146,18 @@
       }
     }
     
-    # Gestures
-    gestures {
-      workspace_swipe = true
-      workspace_swipe_fingers = 3
-    }
-    
     # Keybindings
-    bind = SUPER, Q, exec, alacritty
+    bind = SUPER, RETURN, exec, alacritty
+    bind = SUPER, Q, killactive
     bind = SUPER, E, exec, yazi
     bind = SUPER, R, exec, wofi --show drun
     bind = SUPER, B, exec, firefox
     bind = SUPER, F, fullscreen
     bind = SUPER, T, togglefloating
-    bind = SUPER, H, movefocus, l
-    bind = SUPER, L, movefocus, r
-    bind = SUPER, K, movefocus, u
-    bind = SUPER, J, movefocus, d
+    bind = SUPER, left, movefocus, l
+    bind = SUPER, right, movefocus, r
+    bind = SUPER, up, movefocus, u
+    bind = SUPER, down, movefocus, d
     
     # Workspaces
     bind = SUPER, 1, workspace, 1

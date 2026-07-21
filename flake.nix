@@ -9,8 +9,8 @@
       url = "github:nix-community/home-manager";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-   };
-    
+  };
+
   outputs = { self, nixpkgs, home-manager, ... }@inputs: {
     nixosConfigurations.desktop = nixpkgs.lib.nixosSystem {
       system = "x86_64-linux";
@@ -27,6 +27,13 @@
           };
         }
       ];
+    };
+
+    # Добавляем вывод для home-manager
+    homeConfigurations.desktop = home-manager.lib.homeManagerConfiguration {
+      pkgs = nixpkgs.legacyPackages.x86_64-linux;
+      modules = [ ./home-manager/home.nix ];
+      extraSpecialArgs = { inherit inputs; };
     };
   };
 }
