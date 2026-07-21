@@ -66,6 +66,8 @@
     auto-optimise-store = true;
   };
 
+  nixpkgs.config.allowUnfree = true;
+
   # Включаем поддержку fish
   programs.fish.enable = true;
 

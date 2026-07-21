@@ -86,7 +86,9 @@
     [manager]
     show_hidden = true
     sort_by = "natural"
+    force = true
   '';
+  	
 
   # Alacritty
   xdg.configFile."alacritty/alacritty.toml".text = ''
