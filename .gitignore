@@ -1,0 +1,25 @@
+# Nix
+result/
+result-*
+.direnv/
+.envrc
+*.drv
+*.out
+
+# Home Manager
+home-manager/result/
+home-manager/.home-manager-*
+
+# Secrets
+secrets/*.age
+*.age
+
+# Editor
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
