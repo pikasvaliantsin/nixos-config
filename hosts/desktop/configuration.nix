@@ -66,5 +66,9 @@
     auto-optimise-store = true;
   };
 
-  system.stateVersion = "26.04";
+  # Включаем поддержку fish
+  programs.fish.enable = true;
+
+  system.stateVersion = "26.05";
+
 }

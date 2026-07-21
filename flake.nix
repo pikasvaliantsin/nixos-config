@@ -1,8 +1,8 @@
 {
-  description = "Чистая NixOS конфигурация с Hyprland (26.04)";
+  description = "Чистая NixOS конфигурация с Hyprland (26.05)";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.04";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
     
     home-manager = {
