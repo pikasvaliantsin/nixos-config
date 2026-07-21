@@ -10,7 +10,6 @@
   # User packages
   home.packages = with pkgs; [
     micro
-    vim
     yazi
     lsd
     alacritty
@@ -57,9 +56,11 @@
   # Git
   programs.git = {
     enable = true;
-    userName = "Valentin Pikas";
-    userEmail = "pikasvaliantsin@github.com";
-    extraConfig = {
+    settings = {
+      user = {
+        name = "Valentin Pikas";
+        email = "pikasvaliantsin@github.com";
+      };
       core.editor = "micro";
       init.defaultBranch = "main";
       color.ui = true;
@@ -170,5 +171,22 @@
     
     # Screenshots
     bind = SUPER, S, exec, grim -g "$(slurp)" ~/Pictures/Screenshots/$(date +%Y%m%d_%H%M%S).png
+  '';
+
+  # Настройка micro
+  xdg.configFile."micro/settings.json".text = ''
+    {
+      "colorscheme": "solarized",
+      "tabstospaces": true,
+      "tabwidth": 2,
+      "autosu": true,
+      "ruler": true,
+      "softwrap": true,
+      "mouse": true,
+      "savecursor": true,
+      "savehistory": true,
+      "statusline": true,
+      "keymenu": true
+    }
   '';
 }

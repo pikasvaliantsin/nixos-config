@@ -53,8 +53,8 @@
   # System packages
   environment.systemPackages = with pkgs; [
     git
-    vim
-    neofetch
+    micro
+    fastfetch
     htop
     curl
     wget
