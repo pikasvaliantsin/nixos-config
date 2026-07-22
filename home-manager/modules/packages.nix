@@ -22,14 +22,6 @@
     unzip
     wget
     
-    # Hyprland
-    hyprpaper
-    waybar
-    wofi
-    dunst
-    hyprshot
-    wl-clipboard
-    
     # Браузеры
     firefox
     google-chrome
@@ -40,15 +32,6 @@
     font-awesome
     material-design-icons
     nerd-fonts.symbols-only
-
-    # Hyprpanel
-    amdgpu_top
-    bluez
-    power-profiles-daemon
-    hyprpicker
-    btop
-    matugen
-    hyprpanel
 
     # Work
     jetbrains-toolbox

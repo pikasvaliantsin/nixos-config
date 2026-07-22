@@ -8,8 +8,6 @@
     ./modules/terminal.nix
     ./modules/programs.nix
     ./modules/packages.nix
-    ./modules/hyprland.nix
-    ./modules/waybar.nix
-    ./modules/editors.nix  # опционально
+    ./modules/editors.nix
   ];
 }

@@ -3,58 +3,108 @@
 {
   imports = [
     ./hardware.nix
+    ./noctalia.nix
   ];
 
-  # Boot
+  # ========================================
+  # BOOT & KERNEL
+  # ========================================
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
+  boot.kernelPackages = pkgs.linuxPackages_latest;
 
-  # System
+  # ========================================
+  # SYSTEM
+  # ========================================
   networking.hostName = "asus-expertbook";
-  time.timeZone = "Europe/Moscow";
+  time.timeZone = "Europe/Minsk";
   i18n.defaultLocale = "en_US.UTF-8";
 
   i18n.extraLocaleSettings = {
-    LC_TIME = "ru_RU.UTF-8";
-    LC_MONETARY = "ru_RU.UTF-8";
-    LC_ADDRESS = "ru_RU.UTF-8";
-    LC_TELEPHONE = "ru_RU.UTF-8";
-    LC_MEASUREMENT = "ru_RU.UTF-8";
+    LC_TIME           = "ru_RU.UTF-8";
+    LC_MONETARY       = "ru_RU.UTF-8";
+    LC_ADDRESS        = "ru_RU.UTF-8";
+    LC_TELEPHONE      = "ru_RU.UTF-8";
+    LC_MEASUREMENT    = "ru_RU.UTF-8";
     LC_IDENTIFICATION = "ru_RU.UTF-8";
   };
 
   console = {
-    font = "cyr-sun16";
-    keyMap = "us";
+    font    = "cyr-sun16";
+    keyMap  = "us";
   };
 
-  programs.hyprland.enable = true;
+  # ========================================
+  # NIRI (Wayland compositor)
+  # ========================================
+  programs.niri.enable = true;
 
-  # Audio
+  # ========================================
+  # AUDIO
+  # ========================================
   services.pipewire = {
     enable = true;
     pulse.enable = true;
     alsa = {
-      enable = true;
-      support32Bit = true;
+      enable         = true;
+      support32Bit   = true;
     };
   };
   security.rtkit.enable = true;
 
-  # Users
+  # ========================================
+  # USER
+  # ========================================
   users.users.valen = {
-    isNormalUser = true;
-    initialPassword = "nixos";
-    extraGroups = [ "wheel" "video" "audio" "input" "networkmanager" ];
+    isNormalUser    = true;
+    initialPassword = "nixos";   # смени при первом входе
+    extraGroups     = [
+      "wheel"
+      "video"
+      "audio"
+      "input"
+      "networkmanager"
+    ];
     shell = pkgs.fish;
   };
 
-  # Networking
+  # ========================================
+  # NETWORKING
+  # ========================================
   networking.networkmanager.enable = true;
-  hardware.bluetooth.enable = true;
-  hardware.bluetooth.powerOnBoot = true;
 
-  # System packages
+  # ========================================
+  # BLUETOOTH
+  # ========================================
+  hardware.bluetooth = {
+    enable        = true;
+    powerOnBoot   = true;
+  };
+
+  # ========================================
+  # DNS
+  # ========================================
+  services.resolved.enable = true;
+
+  # ========================================
+  # NETBIRD VPN
+  # ========================================
+  services.netbird.enable = true;
+
+  # Отключаем управление интерфейсом wt0 через NetworkManager,
+  # чтобы NetBird мог сам управлять маршрутами.
+  # networking.networkmanager.unmanaged = [ "wt0" ];
+
+  # ========================================
+  # FIREWALL
+  # ========================================
+  # Файрвол отключён, так как безопасность обеспечивается VPN.
+  # Если хочешь включить — добавь правила для NetBird.
+  networking.firewall.enable = false;
+
+  # ========================================
+  # SYSTEM PACKAGES
+  # ========================================
   environment.systemPackages = with pkgs; [
     git
     micro
@@ -63,18 +113,24 @@
     curl
     wget
   ];
-  
-  # Nix settings
+
+  # ========================================
+  # NIX
+  # ========================================
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
-    auto-optimise-store = true;
+    auto-optimise-store   = true;
   };
 
   nixpkgs.config.allowUnfree = true;
 
-  # Включаем поддержку fish
+  # ========================================
+  # SHELL
+  # ========================================
   programs.fish.enable = true;
 
+  # ========================================
+  # VERSION
+  # ========================================
   system.stateVersion = "26.05";
-
 }
