@@ -1,4 +1,4 @@
-{ config, pkgs, inputs, ... }:
+{ config, pkgs, inputs, unstable, ... }:
 
 {
   imports = [
@@ -9,5 +9,9 @@
     ./modules/programs.nix
     ./modules/packages.nix
     ./modules/editors.nix
+    ./modules/jetbrains.nix
+    ./modules/dms/danksearch.nix
+    ./modules/dms/dms.nix
+    ./modules/flatpak.nix
   ];
 }

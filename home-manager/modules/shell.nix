@@ -6,7 +6,7 @@
     shellInit = ''
       set -gx EDITOR micro
       set -gx VISUAL micro
-      set -gx XDG_CURRENT_DESKTOP Hyprland
+      set -gx XDG_CURRENT_DESKTOP Niri
       set -gx XDG_SESSION_TYPE wayland
       set -g fish_greeting ""
       set -g __fish_git_prompt_show_informative_status 1
@@ -18,8 +18,7 @@
       tree = "lsd --tree";
       edit = "micro";
       cat = "bat";
-      grep = "ripgrep";
-      update = "sudo nixos-rebuild switch --flake ~/nixos-config#desktop";
+      update = "cd ~/nixos-config && sudo nixos-rebuild switch --flake ~/nixos-config#desktop";
     };
   };
 }

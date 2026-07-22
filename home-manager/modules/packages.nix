@@ -1,4 +1,4 @@
-{ config, pkgs, ... }:
+{ config, pkgs, unstable, ... }:
 
 {
   home.packages = with pkgs; [
@@ -15,12 +15,13 @@
     
     # Утилиты
     tree
-    ripgrep
     fd
     bat
     jq
     unzip
     wget
+    cups-pk-helper
+    
     
     # Браузеры
     firefox
@@ -34,7 +35,7 @@
     nerd-fonts.symbols-only
 
     # Work
-    jetbrains-toolbox
+    unstable.jetbrains-toolbox
     thunderbird
   ];
 }
