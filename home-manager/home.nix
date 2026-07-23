@@ -13,5 +13,7 @@
     ./modules/dms/danksearch.nix
     ./modules/dms/dms.nix
     ./modules/flatpak.nix
+    inputs.nix-flatpak.homeManagerModules.nix-flatpak
+
   ];
 }

@@ -11,6 +11,11 @@
       set -g fish_greeting ""
       set -g __fish_git_prompt_show_informative_status 1
     '';
+
+    interactiveShellInit = ''
+          fastfetch
+        '';
+        
     shellAliases = {
       ls = "lsd";
       ll = "ls -l";

@@ -141,6 +141,12 @@
   # ========================================
   programs.fish.enable = true;
 
+  services.flatpak.enable = true;
+  xdg.portal.enable = true;
+
+  services.upower.enable = true;
+  services.udisks2.enable = true;
+
   # ========================================
   # VERSION
   # ========================================

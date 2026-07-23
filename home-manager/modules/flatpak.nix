@@ -1,39 +1,45 @@
-{ config, pkgs, ... }:
+{ config, pkgs, inputs, ... }:
 
 {
   # ============================================
-  # FLATPAK
+  # FLATPAK (через nix-flatpak)
   # ============================================
 
-  # 1. Включаем управление Flatpak через Home Manager
   services.flatpak = {
-    enableModule = true;  # Включает управление пакетами
+    enable = true;
 
-    # 2. Список Flatpak-приложений для установки
-    packages = [
-      # Браузеры
-      # "org.mozilla.firefox"
-      # "com.brave.Browser"
-
-      # Мессенджеры
-      # "im.riot.Riot"        # Element
-      # "com.discordapp.Discord"
-
-      # Утилиты
-      # "org.onlyoffice.desktopeditors"
-      # "com.spotify.Client"
-
-      # (добавляй сюда свои приложения)
-      PortProton
+    # Репозитории
+    remotes = [
+      {
+        name = "flathub";
+        location = "https://flathub.org/repo/flathub.flatpakrepo";
+      }
+      # Если нужно beta:
+      # {
+      #   name = "flathub-beta";
+      #   location = "https://flathub.org/beta-repo/flathub-beta.flatpakrepo";
+      # }
     ];
-  };
 
-  # 3. Добавляем репозиторий Flathub (через xdg.dataFile, т.к. в Home Manager нет опции remotes)
-  xdg.dataFile."flatpak/remotes.d/flathub.flatpakrepo".text = ''
-    [Flathub]
-    Url=https://flathub.org/repo/flathub.flatpakrepo
-    Title=Flathub
-    Comment=Central repository of Flatpak applications
-    Homepage=https://flathub.org
-  '';
+    # Приложения
+    packages = [
+      # Простой формат (имя приложения, origin по умолчанию — flathub)
+      # "com.brave.Browser"
+      # "im.riot.Riot"
+      # "org.mozilla.firefox"
+
+      # Или с явным указанием origin и коммита
+      # {
+      #   appId = "com.spotify.Client";
+      #   origin = "flathub";
+      #   commit = "abc123...";  # опционально
+      # }
+
+      # Для PortProton — уточни точное название
+      "ru.linux_gaming.PortProton"
+    ];
+
+    # Автообновление при активации (опционально)
+    update.onActivation = false;  # или true, если хочешь автообновление
+  };
 }

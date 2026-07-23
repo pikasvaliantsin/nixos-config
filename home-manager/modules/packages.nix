@@ -1,4 +1,4 @@
-{ config, pkgs, unstable, ... }:
+{ config, pkgs, unstable, inputs, ... }:
 
 {
   home.packages = with pkgs; [
@@ -21,7 +21,11 @@
     unzip
     wget
     cups-pk-helper
-    
+    upower
+    _7zip-zstd
+    gtk3
+    desktop-file-utils
+    wl-clipboard
     
     # Браузеры
     firefox
@@ -34,8 +38,21 @@
     material-design-icons
     nerd-fonts.symbols-only
 
-    # Work
+    # Иконки
+    hicolor-icon-theme       # базовый набор
+    adwaita-icon-theme       # стандартные иконки GNOME
+    papirus-icon-theme       # современный набор (рекомендую)
+    gnome-icon-theme         # дополнительные иконки GNOME
+
+    # Soft
     unstable.jetbrains-toolbox
     thunderbird
+    steam
+    telegram-desktop
+    discord
+    yandex-music
+    obs-studio
+    obsidian
+    inputs.zoho-cliq.packages.${pkgs.system}.zoho-cliq
   ];
 }

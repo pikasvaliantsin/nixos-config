@@ -34,6 +34,10 @@
     url = "github:AvengeMedia/danksearch";
     inputs.nixpkgs.follows = "nixpkgs";
    };
+
+    nix-flatpak.url = "github:gmodena/nix-flatpak";
+
+    zoho-cliq.url = "github:skyd1v3r/zoho-cliq-flake";
 };
 
 outputs = { self, nixpkgs, home-manager, niri, dms, ... }@inputs: {
