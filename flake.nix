@@ -1,5 +1,5 @@
 {
-  description = "NixOS конфигурация с Niri + Noctalia (v5)";
+  description = "NixOS конфигурация с Niri";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";

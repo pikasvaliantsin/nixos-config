@@ -34,15 +34,14 @@
 
   qt = {
     enable = true;
-    platformTheme = "gtk"; # Заставляем Qt приложения использовать GTK тему
+    platformTheme = "gtk";
     style.name = "adwaita-dark";
   };
 
   # ==========================================
-  # 2. Компоненты окружения
+  # 2. Фоновые сервисы (Services)
   # ==========================================
-  programs = {
-    # Уведомления
+  services = {
     mako = {
       enable = true;
       anchor = "top-right";
@@ -57,8 +56,12 @@
         text-color=#cdd6f4
       '';
     };
+  }; # <-- ВАЖНО: эта скобка закрывает блок services
 
-    # Лаунчер приложений
+  # ==========================================
+  # 3. Программы с конфигами (Programs)
+  # ==========================================
+  programs = {
     fuzzel = {
       enable = true;
       settings = {
@@ -80,7 +83,6 @@
       };
     };
 
-    # Панель задач
     waybar = {
       enable = true;
       systemd.enable = true;
@@ -125,20 +127,19 @@
         #clock, #pulseaudio, #network, #battery { padding: 0 15px; }
       '';
     };
-  };
+  }; # <-- ВАЖНО: эта скобка закрывает блок programs
 
   # ==========================================
-  # 3. Утилиты и сервисы
+  # 4. Пакеты и пользовательские systemd-сервисы
   # ==========================================
   home.packages = with pkgs; [
-    wl-clipboard # Буфер обмена Wayland
-    cliphist # История буфера обмена
-    swww # Обои с анимацией
-    pavucontrol # GUI для управления звуком
-    brightnessctl # Управление яркостью (для ноутбука)
+    wl-clipboard
+    cliphist
+    swww
+    pavucontrol
+    brightnessctl
   ];
 
-  # Сервис для автозапуска обоев
   systemd.user.services.swww = {
     Unit.Description = "Simple Wayland Wallpaper Daemon";
     Service = {
@@ -147,4 +148,7 @@
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
+
+  # Декларативный конфиг dgop
+  xdg.configFile."dgop/color.json".source = ./assets/dgop-color.json;
 }

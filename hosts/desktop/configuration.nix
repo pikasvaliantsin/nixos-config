@@ -121,7 +121,6 @@
     git
     micro
     fastfetch
-    htop
     curl
     wget
     xwayland-satellite
