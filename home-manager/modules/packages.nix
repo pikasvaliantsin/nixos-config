@@ -4,7 +4,6 @@
   home.packages = with pkgs; [
     # Редакторы
     micro
-    vim
     
     # Файловые менеджеры
     yazi
@@ -57,5 +56,22 @@
     inputs.zoho-cliq.packages.${pkgs.system}.zoho-cliq
     bottles
     vesktop
+
+    # === LSP серверы для NixVim ===
+      nixd                    # Nix LSP (валидация, автодополнение)
+      nil                     # Альтернативный Nix LSP (можно оба)
+      nixfmt-rfc-style        # Форматировщик Nix-кода
+      
+      # Для других языков
+      bash-language-server    # Bash LSP
+      yaml-language-server    # YAML LSP
+      taplo                   # TOML LSP
+      lua-language-server     # Lua LSP
+      
+      # === Утилиты для разработки ===
+      git
+      ripgrep                 # Для Telescope live_grep
+      fd                      # Для Telescope find_files
+      gcc                     # Для компиляции некоторых плагинов
   ];
 }

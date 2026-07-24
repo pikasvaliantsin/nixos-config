@@ -1,10 +1,15 @@
-{ config, pkgs, inputs, ... }:
+{
+  config,
+  pkgs,
+  inputs,
+  ...
+}:
 
 {
   imports = [
     ./hardware.nix
-      inputs.dms.nixosModules.dank-material-shell
-      inputs.dank-greeter.nixosModules.default
+    inputs.dms.nixosModules.dank-material-shell
+    inputs.dank-greeter.nixosModules.default
   ];
 
   # ========================================
@@ -21,7 +26,7 @@
   services.asusd = {
     enable = true;
     fanCurvesConfig = null;
-    };
+  };
 
   # ========================================
   # SYSTEM
@@ -31,17 +36,17 @@
   i18n.defaultLocale = "en_US.UTF-8";
 
   i18n.extraLocaleSettings = {
-    LC_TIME           = "ru_RU.UTF-8";
-    LC_MONETARY       = "ru_RU.UTF-8";
-    LC_ADDRESS        = "ru_RU.UTF-8";
-    LC_TELEPHONE      = "ru_RU.UTF-8";
-    LC_MEASUREMENT    = "ru_RU.UTF-8";
+    LC_TIME = "ru_RU.UTF-8";
+    LC_MONETARY = "ru_RU.UTF-8";
+    LC_ADDRESS = "ru_RU.UTF-8";
+    LC_TELEPHONE = "ru_RU.UTF-8";
+    LC_MEASUREMENT = "ru_RU.UTF-8";
     LC_IDENTIFICATION = "ru_RU.UTF-8";
   };
 
   console = {
-    font    = "cyr-sun16";
-    keyMap  = "us";
+    font = "cyr-sun16";
+    keyMap = "us";
   };
 
   # ========================================
@@ -66,8 +71,8 @@
     enable = true;
     pulse.enable = true;
     alsa = {
-      enable         = true;
-      support32Bit   = true;
+      enable = true;
+      support32Bit = true;
     };
   };
   security.rtkit.enable = true;
@@ -76,9 +81,9 @@
   # USER
   # ========================================
   users.users.valen = {
-    isNormalUser    = true;
-    initialPassword = "nixos";   # смени при первом входе
-    extraGroups     = [
+    isNormalUser = true;
+    initialPassword = "nixos"; # смени при первом входе
+    extraGroups = [
       "wheel"
       "video"
       "audio"
@@ -97,8 +102,8 @@
   # BLUETOOTH
   # ========================================
   hardware.bluetooth = {
-    enable        = true;
-    powerOnBoot   = true;
+    enable = true;
+    powerOnBoot = true;
   };
 
   # ========================================
@@ -140,7 +145,10 @@
   # NIX & MAINTENANCE
   # ========================================
   nix.settings = {
-    experimental-features = [ "nix-command" "flakes" ];
+    experimental-features = [
+      "nix-command"
+      "flakes"
+    ];
     auto-optimise-store = true;
   };
 
@@ -162,7 +170,6 @@
 
   services.flatpak.enable = true;
 
-
   services.upower.enable = true;
   services.udisks2.enable = true;
 
@@ -172,7 +179,7 @@
   xdg.portal = {
     enable = true;
     extraPortals = with pkgs; [
-      xdg-desktop-portal-gtk   # Базовые диалоги (выбор файлов и т.д.)
+      xdg-desktop-portal-gtk # Базовые диалоги (выбор файлов и т.д.)
       xdg-desktop-portal-gnome # Поддержка screencast (демонстрация экрана)
     ];
     configPackages = with pkgs; [
@@ -185,9 +192,6 @@
 
   # Критически важно для GTK-приложений (включая PortProton/YAD) и Flatpak
   programs.dconf.enable = true;
-
-  # Демон уведомлений (обязателен для Niri, иначе Vesktop/Discord могут крашиться)
-  services.mako.enable = true;
 
   # ========================================
   # VERSION
