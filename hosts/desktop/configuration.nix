@@ -8,8 +8,6 @@
 {
   imports = [
     ./hardware.nix
-    inputs.dms.nixosModules.dank-material-shell
-    inputs.dank-greeter.nixosModules.default
   ];
 
   # ========================================
@@ -53,17 +51,6 @@
   # NIRI (Wayland compositor)
   # ========================================
   programs.niri.enable = true;
-  programs.dank-material-shell = {
-    enable = true;
-    enableSystemMonitoring = true;
-    dgop.package = inputs.dgop.packages.${pkgs.system}.default;
-  };
-  programs.dms-greeter = {
-    enable = true;
-    compositor.name = "niri"; # or hyprland, sway, labwc, mango, scroll, miracle
-    configHome = "/home/valen"; # copies that user's DMS settings (and wallpaper) into the greeter data directory before greetd starts
-  };
-
   # ========================================
   # AUDIO
   # ========================================

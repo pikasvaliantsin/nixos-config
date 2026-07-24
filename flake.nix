@@ -10,26 +10,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    niri.url = "github:sodiboo/niri-flake";
-
-    dms-cli.url = "github:AvengeMedia/danklinux";
-
-    dgop.url = "github:AvengeMedia/dgop";
-
-    dankMaterialShell = {
-      url = "github:AvengeMedia/DankMaterialShell";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.dgop.follows = "dgop";
-      inputs.dms-cli.follows = "dms-cli";
-    };
-
-    dank-greeter = {
-      url = "github:AvengeMedia/dank-greeter";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
-    danksearch = {
-      url = "github:AvengeMedia/danksearch";
+    niri = {
+      url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -46,7 +28,6 @@
       nixpkgs,
       home-manager,
       niri,
-      dms,
       nixvim,
       ...
     }@inputs:
