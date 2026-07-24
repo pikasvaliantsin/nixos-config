@@ -204,11 +204,11 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1784432872,
-        "narHash": "sha256-n3gKTBIV4ZA5VQpUakffBe3KGu4+mhPoA34rrqS0GkA=",
+        "lastModified": 1784707089,
+        "narHash": "sha256-2V/6imsUgB7mPZlHY54oeVBRDoZbPKnvzwkAHUSSufk=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "fd1462031fdee08f65fd0b4c6b64e22239a77870",
+        "rev": "b3fe9581c9061c749abef42b6d4ee7b7c05c33fa",
         "type": "github"
       },
       "original": {
@@ -237,11 +237,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1784803076,
-        "narHash": "sha256-OttJFdgnNIQiT9ONYL4siezOrYSTvGNFG6WIYcpq98M=",
+        "lastModified": 1784848799,
+        "narHash": "sha256-J0l2vRk400p94bA0Wg4YsrruIEKG45w7+wg6SBwLJSA=",
         "owner": "skyd1v3r",
         "repo": "zoho-cliq-flake",
-        "rev": "d19635cbdbb549e6411f7d53ce4651b9b4fc2d72",
+        "rev": "6faed54d6d3cf97f939f18f86ae934e03baa12b5",
         "type": "github"
       },
       "original": {

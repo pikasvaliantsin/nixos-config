@@ -48,11 +48,13 @@
     unstable.jetbrains-toolbox
     thunderbird
     steam
+    gamescope
     telegram-desktop
-    discord
     yandex-music
     obs-studio
     obsidian
     inputs.zoho-cliq.packages.${pkgs.system}.zoho-cliq
+    bottles
+    vesktop
   ];
 }

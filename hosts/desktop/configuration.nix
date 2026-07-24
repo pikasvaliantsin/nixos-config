@@ -14,6 +14,15 @@
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_latest;
 
+  systemd.tmpfiles.rules = [
+    "d /etc/asusd 0755 root root -"
+  ];
+
+  services.asusd = {
+    enable = true;
+    fanCurvesConfig = null;
+    };
+
   # ========================================
   # SYSTEM
   # ========================================
@@ -124,6 +133,7 @@
     curl
     wget
     xwayland-satellite
+    asusctl
   ];
 
   # ========================================
