@@ -137,25 +137,57 @@
   ];
 
   # ========================================
-  # NIX
+  # NIX & MAINTENANCE
   # ========================================
   nix.settings = {
     experimental-features = [ "nix-command" "flakes" ];
-    auto-optimise-store   = true;
+    auto-optimise-store = true;
   };
 
-   nixpkgs.config.allowUnfree = true;
+  # Автоматическая очистка мусора (оставляем поколения за последние 14 дней)
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 14d";
+  };
 
+  # Ограничиваем количество записей в systemd-boot, чтобы меню не раздувалось
+  boot.loader.systemd-boot.configurationLimit = 10;
+
+  nixpkgs.config.allowUnfree = true;
   # ========================================
   # SHELL
   # ========================================
   programs.fish.enable = true;
 
   services.flatpak.enable = true;
-  xdg.portal.enable = true;
+
 
   services.upower.enable = true;
   services.udisks2.enable = true;
+
+  # ========================================
+  # WAYLAND, PORTALS & DESKTOP
+  # ========================================
+  xdg.portal = {
+    enable = true;
+    extraPortals = with pkgs; [
+      xdg-desktop-portal-gtk   # Базовые диалоги (выбор файлов и т.д.)
+      xdg-desktop-portal-gnome # Поддержка screencast (демонстрация экрана)
+    ];
+    configPackages = with pkgs; [
+      niri
+      xdg-desktop-portal-gtk
+      xdg-desktop-portal-gnome
+    ];
+    config.common.default = "*";
+  };
+
+  # Критически важно для GTK-приложений (включая PortProton/YAD) и Flatpak
+  programs.dconf.enable = true;
+
+  # Демон уведомлений (обязателен для Niri, иначе Vesktop/Discord могут крашиться)
+  services.mako.enable = true;
 
   # ========================================
   # VERSION

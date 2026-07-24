@@ -26,6 +26,7 @@
     gtk3
     desktop-file-utils
     wl-clipboard
+    nh
     
     # Браузеры
     firefox
