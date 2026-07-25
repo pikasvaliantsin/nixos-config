@@ -20,5 +20,7 @@
     ./modules/nixvim.nix
     inputs.nix-flatpak.homeManagerModules.nix-flatpak
     ./modules/desktop.nix
+    ./modules/wlogout.nix
+    ./modules/niri.nix
   ];
 }

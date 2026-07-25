@@ -148,7 +148,4 @@
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
-
-  # Декларативный конфиг dgop
-  xdg.configFile."dgop/color.json".source = ./assets/dgop-color.json;
 }

@@ -1,20 +1,25 @@
-{ config, pkgs, unstable, inputs, ... }:
+{
+  config,
+  pkgs,
+  unstable,
+  inputs,
+  ...
+}:
 
 {
   home.packages = with pkgs; [
     # Редакторы
     micro
-    
+
     # Файловые менеджеры
     yazi
     lsd
-    
+
     # Терминал
     alacritty
-    
+
     # Утилиты
     tree
-    fd
     bat
     jq
     unzip
@@ -25,8 +30,16 @@
     gtk3
     desktop-file-utils
     wl-clipboard
+    cliphist
     nh
-    
+    dgop
+    fuzzel
+    swaylock
+    wlogout
+    playerctl
+    brightnessctl
+    swww
+
     # Браузеры
     firefox
     google-chrome
@@ -39,10 +52,10 @@
     nerd-fonts.symbols-only
 
     # Иконки
-    hicolor-icon-theme       # базовый набор
-    adwaita-icon-theme       # стандартные иконки GNOME
-    papirus-icon-theme       # современный набор (рекомендую)
-    gnome-icon-theme         # дополнительные иконки GNOME
+    hicolor-icon-theme # базовый набор
+    adwaita-icon-theme # стандартные иконки GNOME
+    papirus-icon-theme # современный набор (рекомендую)
+    gnome-icon-theme # дополнительные иконки GNOME
 
     # Soft
     unstable.jetbrains-toolbox
@@ -58,20 +71,20 @@
     vesktop
 
     # === LSP серверы для NixVim ===
-      nixd                    # Nix LSP (валидация, автодополнение)
-      nil                     # Альтернативный Nix LSP (можно оба)
-      nixfmt-rfc-style        # Форматировщик Nix-кода
-      
-      # Для других языков
-      bash-language-server    # Bash LSP
-      yaml-language-server    # YAML LSP
-      taplo                   # TOML LSP
-      lua-language-server     # Lua LSP
-      
-      # === Утилиты для разработки ===
-      git
-      ripgrep                 # Для Telescope live_grep
-      fd                      # Для Telescope find_files
-      gcc                     # Для компиляции некоторых плагинов
+    nixd # Nix LSP (валидация, автодополнение)
+    nil # Альтернативный Nix LSP (можно оба)
+    nixfmt-rfc-style # Форматировщик Nix-кода
+
+    # Для других языков
+    bash-language-server # Bash LSP
+    yaml-language-server # YAML LSP
+    taplo # TOML LSP
+    lua-language-server # Lua LSP
+
+    # === Утилиты для разработки ===
+    git
+    ripgrep # Для Telescope live_grep
+    fd # Для Telescope find_files
+    gcc # Для компиляции некоторых плагинов
   ];
 }

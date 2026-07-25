@@ -48,10 +48,6 @@
   };
 
   # ========================================
-  # NIRI (Wayland compositor)
-  # ========================================
-  programs.niri.enable = true;
-  # ========================================
   # AUDIO
   # ========================================
   services.pipewire = {
@@ -123,7 +119,9 @@
     fastfetch
     curl
     wget
+    niri
     xwayland-satellite
+    bibata-cursors
     asusctl
   ];
 
@@ -174,6 +172,12 @@
       xdg-desktop-portal-gnome
     ];
     config.common.default = "*";
+  };
+
+  services.xserver = {
+    enable = true;
+
+    displayManager.gdm.enable = true;
   };
 
   # Критически важно для GTK-приложений (включая PortProton/YAD) и Flatpak
