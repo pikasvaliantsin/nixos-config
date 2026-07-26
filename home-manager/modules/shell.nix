@@ -13,9 +13,9 @@
     '';
 
     interactiveShellInit = ''
-          fastfetch
-        '';
-        
+      fastfetch
+    '';
+
     shellAliases = {
       ls = "lsd";
       ll = "ls -l";
@@ -23,7 +23,7 @@
       tree = "lsd --tree";
       edit = "micro";
       cat = "bat";
-      update = "cd ~/nixos-config && sudo nixos-rebuild switch --flake ~/nixos-config#desktop";
+      update = "cd ~/nixos-config && nh os switch .#desktop";
     };
   };
 }

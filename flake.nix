@@ -15,6 +15,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    elephant.url = "github:abenz1267/elephant";
+
+    walker = {
+      url = "github:abenz1267/walker";
+      inputs.elephant.follows = "elephant";
+    };
+
     nix-flatpak.url = "github:gmodena/nix-flatpak";
 
     zoho-cliq.url = "github:skyd1v3r/zoho-cliq-flake";
@@ -29,6 +36,7 @@
       home-manager,
       niri,
       nixvim,
+      walker,
       ...
     }@inputs:
     {

@@ -56,6 +56,7 @@
     adwaita-icon-theme # стандартные иконки GNOME
     papirus-icon-theme # современный набор (рекомендую)
     gnome-icon-theme # дополнительные иконки GNOME
+    font-awesome_6
 
     # Soft
     unstable.jetbrains-toolbox
