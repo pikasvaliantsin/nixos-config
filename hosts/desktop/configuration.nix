@@ -8,6 +8,8 @@
 {
   imports = [
     ./hardware.nix
+    inputs.dms.nixosModules.dank-material-shell
+    inputs.dank-greeter.nixosModules.default
   ];
 
   # ========================================
@@ -136,15 +138,6 @@
       "flakes"
     ];
     auto-optimise-store = true;
-
-    extra-substituters = [
-      "https://walker.cachix.org"
-      "https://walker-git.cachix.org"
-    ];
-    extra-trusted-public-keys = [
-      "walker.cachix.org-1:fG8q+uAaMqhsMxWjwvk0IMb4mFPFLqHjuvfwQxE4oJM="
-      "walker-git.cachix.org-1:vmC0ocfPWh0S/vRAQGtChuiZBTAe4wiKDeyyXM0/7pM="
-    ];
   };
 
   # Автоматическая очистка мусора (оставляем поколения за последние 14 дней)
@@ -185,18 +178,16 @@
     config.common.default = "*";
   };
 
-  # ==========================================
-  # Включаем greetd
-  # ==========================================
-  services.greetd = {
-    enable = true;
-    settings = {
-      default_session = {
-        command = "${pkgs.tuigreet}/bin/tuigreet --time --cmd ${pkgs.niri}/bin/niri-session";
-        user = "valen";
-      };
+  programs.dank-material-shell = {
+      enable = true;
+      enableSystemMonitoring = true;
+      dgop.package = inputs.dgop.packages.${pkgs.system}.default;
     };
-  };
+    programs.dms-greeter = {
+      enable = true;
+      compositor.name = "niri"; # or hyprland, sway, labwc, mango, scroll, miracle
+      configHome = "/home/valen"; # copies that user's DMS settings (and wallpaper) into the greeter data directory before greetd starts
+    };
 
   # Критически важно для GTK-приложений (включая PortProton/YAD) и Flatpak
   programs.dconf.enable = true;
