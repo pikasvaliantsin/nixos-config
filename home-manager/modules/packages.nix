@@ -32,13 +32,6 @@
     wl-clipboard
     cliphist
     nh
-    dgop
-    fuzzel
-    swaylock
-    wlogout
-    playerctl
-    brightnessctl
-    swww
 
     # Браузеры
     firefox

@@ -121,12 +121,9 @@
     fastfetch
     curl
     wget
-    niri
     xwayland-satellite
     bibata-cursors
     asusctl
-    greetd
-    tuigreet
   ];
 
   # ========================================
@@ -177,17 +174,6 @@
     ];
     config.common.default = "*";
   };
-
-  programs.dank-material-shell = {
-      enable = true;
-      enableSystemMonitoring = true;
-      dgop.package = inputs.dgop.packages.${pkgs.system}.default;
-    };
-    programs.dms-greeter = {
-      enable = true;
-      compositor.name = "niri"; # or hyprland, sway, labwc, mango, scroll, miracle
-      configHome = "/home/valen"; # copies that user's DMS settings (and wallpaper) into the greeter data directory before greetd starts
-    };
 
   # Критически важно для GTK-приложений (включая PortProton/YAD) и Flatpak
   programs.dconf.enable = true;

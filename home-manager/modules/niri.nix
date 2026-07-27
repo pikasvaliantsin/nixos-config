@@ -27,9 +27,9 @@
       # ==========================================
       # 2. Автозапуск программ
       # ==========================================
-      spawn-at-startup = [
-        { command = [ "swww-daemon" ]; }
-      ];
+      # spawn-at-startup = [
+      #   { command = [ "swww-daemon" ]; }
+      # ];
 
       # ==========================================
       # Оверлей горячих клавиш
@@ -124,10 +124,10 @@
         "Mod+D" = {
           action.spawn = [
             "walker"
-            # "rofi"
-            # "-show"
-            # "drun"
-            # "fuzzel"
+            "rofi"
+            "-show"
+            "drun"
+            "fuzzel"
           ];
         };
         # Вставка из истории буфера обмена
@@ -183,7 +183,7 @@
           ];
         };
         "Mod+N" = {
-          action.spawn = [
+         action.spawn = [
             "makoctl"
             "dismiss"
             "--all"
