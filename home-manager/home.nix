@@ -19,10 +19,10 @@
     ./modules/flatpak.nix
     ./modules/nixvim.nix
     inputs.nix-flatpak.homeManagerModules.nix-flatpak
-   # ./modules/desktop.nix
-    # ./modules/niri.nix
-   # ./modules/dms/danksearch.nix
+    # ./modules/desktop.nix
+    ./modules/niri.nix
+    # ./modules/dms/danksearch.nix
     ./modules/dms/dms.nix
-    ./modules/dms/dms-greeter.nix
+    #   ./modules/dms/dms-greeter.nix
   ];
 }

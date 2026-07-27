@@ -10,6 +10,8 @@
     ./hardware.nix
     inputs.dms.nixosModules.dank-material-shell
     inputs.dank-greeter.nixosModules.default
+    inputs.niri.nixosModules.niri
+
   ];
 
   # ========================================
@@ -62,6 +64,11 @@
   };
   security.rtkit.enable = true;
 
+  hardware.graphics = {
+    enable = true;
+    #enable3dbindings = true;
+  };
+
   # ========================================
   # USER
   # ========================================
@@ -73,6 +80,7 @@
       "video"
       "audio"
       "input"
+      "render"
       "networkmanager"
     ];
     shell = pkgs.fish;
@@ -164,20 +172,31 @@
   xdg.portal = {
     enable = true;
     extraPortals = with pkgs; [
-      xdg-desktop-portal-gtk # Базовые диалоги (выбор файлов и т.д.)
-      xdg-desktop-portal-gnome # Поддержка screencast (демонстрация экрана)
+      xdg-desktop-portal-gtk
+      xdg-desktop-portal-gnome
     ];
     configPackages = with pkgs; [
-      niri
+      pkgs.niri
       xdg-desktop-portal-gtk
       xdg-desktop-portal-gnome
     ];
     config.common.default = "*";
   };
 
-  # Критически важно для GTK-приложений (включая PortProton/YAD) и Flatpak
   programs.dconf.enable = true;
 
+  # Включаем системный Niri
+  programs.niri = {
+    enable = true;
+    package = pkgs.niri;
+  };
+
+  # Настраиваем Dank Greeter на уровне системы
+  programs.dms-greeter = {
+    enable = true;
+    compositor.name = "niri";
+    configHome = "/home/valen";
+  };
   # ========================================
   # VERSION
   # ========================================

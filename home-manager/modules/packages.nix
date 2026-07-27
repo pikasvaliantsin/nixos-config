@@ -43,6 +43,7 @@
     font-awesome
     material-design-icons
     nerd-fonts.symbols-only
+   # fira-code-6.2
 
     # Иконки
     hicolor-icon-theme # базовый набор
