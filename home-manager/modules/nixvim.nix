@@ -100,13 +100,15 @@
       };
       
       web-devicons.enable = true;
-      
+
       neo-tree = {
         enable = true;
-        filesystem = {
-          filteredItems = {       # <-- Вернули camelCase, как просит ошибка
-            hideDotfiles = false;
-            hideGitignored = false;
+        settings = {
+          filesystem = {
+            filtered_items = {
+              hide_gitignored = false; # поставь твои значения
+              hide_dotfiles = false;
+            };
           };
         };
       };

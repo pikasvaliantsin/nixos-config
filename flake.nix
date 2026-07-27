@@ -2,47 +2,47 @@
   description = "NixOS конфигурация с Niri";
 
   inputs = {
-      nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
-      nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
-  
-      home-manager = {
-        url = "github:nix-community/home-manager";
-        inputs.nixpkgs.follows = "nixpkgs";
-      };
-  
-       niri = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
+    nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    home-manager = {
+      url = "github:nix-community/home-manager";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    niri = {
       url = "github:sodiboo/niri-flake";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-   
-      dms = {
-       url = "github:AvengeMedia/DankMaterialShell/stable";
-       inputs.nixpkgs.follows = "nixpkgs";
-      };
-  
-      dgop = {
-        url = "github:AvengeMedia/dgop";
-       inputs.nixpkgs.follows = "nixpkgs";
-     };
-  
-     dank-greeter = {
-       url = "github:AvengeMedia/dank-greeter";
-       inputs.nixpkgs.follows = "nixpkgs";
-     };
-  
+
+    dms = {
+      url = "github:AvengeMedia/DankMaterialShell/stable";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    dgop = {
+      url = "github:AvengeMedia/dgop";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    dank-greeter = {
+      url = "github:AvengeMedia/dank-greeter";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     danksearch = {
       url = "github:AvengeMedia/danksearch";
       inputs.nixpkgs.follows = "nixpkgs";
-     };
-  
-      nix-flatpak.url = "github:gmodena/nix-flatpak";
-  
-      zoho-cliq.url = "github:skyd1v3r/zoho-cliq-flake";
-  
-      nixvim.url = "github:nix-community/nixvim";
     };
 
-  outputs =
+    nix-flatpak.url = "github:gmodena/nix-flatpak";
+
+    zoho-cliq.url = "github:skyd1v3r/zoho-cliq-flake";
+
+    nixvim.url = "github:nix-community/nixvim";
+  };
+
+ outputs =
     {
       self,
       nixpkgs,
@@ -54,25 +54,28 @@
     }@inputs:
     {
       nixosConfigurations.desktop = nixpkgs.lib.nixosSystem {
-        system = "x86_64-linux";
         specialArgs = { inherit inputs; };
         modules = [
+          { nixpkgs.hostPlatform = "x86_64-linux"; }
           ./hosts/desktop/configuration.nix
           home-manager.nixosModules.home-manager
-          {
-            home-manager = {
-              useGlobalPkgs = true;
-              useUserPackages = true;
-              users.valen = import ./home-manager/home.nix;
-              extraSpecialArgs = {
-                inherit inputs nixvim;
-                unstable = import inputs.nixpkgs-unstable {
-                  system = "x86_64-linux";
-                  config.allowUnfree = true;
+          (
+            { pkgs, ... }:
+            {
+              home-manager = {
+                useGlobalPkgs = true;
+                useUserPackages = true;
+                users.valen = import ./home-manager/home.nix;
+                extraSpecialArgs = {
+                  inherit inputs nixvim;
+                  unstable = import inputs.nixpkgs-unstable {
+                    localSystem = pkgs.stdenv.hostPlatform.system;
+                    config.allowUnfree = true;
+                  };
                 };
               };
-            };
-          }
+            }
+          )
         ];
       };
     };

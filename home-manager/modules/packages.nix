@@ -61,14 +61,14 @@
     yandex-music
     obs-studio
     obsidian
-    inputs.zoho-cliq.packages.${pkgs.system}.zoho-cliq
+    inputs.zoho-cliq.packages.${pkgs.stdenv.hostPlatform.system}.zoho-cliq
     bottles
     vesktop
 
     # === LSP серверы для NixVim ===
     nixd # Nix LSP (валидация, автодополнение)
     nil # Альтернативный Nix LSP (можно оба)
-    nixfmt-rfc-style # Форматировщик Nix-кода
+    pkgs.nixfmt # Форматировщик Nix-кода
 
     # Для других языков
     bash-language-server # Bash LSP

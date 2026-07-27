@@ -40,7 +40,7 @@ in
       enableKeybinds = false;
     };
 
-    dgop.package = inputs.dgop.packages.${pkgs.system}.default;
+    dgop.package = inputs.dgop.packages.${pkgs.stdenv.hostPlatform.system}.default;
   };
     xdg.configFile = {
             "niri/dms/alttab.kdl".source = mkLink "alttab.kdl";
