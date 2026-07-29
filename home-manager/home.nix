@@ -1,29 +1,15 @@
-{
-  config,
-  pkgs,
-  inputs,
-  unstable,
-  ...
-}:
+# nixos-config/home-manager/home.nix
+{ inputs, ... }:
 
 {
   imports = [
+    inputs.nix-flatpak.homeManagerModules.nix-flatpak
+    inputs.nixvim.homeModules.nixvim
     ./modules/core.nix
     ./modules/shell.nix
-    ./modules/git.nix
-    ./modules/terminal.nix
-    ./modules/programs.nix
-    ./modules/packages.nix
+    ./modules/apps.nix
+    ./modules/desktop.nix
     ./modules/editors.nix
-    ./modules/jetbrains.nix
-    ./modules/flatpak.nix
-    ./modules/nixvim.nix
-    inputs.nix-flatpak.homeManagerModules.nix-flatpak
-    # ./modules/desktop.nix
-    ./modules/niri.nix
-    # ./modules/dms/danksearch.nix
     ./modules/dms/dms.nix
-    ./modules/fonts.nix
-    #   ./modules/dms/dms-greeter.nix
   ];
 }

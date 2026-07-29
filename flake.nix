@@ -1,12 +1,13 @@
+# nixos-config/flake.nix
 {
-  description = "NixOS конфигурация с Niri";
+  description = "NixOS конфигурация Asus Expertbook (Niri + DMS)";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
     nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     home-manager = {
-      url = "github:nix-community/home-manager";
+      url = "github:nix-community/home-manager/release-26.05";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -30,53 +31,41 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    danksearch = {
-      url = "github:AvengeMedia/danksearch";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     nix-flatpak.url = "github:gmodena/nix-flatpak";
-
     zoho-cliq.url = "github:skyd1v3r/zoho-cliq-flake";
-
     nixvim.url = "github:nix-community/nixvim";
   };
 
- outputs =
+  outputs =
     {
       self,
       nixpkgs,
+      nixpkgs-unstable,
       home-manager,
-      niri,
-      dms,
-      nixvim,
       ...
     }@inputs:
+    let
+      system = "x86_64-linux";
+      unstable = import nixpkgs-unstable {
+        inherit system;
+        config.allowUnfree = true;
+      };
+    in
     {
-      nixosConfigurations.desktop = nixpkgs.lib.nixosSystem {
-        specialArgs = { inherit inputs; };
+      nixosConfigurations.asus-expertbook = nixpkgs.lib.nixosSystem {
+        specialArgs = { inherit inputs unstable; };
         modules = [
-          { nixpkgs.hostPlatform = "x86_64-linux"; }
-          ./hosts/desktop/configuration.nix
+          ./hosts/asus-expertbook/configuration.nix
           home-manager.nixosModules.home-manager
-          (
-            { pkgs, ... }:
-            {
-              home-manager = {
-                useGlobalPkgs = true;
-                useUserPackages = true;
-                backupFileExtension = "backup"; # <-- Опция задается ТУТ
-                users.valen = import ./home-manager/home.nix;
-                extraSpecialArgs = {
-                  inherit inputs nixvim;
-                  unstable = import inputs.nixpkgs-unstable {
-                    localSystem = pkgs.stdenv.hostPlatform.system;
-                    config.allowUnfree = true;
-                  };
-                };
-              };
-            }
-          )
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              backupFileExtension = "backup";
+              users.valen = import ./home-manager/home.nix;
+              extraSpecialArgs = { inherit inputs unstable; };
+            };
+          }
         ];
       };
     };
