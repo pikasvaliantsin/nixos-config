@@ -65,6 +65,7 @@
               home-manager = {
                 useGlobalPkgs = true;
                 useUserPackages = true;
+                backupFileExtension = "backup"; # <-- Опция задается ТУТ
                 users.valen = import ./home-manager/home.nix;
                 extraSpecialArgs = {
                   inherit inputs nixvim;

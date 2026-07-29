@@ -37,21 +37,6 @@
     firefox
     google-chrome
 
-    # Шрифты
-    jetbrains-mono
-    inter-nerdfont
-    font-awesome
-    material-design-icons
-    nerd-fonts.symbols-only
-   # fira-code-6.2
-
-    # Иконки
-    hicolor-icon-theme # базовый набор
-    adwaita-icon-theme # стандартные иконки GNOME
-    papirus-icon-theme # современный набор (рекомендую)
-    gnome-icon-theme # дополнительные иконки GNOME
-    font-awesome_6
-
     # Soft
     unstable.jetbrains-toolbox
     thunderbird

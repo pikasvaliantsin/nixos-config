@@ -23,6 +23,7 @@
     ./modules/niri.nix
     # ./modules/dms/danksearch.nix
     ./modules/dms/dms.nix
+    ./modules/fonts.nix
     #   ./modules/dms/dms-greeter.nix
   ];
 }

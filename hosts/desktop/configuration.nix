@@ -132,6 +132,8 @@
     xwayland-satellite
     bibata-cursors
     asusctl
+    gsettings-desktop-schemas
+    dconf
   ];
 
   # ========================================
@@ -166,24 +168,13 @@
   services.upower.enable = true;
   services.udisks2.enable = true;
 
-  # ========================================
-  # WAYLAND, PORTALS & DESKTOP
-  # ========================================
-  xdg.portal = {
-    enable = true;
-    extraPortals = with pkgs; [
-      xdg-desktop-portal-gtk
-      xdg-desktop-portal-gnome
-    ];
-    configPackages = with pkgs; [
-      pkgs.niri
-      xdg-desktop-portal-gtk
-      xdg-desktop-portal-gnome
-    ];
-    config.common.default = "*";
-  };
-
   programs.dconf.enable = true;
+
+  environment.sessionVariables = {
+    XDG_DATA_DIRS = [
+      "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
+    ];
+  };
 
   # Включаем системный Niri
   programs.niri = {
