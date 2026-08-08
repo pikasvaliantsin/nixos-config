@@ -32,7 +32,6 @@ in
     simple-scan
 
     # GUI Приложения & Браузеры
-    google-chrome
     thunderbird
     telegram-desktop
     yandex-music
@@ -40,8 +39,9 @@ in
     obsidian
     vesktop
     toolbox
-    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
     firefox
+    qbittorrent
+    coder
 
     imv # Для быстрых фоток по хоткеям
     loupe # Для удобного просмотра альбомов
@@ -50,6 +50,10 @@ in
 
     # Внешние Flakes
     inputs.zoho-cliq.packages.${pkgs.stdenv.hostPlatform.system}.zoho-cliq
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
+    inputs.aurelia.packages.${pkgs.stdenv.hostPlatform.system}.default
+    inputs.ayugram-desktop.packages.${pkgs.stdenv.hostPlatform.system}.default
+    inputs.pyroclear.packages.${pkgs.stdenv.hostPlatform.system}.default
 
     # LSP серверы & Dev Tools
     nixd
@@ -88,21 +92,28 @@ in
       { name = "*", mime = "*", use = [ "edit" ] }
     ]
   '';
-  # Интеграция JetBrains URL Scheme
-  xdg.dataFile."applications/jetbrainsd.desktop" = {
-    text = ''
-      [Desktop Entry]
-      Version=1.5
-      Name=JetBrains
-      Type=Application
-      NoDisplay=true
-      MimeType=x-scheme-handler/jetbrains;
-      Exec=${toolbox}/bin/jetbrains-toolbox %u
-    '';
-    force = true;
+  # Удали прошлый xdg.dataFile и добавь:
+  xdg.desktopEntries.jetbrainsd = {
+    name = "JetBrains";
+    noDisplay = false;
+    exec = "${toolbox}/bin/jetbrains-toolbox %u";
+    mimeType = [
+      "x-scheme-handler/jetbrains"
+      "x-scheme-handler/jetbrains-client"
+      "x-scheme-handler/jetbrains-gateway"
+      "x-scheme-handler/idea"
+    ];
   };
-  xdg.mimeApps.defaultApplications."x-scheme-handler/jetbrains" = "jetbrainsd.desktop";
 
+  xdg.mimeApps = {
+    enable = true;
+    defaultApplications = {
+      "x-scheme-handler/jetbrains" = "jetbrainsd.desktop";
+      "x-scheme-handler/jetbrains-client" = "jetbrainsd.desktop";
+      "x-scheme-handler/jetbrains-gateway" = "jetbrainsd.desktop";
+      "x-scheme-handler/idea" = "jetbrainsd.desktop";
+    };
+  };
   # Вспомогательный конфиг для dgop
   xdg.configFile."dgop/color.json".source = ./assets/dgop-color.json;
 }

@@ -49,6 +49,10 @@ in
     mangohud # Оверлей FPS / температуры / нагрузки
     fixSteamLayouts # Наш скрипт патчинга префиксов
     protonup-qt
+    cartridges
+    boilr
+    steamcmd
+    steam-tui
   ];
 
   # home.nix

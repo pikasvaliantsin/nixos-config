@@ -26,6 +26,8 @@
       edit = "nvim";
       cat = "bat";
       update = "cd ~/nixos-config && nh os switch .#asus-expertbook";
+      stui = "steam-tui -c steamcmd -s ~/.local/share/Steam -u valentaen312";
+      clear = "pyroclear";
     };
   };
 
@@ -37,7 +39,7 @@
         name = "Valentin Pikas";
         email = "pikasvaliantsin@github.com";
       };
-      core.editor = "micro";
+      core.editor = "nvim";
       init.defaultBranch = "main";
       color.ui = true;
       alias = {

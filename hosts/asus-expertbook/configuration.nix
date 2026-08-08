@@ -11,6 +11,7 @@
     ./hardware.nix
     inputs.dms.nixosModules.dank-material-shell
     inputs.dank-greeter.nixosModules.default
+    # ./custom-edid.nix
   ];
 
   # ========================================
@@ -50,6 +51,10 @@
     enable = true;
     extraBackends = [ pkgs.sane-airscan ];
   };
+
+  boot.kernelParams = [
+    "video=HDMI-A-1:2240x960MR-32@120"
+  ];
 
   # Служба для проброса IPP/eSCL через USB
   services.ipp-usb.enable = true;
@@ -96,8 +101,12 @@
   programs.xwayland.enable = true;
 
   # Включаем Steam системно
-  programs.steam.enable = true;
-
+  programs.steam = {
+    enable = true;
+    extraCompatPackages = with pkgs; [
+      proton-ge-bin
+    ];
+  };
   # 32-битная графика для Mesa (необходима для Steam и Proton)
   hardware.graphics = {
     enable = true;
@@ -123,6 +132,7 @@
     xwayland-satellite
     xkeyboard_config
     libxkbcommon
+    btrfs-progs
   ];
 
   # ========================================
@@ -200,6 +210,7 @@
     compositor.name = "niri";
     configHome = "/home/valen";
   };
+  systemd.services.greetd.restartIfChanged = false;
 
   services.dbus.packages = with pkgs; [
     xdg-desktop-portal-gnome
@@ -216,6 +227,25 @@
       "flakes"
     ];
     auto-optimise-store = true;
+  };
+
+  nixpkgs.overlays = [
+    (final: prev: {
+      minizip-ng-compat = prev.minizip-ng;
+    })
+  ];
+
+  nix.settings = {
+    substituters = [
+      "https://cache.nixos.org"
+      "https://ayugram-desktop.cachix.org"
+      "https://tg-owt.cachix.org"
+    ];
+    trusted-public-keys = [
+      "cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY="
+      "ayugram-desktop.cachix.org-1:AZ5EqHrJsAKL5YkZYLPEsb1FdD9QlypUwQ0REcJftgA="
+      "tg-owt.cachix.org-1:lp0BukIhSK3EIyLcDhDZ5zABgT48nmNp6t4SnZ0wr8w="
+    ];
   };
 
   nix.gc = {

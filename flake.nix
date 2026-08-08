@@ -31,10 +31,19 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    ayugram-desktop = {
+      url = "github:ndfined-crp/ayugram-desktop";
+      # Если ayugram требует unstable-пакеты, перевязываем его на unstable:
+      inputs.nixpkgs.follows = "nixpkgs-unstable";
+    };
+
     nix-flatpak.url = "github:gmodena/nix-flatpak";
     zoho-cliq.url = "github:skyd1v3r/zoho-cliq-flake";
     nixvim.url = "github:nix-community/nixvim";
     disko.url = "github:nix-community/disko";
+    aurelia.url = "github:Drackrath/Aurelia";
+    aurelia-tui.url = "github:skyd1v3r/aurelia-tui-flake";
+    pyroclear.url = "github:shreyanth-sureshkrishnaa/pyroclear";
   };
 
   outputs =
@@ -57,11 +66,20 @@
       nixosConfigurations.asus-expertbook = nixpkgs.lib.nixosSystem {
         specialArgs = { inherit inputs unstable; };
         modules = [
-          # disko.nixosModules.disko
-          # ./hosts/asus-expertbook/disko-config.nix
+          disko.nixosModules.disko
+          ./hosts/asus-expertbook/disko-config.nix
           ./hosts/asus-expertbook/configuration.nix
           home-manager.nixosModules.home-manager
+
+          # Системная настройка nixpkgs и оверлей
           {
+            nixpkgs.overlays = [
+              (final: prev: {
+                # Если prev.minizip-ng отсутствует, берём из unstable или фоллбэчимся
+                minizip-ng-compat = prev.minizip-ng or unstable.minizip-ng or prev.minizip;
+              })
+            ];
+
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;
