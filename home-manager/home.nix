@@ -11,5 +11,6 @@
     ./modules/desktop.nix
     ./modules/editors.nix
     ./modules/dms/dms.nix
+    ./modules/games.nix
   ];
 }

@@ -1,0 +1,105 @@
+input {
+    keyboard {
+        xkb {
+            layout "us,ru"
+            model ""
+            rules ""
+            variant ""
+            options "grp:win_space_toggle,compose:ralt,ctrl:nocaps"
+        }
+        repeat-delay 600
+        repeat-rate 25
+        track-layout "global"
+    }
+    touchpad {
+        tap
+        natural-scroll
+    }
+}
+output "HDMI-A-1" {
+    scale 1.000000
+    focus-at-startup
+    transform "normal"
+    position x=0 y=0
+    mode "3440x1440@50.000000"
+}
+output "eDP-1" {
+    scale 1.000000
+    transform "normal"
+    position x=3440 y=0
+    mode "1920x1080@60.000000"
+}
+screenshot-path "~/Pictures/Screenshots/%Y-%m-%d_%H-%M-%S.png"
+layout {
+    gaps 12
+    struts {
+        left 0
+        right 0
+        top 0
+        bottom 0
+    }
+    focus-ring {
+        width 2
+        urgent-color "#ff5555"
+        active-color "#bd93f9"
+        inactive-color "#6272a4"
+    }
+    border { off; }
+    background-color "transparent"
+    tab-indicator {
+        gap 5.000000
+        width 4.000000
+        length total-proportion=0.500000
+        position "left"
+        gaps-between-tabs 0.000000
+        corner-radius 0.000000
+        urgent-color "#ff5555"
+        active-color "#bd93f9"
+        inactive-color "#6272a4"
+    }
+    insert-hint { color "#bd93f980"; }
+    default-column-width { proportion 0.500000; }
+    center-focused-column "never"
+}
+cursor {
+    xcursor-theme "default"
+    xcursor-size 24
+}
+environment {
+    "GTK_USE_PORTAL" "1"
+    "MOZ_ENABLE_WAYLAND" "1"
+    "NIXOS_OZONE_WL" "1"
+    "WLR_NO_HARDWARE_CURSORS" "1"
+}
+binds {
+    Mod+B { spawn "zen"; }
+    Mod+Return { spawn "alacritty"; }
+    Mod+T { spawn "alacritty"; }
+    "Shift+Page_Up" repeat=false { spawn "./scripts/toogle_key.sh"; }
+    Super+G repeat=false { spawn "steam"; }
+    Super+Shift+B { spawn "google-chrome"; }
+    Super+Shift+S { screenshot; }
+}
+spawn-at-startup "dbus-update-activation-environment" "--systemd" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=Niri:GNOME" "DISPLAY"
+spawn-at-startup "dms" "run"
+window-rule {
+    geometry-corner-radius 12.000000 12.000000 12.000000 12.000000
+    clip-to-geometry true
+}
+window-rule {
+    match app-id="^org.gnome.Calculator$"
+    match app-id="^org.keepassxc.KeePassXC$"
+    open-floating true
+}
+window-rule {
+    match app-id="xdg-desktop-portal-gtk"
+    default-column-width { fixed 900; }
+    default-window-height { fixed 600; }
+    open-on-output "focused"
+    geometry-corner-radius 12.000000 12.000000 12.000000 12.000000
+}
+window-rule {
+    match app-id="^zen" title="^Picture-in-Picture$"
+    open-floating true
+}
+gestures { hot-corners { off; }; }

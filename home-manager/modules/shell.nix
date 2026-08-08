@@ -6,8 +6,8 @@
   programs.fish = {
     enable = true;
     shellInit = ''
-      set -gx EDITOR micro
-      set -gx VISUAL micro
+      set -gx EDITOR nvim
+      set -gx VISUAL nvim
       set -gx XDG_CURRENT_DESKTOP Niri
       set -gx XDG_SESSION_TYPE wayland
       set -g fish_greeting ""
@@ -23,7 +23,7 @@
       ll = "ls -l";
       la = "ls -a";
       tree = "lsd --tree";
-      edit = "micro";
+      edit = "nvim";
       cat = "bat";
       update = "cd ~/nixos-config && nh os switch .#asus-expertbook";
     };

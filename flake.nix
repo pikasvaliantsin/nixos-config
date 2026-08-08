@@ -11,11 +11,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    niri = {
-      url = "github:sodiboo/niri-flake";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     dms = {
       url = "github:AvengeMedia/DankMaterialShell/stable";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -31,9 +26,15 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    zen-browser = {
+      url = "github:youwen5/zen-browser-flake";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     nix-flatpak.url = "github:gmodena/nix-flatpak";
     zoho-cliq.url = "github:skyd1v3r/zoho-cliq-flake";
     nixvim.url = "github:nix-community/nixvim";
+    disko.url = "github:nix-community/disko";
   };
 
   outputs =
@@ -42,6 +43,7 @@
       nixpkgs,
       nixpkgs-unstable,
       home-manager,
+      disko,
       ...
     }@inputs:
     let
@@ -55,6 +57,8 @@
       nixosConfigurations.asus-expertbook = nixpkgs.lib.nixosSystem {
         specialArgs = { inherit inputs unstable; };
         modules = [
+          # disko.nixosModules.disko
+          # ./hosts/asus-expertbook/disko-config.nix
           ./hosts/asus-expertbook/configuration.nix
           home-manager.nixosModules.home-manager
           {

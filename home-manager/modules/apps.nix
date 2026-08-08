@@ -15,7 +15,6 @@ in
     # Файловые менеджеры и CLI утилиты
     alacritty
     yazi
-    micro
     lsd
     tree
     bat
@@ -27,10 +26,12 @@ in
     cliphist
     fastfetch
     nh
-    nautilus
+    lazygit
+    lazyssh
+    xrandr
+    simple-scan
 
     # GUI Приложения & Браузеры
-    firefox
     google-chrome
     thunderbird
     telegram-desktop
@@ -38,21 +39,21 @@ in
     obs-studio
     obsidian
     vesktop
-    unstable.jetbrains-toolbox
+    toolbox
+    inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default
+    firefox
 
-    # Игры
-    steam
-    gamescope
-    bottles
-
+    imv # Для быстрых фоток по хоткеям
+    loupe # Для удобного просмотра альбомов
+    mpv # Для видео
+    celluloid # GUI-оболочка для mpv
 
     # Внешние Flakes
     inputs.zoho-cliq.packages.${pkgs.stdenv.hostPlatform.system}.zoho-cliq
 
     # LSP серверы & Dev Tools
     nixd
-    nil
-    nixfmt-rfc-style
+    nixfmt
     bash-language-server
     yaml-language-server
     taplo
@@ -62,15 +63,31 @@ in
     gcc
   ];
 
+  # home-manager/default.nix
+  services.udiskie = {
+    enable = true;
+    automount = true;
+    notify = true;
+  };
+
   # Конфигурация Yazi
   xdg.configFile."yazi/yazi.toml".text = ''
-    [opener]
-    edit = [ { run = 'micro "$@"', block = true } ]
-    [manager]
-    show_hidden = true
-    sort_by = "natural"
-  '';
+      [manager]
+      show_hidden = true
+      sort_by = "natural"
 
+      [opener]
+      edit = [ { run = 'nvim "$@"', block = true } ]
+      open_image = [ { run = 'imv "$@"', orphan = true } ]
+      open_video = [ { run = 'mpv "$@"', orphan = true } ]
+
+      [open]
+    rules = [
+      { mime = "image/*", use = [ "open_image" ] },
+      { mime = "video/*", use = [ "open_video" ] },
+      { name = "*", mime = "*", use = [ "edit" ] }
+    ]
+  '';
   # Интеграция JetBrains URL Scheme
   xdg.dataFile."applications/jetbrainsd.desktop" = {
     text = ''
@@ -85,35 +102,6 @@ in
     force = true;
   };
   xdg.mimeApps.defaultApplications."x-scheme-handler/jetbrains" = "jetbrainsd.desktop";
-
-  # Flatpak декларация
-  services.flatpak = {
-    enable = true;
-    remotes = [
-      {
-        name = "flathub";
-        location = "https://flathub.org/repo/flathub.flatpakrepo";
-      }
-    ];
-    packages = [ "ru.linux_gaming.PortProton" ];
-    update.onActivation = true;
-
-    overrides.settings."ru.linux_gaming.PortProton" = {
-      Context = {
-        sockets = [
-          "wayland"
-          "fallback-x11"
-        ];
-        devices = [ "dri" ];
-        share = [ "ipc" ];
-      };
-      Environment = {
-        XDG_CURRENT_DESKTOP = "GNOME";
-        GSK_RENDERER = "cairo";
-        GDK_BACKEND = "";
-      };
-    };
-  };
 
   # Вспомогательный конфиг для dgop
   xdg.configFile."dgop/color.json".source = ./assets/dgop-color.json;
