@@ -1,0 +1,259 @@
+# nixos-config/home-manager/modules/shell/fish.nix
+{ pkgs, ... }:
+
+{
+  # Fish Shell
+  programs.fish = {
+    enable = true;
+    shellInit = ''
+      set -gx EDITOR nvim
+      set -gx VISUAL nvim
+      set -gx XDG_CURRENT_DESKTOP Niri
+      set -gx XDG_SESSION_TYPE wayland
+      set -g fish_greeting ""
+      set -g __fish_git_prompt_show_informative_status 1
+    '';
+
+    interactiveShellInit = ''
+      fastfetch
+    '';
+
+    functions = {
+      # sops-init: сканирует все хостовые SSH-ключи, конвертирует в age,
+      # записывает список публичных age-ключей в .sops.yaml
+      sops-init = ''
+        set -l SOPS_CONFIG (git rev-parse --show-toplevel 2>/dev/null || echo .)/.sops.yaml
+        set -l SECRETS_FILE (git rev-parse --show-toplevel 2>/dev/null || echo .)/secrets/secrets.yaml
+
+        if not test -f $SOPS_CONFIG
+            echo "Ошибка: .sops.yaml не найден в корне репозитория"
+            return 1
+        end
+
+        # Сканируем все приватные ключи ssh_host_*_key
+        set -l AGE_KEYS
+        set -l FOUND_KEYS
+
+        for keyfile in /etc/ssh/ssh_host_*_key
+            if not test -f $keyfile
+                continue
+            end
+
+            # Извлекаем публичный ключ и конвертируем в age
+            set -l age_pub (ssh-keygen -y -f $keyfile 2>/dev/null | ssh-to-age 2>/dev/null)
+            if test -z "$age_pub"
+                echo "⚠ Пропущен $keyfile (не удалось сконвертировать в age)"
+                continue
+            end
+
+            set -l keyname (basename $keyfile)
+            echo "✓ $keyname → $age_pub"
+            set -a AGE_KEYS $age_pub
+            set -a FOUND_KEYS $keyname
+        end
+
+        if test -z "$AGE_KEYS"
+            echo "Ошибка: не найдено ни одного хостового SSH-ключа в /etc/ssh/"
+            echo "Создай ключи: ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N \"\""
+            return 1
+        end
+
+        # Формируем строку: "age1xxx,age1xxx,age1xxx"
+        set -l AGE_PUB_JOINED (string join "," $AGE_KEYS)
+
+        # Подставляем в .sops.yaml (заменяем плейсхолдер ИЛИ перезаписываем age: строку)
+        if grep -q "INSERT_AGE_PUBLIC_KEY_HERE" $SOPS_CONFIG 2>/dev/null
+            sed -i "s/INSERT_AGE_PUBLIC_KEY_HERE/$AGE_PUB_JOINED/" $SOPS_CONFIG
+        else
+            # Заменяем существующую строку age:
+            sed -i "s/^    age: .*/    age: $AGE_PUB_JOINED/" $SOPS_CONFIG
+        end
+
+        echo ""
+        echo "✓ .sops.yaml обновлён с " (count $AGE_KEYS) " ключом(ами):"
+        for key in $FOUND_KEYS
+            echo "    - $key"
+        end
+
+        if test -f $SECRETS_FILE
+            echo "✓ secrets/secrets.yaml найден — используй 'sops-edit' для редактирования"
+        else
+            echo "⚠ secrets/secrets.yaml не найден — создай пустой YAML-файл"
+        end
+      '';
+
+      # sops-edit: открывает secrets/secrets.yaml, автоматически
+      # собирая age private keys из всех доступных хостовых SSH-ключей
+      sops-edit = ''
+        set -l SECRETS_FILE (git rev-parse --show-toplevel 2>/dev/null || echo .)/secrets/secrets.yaml
+
+        if not test -f $SECRETS_FILE
+            echo "Ошибка: secrets/secrets.yaml не найден"
+            echo "Создай файл и запусти 'sops-init' для первичной настройки"
+            return 1
+        end
+
+        # Собираем все приватные age-ключи из хостовых SSH-ключей
+        set -l AGE_PRIV_KEYS
+        for keyfile in /etc/ssh/ssh_host_*_key
+            if not test -f $keyfile
+                continue
+            end
+            set -l age_priv (ssh-to-age -private-key -i $keyfile 2>/dev/null)
+            if test -n "$age_priv"
+                set -a AGE_PRIV_KEYS $age_priv
+            end
+        end
+
+        if test -z "$AGE_PRIV_KEYS"
+            echo "Ошибка: не найдено ни одного хостового SSH-ключа для расшифровки"
+            return 1
+        end
+
+        # Объединяем ключи через перевод строки — sops понимает формат newline-separated
+        set -l SOPS_AGE_KEY_STRING (string join "\n" $AGE_PRIV_KEYS)
+
+        echo "Используются ключи из: " (count $AGE_PRIV_KEYS) " хостового(ых) SSH-ключа(ей)"
+        SOPS_AGE_KEY="$SOPS_AGE_KEY_STRING" sops $SECRETS_FILE
+      '';
+
+      # sops-rekey: переподписывает secrets.yaml под новые ключи из .sops.yaml
+      # Полезно при добавлении нового хоста или удалении старого
+      sops-rekey = ''
+        set -l SOPS_CONFIG (git rev-parse --show-toplevel 2>/dev/null || echo .)/.sops.yaml
+        set -l SECRETS_FILE (git rev-parse --show-toplevel 2>/dev/null || echo .)/secrets/secrets.yaml
+
+        if not test -f $SECRETS_FILE
+            echo "Ошибка: secrets/secrets.yaml не найден"
+            return 1
+        end
+
+        if not test -f $SOPS_CONFIG
+            echo "Ошибка: .sops.yaml не найден в корне репозитория"
+            return 1
+        end
+
+        echo "Текущие creation_rules из .sops.yaml:"
+        grep "age:" $SOPS_CONFIG
+        echo ""
+
+        # Показываем текущие ключи в secrets.yaml
+        echo "Ключи, которыми зашифрован secrets/secrets.yaml:"
+        sops --list-sops $SECRETS_FILE 2>/dev/null
+        echo ""
+
+        # Переподписываем секреты под ключи из .sops.yaml
+        sops updatekeys $SECRETS_FILE
+      '';
+
+      # sops-import-key: считывает приватный SSH-ключ и зашифровывает
+      # его содержимое в secrets/secrets.yaml под ключом github_ssh_key
+      sops-import-key = ''
+        set -l SSH_KEY "$argv[1]"
+        if test -z "$SSH_KEY"
+            set SSH_KEY ~/.ssh/id_ed25519
+        end
+
+        # Разворачиваем ~ до полного пути
+        if string match -q "~/*" "$SSH_KEY"
+            set SSH_KEY (string replace "~" $HOME "$SSH_KEY")
+        end
+
+        if not test -f "$SSH_KEY"
+            echo "Ошибка: файл не найден: $SSH_KEY"
+            return 1
+        end
+
+        set -l SECRETS_FILE (git rev-parse --show-toplevel 2>/dev/null || echo .)/secrets/secrets.yaml
+
+        if not test -f $SECRETS_FILE
+            echo "Ошибка: secrets/secrets.yaml не найден"
+            echo "Запусти сначала 'sops-init'"
+            return 1
+        end
+
+        set -l REPO_ROOT (git rev-parse --show-toplevel 2>/dev/null || echo .)
+
+        # Собираем приватные age-ключи для расшифровки/шифрования
+        set -l AGE_PRIV_KEYS
+        for keyfile in /etc/ssh/ssh_host_*_key
+            if not test -f $keyfile
+                continue
+            end
+            set -l age_priv (ssh-to-age -private-key -i $keyfile 2>/dev/null)
+            if test -n "$age_priv"
+                set -a AGE_PRIV_KEYS $age_priv
+            end
+        end
+
+        # Считываем ключ целиком (многострочный)
+        echo "Чтение ключа: $SSH_KEY"
+        set -l KEY_LINES (cat "$SSH_KEY")
+
+        echo "Шифрование и запись в secrets/secrets.yaml..."
+
+        # sops --set принимает JSON-подобный путь и значение.
+        # Для многострочных значений используем sops --encrypt --input-type yaml
+        # с временным файлом, который содержит ТОЛЬКО обновляемый ключ,
+        # а затем merge-им в основной файл через sops -i --encrypt.
+        set -l TMP_YAML (mktemp --suffix .yaml)
+        printf 'github_ssh_key: |\n' > $TMP_YAML
+        for line in $KEY_LINES
+            printf '  %s\n' "$line" >> $TMP_YAML
+        end
+
+        # Если secrets.yaml пустой или содержит только плейсхолдер — шифруем напрямую
+        set -l LINE_COUNT (wc -l < $SECRETS_FILE)
+        if test "$LINE_COUNT" -le 3
+            if test -n "$AGE_PRIV_KEYS"
+                SOPS_AGE_KEY=(string join "\n" $AGE_PRIV_KEYS) sops --encrypt --input-type yaml $TMP_YAML > $SECRETS_FILE
+            else
+                sops --encrypt --input-type yaml $TMP_YAML > $SECRETS_FILE
+            end
+        else
+            # Файл уже содержит секреты — используем --set для обновления одного ключа
+            # Формируем JSON-значение: экранируем переносы строк
+            set -l KEY_JSON (cat "$SSH_KEY" | string join "\\n")
+            set -l SOPS_ARGS -i --set '["github_ssh_key"]' -- "github_ssh_key: |\n  $KEY_JSON"
+            if test -n "$AGE_PRIV_KEYS"
+                SOPS_AGE_KEY=(string join "\n" $AGE_PRIV_KEYS) sops $SOPS_ARGS $SECRETS_FILE
+            else
+                sops $SOPS_ARGS $SECRETS_FILE
+            end
+        end
+
+        set -l EXIT $status
+        rm -f $TMP_YAML
+
+        if test $EXIT -eq 0
+            echo ""
+            echo "✓ SSH-ключ импортирован в secrets/secrets.yaml"
+            echo "  Ключ: $SSH_KEY"
+            echo "  Секрет: github_ssh_key"
+            echo ""
+            echo "Зафиксируй изменения:"
+            echo "  cd $REPO_ROOT && git add secrets/secrets.yaml"
+            echo "  git commit -m 'chore(secrets): import github_ssh_key'"
+        else
+            echo "Ошибка: не удалось зашифровать секрет"
+            echo "Проверь, что age-ключи в .sops.yaml корректны"
+            return 1
+        end
+      '';
+    };
+
+    shellAliases = {
+      ls = "lsd";
+      ll = "ls -l";
+      la = "ls -a";
+      ff = "fastfetch";
+      tree = "lsd --tree";
+      edit = "nvim";
+      cat = "bat";
+      update = "cd ~/nixos-config && nh os switch .#asus-expertbook";
+      upgrade = "cd ~/nixos-config && nix flake update";
+      stui = "steam-tui -c steamcmd -s ~/.local/share/Steam -u valentaen312";
+      clear = "pyroclear";
+    };
+  };
+}

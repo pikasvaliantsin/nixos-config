@@ -1,13 +1,35 @@
-{ pkgs, config, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  inputs,
+  ...
+}:
 
 let
   configPath = "${config.home.homeDirectory}/nixos-config/home-manager/modules/niri";
   mkLink = file: config.lib.file.mkOutOfStoreSymlink "${configPath}/${file}";
 in
 {
+  imports = [
+    ./dms/dms.nix
+    inputs.dux-files.homeModules.dux-files
+  ];
+
+  # DMS отключён по умолчанию (включить через mySystem.dms.enable)
+  mySystem.dms.enable = false;
+  programs.dux-files.enable = true;
+
   # Подключаем основной config.kdl через symlink
   xdg.configFile."niri/config.kdl".source = mkLink "config.kdl";
   xdg.configFile."niri/hm.kdl".source = mkLink "hm.kdl";
+
+  # Автоматическое монтирование съёмных носителей
+  services.udiskie = {
+    enable = true;
+    automount = true;
+    notify = true;
+  };
 
   # Fontconfig & Шрифты
   fonts.fontconfig.enable = true;
@@ -28,7 +50,6 @@ in
     hicolor-icon-theme
     adwaita-icon-theme
     papirus-icon-theme
-    gnome-icon-theme
     font-awesome_6
     catppuccin-gtk
   ];

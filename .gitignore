@@ -1,25 +1,35 @@
-# Nix
-result/
-result-*
+# --- NixOS/Nix Cache Symlink ---
+result
+result-[^/]*
+# --- Direnv ---
 .direnv/
 .envrc
+# --- Nix Derivations & Outputs ---
 *.drv
+*.nar
+*.nar.xz
 *.out
-
-# Home Manager
-home-manager/result/
+# --- Home Manager ---
+home-manager/result
 home-manager/.home-manager-*
-
-# Secrets
-secrets/*.age
+# --- QEMU / VM Disks ---
+*.qcow2
+*.qcow2.*
+*.img
+*.vmdk
+# --- Age Key Files ---
 *.age
-
-# Editor
+# --- Secrets Data ---
+secrets/secrets.decrypted
+# --- Editors ---
 *.swp
 *.swo
 *~
 .DS_Store
 Thumbs.db
-
-# Logs
+# --- Logs ---
 *.log
+.aider*
+# --- IDE ---
+.idea/
+.vscode/

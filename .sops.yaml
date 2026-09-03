@@ -1,0 +1,22 @@
+# .sops.yaml — конфигурация для шифрования секретов
+#
+# ────────────────────────────────────────────────────────────────────────────
+# КАК ПОЛУЧИТЬ AGE-КЛЮЧ ИЗ SSH-КЛЮЧА ХОСТА:
+#
+#   ssh-keygen -y -f /etc/ssh/ssh_host_ed25519_key | ssh-to-age
+#
+# ВАРИАНТ Б — ЛИЧНЫЙ AGE-КЛЮЧ (не зависит от хоста):
+#
+#   nix shell nixpkgs#age -c age-keygen -o ~/.config/sops/age/keys.txt
+#   cat ~/.config/sops/age/keys.txt   # покажет публичный key: age1...
+#
+#   Затем добавь этот ключ ВМЕСТЕ с хостовым, через запятую:
+#     age: age1host...,age1personal...
+# ────────────────────────────────────────────────────────────────────────────
+
+creation_rules:
+  - path_regex: secrets/secrets\.yaml$
+    # AGE-ключи: хостовый SSH-ключ (обязательно) + личный master key (опционально)
+    # Разделяются запятой. sops-init подставляет их автоматически.
+    age: >-
+      INSERT_AGE_PUBLIC_KEY_HERE

@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(nix *)",
+      "Bash(git add *)",
+      "Bash(git mv *)",
+      "Bash(git rm *)",
+      "Bash(mkdir *)",
+      "Bash(mv *)",
+      "Bash(true)",
+      "Bash(nh *)",
+      "Bash(du *)",
+      "Bash(systemctl *)",
+      "Bash(grep *)",
+      "Bash(cat *)",
+      "Read(//home/valen/nixos-config-ref/home-manager/modules/**)",
+      "Bash(nmcli *)",
+      "Bash(resolvectl *)",
+      "Bash(ip *)",
+      "Bash(wg *)",
+      "WebFetch(github.com)",
+      "Bash(aurelia-tui)",
+      "Bash(strace *)",
+      "Bash(git show *)",
+      "Bash(git *)",
+      "Bash(do *)",
+      "Bash(done)",
+      "Bash(python3 *)"
+    ]
+  },
+  "$version": 4
+}

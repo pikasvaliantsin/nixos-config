@@ -1,36 +1,36 @@
 # home-manager/modules/dms/dms.nix
-{
-  config,
-  pkgs,
-  inputs,
-  ...
-}:
+{ config, pkgs, lib, inputs, ... }:
 
 let
-  dmsPath = "${config.home.homeDirectory}/nixos-config/home-manager/modules/dms/config";
-  mkLink = file: config.lib.file.mkOutOfStoreSymlink "${dmsPath}/${file}";
+  cfg = config.mySystem.dms;
+  dmsConfig = ./config;
 in
 {
+  options.mySystem.dms.enable = lib.mkEnableOption "Dank Material Shell and extensions" // {
+    default = false;
+  };
+
   imports = [
     inputs.dms.homeModules.dank-material-shell
   ];
 
-  programs.dank-material-shell = {
-    enable = true;
-    dgop.package = inputs.dgop.packages.${pkgs.stdenv.hostPlatform.system}.default;
-  };
-  systemd.user.services.dms.Service = {
-    Restart = "always";
-    RestartSec = "1s";
-  };
-  xdg.configFile = {
-    "niri/dms/alttab.kdl".source = mkLink "alttab.kdl";
-    "niri/dms/binds.kdl".source = mkLink "binds.kdl";
-    "niri/dms/colors.kdl".source = mkLink "colors.kdl";
-    "niri/dms/cursor.kdl".source = mkLink "cursor.kdl";
-    "niri/dms/layout.kdl".source = mkLink "layout.kdl";
-    "niri/dms/outputs.kdl".source = mkLink "outputs.kdl";
-    "niri/dms/windowrules.kdl".source = mkLink "windowrules.kdl";
-    "niri/dms/wpblur.kdl".source = mkLink "wpblur.kdl";
+  config = {
+    # Конфиги ДМС доступны всегда (для импортов в niri/config.kdl),
+    # даже если сам DMS отключён как служба или пакет.
+    xdg.configFile."niri/dms" = {
+      source = dmsConfig;
+      recursive = true;
+    };
+
+    # Остальное работает только при включённом DMS
+  } // lib.mkIf cfg.enable {
+    programs.dank-material-shell = {
+      enable = true;
+      # dgop.package обновлён в новой версии DMS (используй программы.plugins)
+      # dgop.package = inputs.dgop.packages.${pkgs.stdenv.hostPlatform.system}.default;
+    };
+
+    systemd.user.services.dms.restartIfChanged = false;
+    systemd.user.services.dms.RestartSec = "5s";
   };
 }

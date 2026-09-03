@@ -4,7 +4,7 @@ input {
             layout "us,ru"
             model ""
             rules ""
-            variant ""
+            variant "us,ru"
             options "grp:win_space_toggle,compose:ralt,ctrl:nocaps"
         }
         repeat-delay 600
@@ -73,8 +73,8 @@ environment {
 }
 binds {
     Mod+B { spawn "zen"; }
-    Mod+Return { spawn "alacritty"; }
-    Mod+T { spawn "alacritty"; }
+    Mod+Return { spawn "ghostty"; }
+    Mod+T { spawn "ghostty"; }
     "Shift+Page_Up" repeat=false { spawn "./scripts/toogle_key.sh"; }
     Super+G repeat=false { spawn "steam"; }
     Super+Shift+B { spawn "google-chrome"; }
@@ -82,6 +82,9 @@ binds {
 }
 spawn-at-startup "dbus-update-activation-environment" "--systemd" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=Niri:GNOME" "DISPLAY"
 spawn-at-startup "dms" "run"
+hotkey-overlay{
+  skip-at-startup
+}
 window-rule {
     geometry-corner-radius 12.000000 12.000000 12.000000 12.000000
     clip-to-geometry true
@@ -103,3 +106,6 @@ window-rule {
     open-floating true
 }
 gestures { hot-corners { off; }; }
+
+
+
