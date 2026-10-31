@@ -1,21 +1,26 @@
 # Project Context & Rules for Qwen Code
 
 ## Existing Repository Structure
-- `hosts/asus-expertbook/` — Host-specific system configuration (`configuration.nix`, `hardware.nix`, `disko-config.nix`, `custom-edid.nix`).
-- `home-manager/` — User environment configuration entry point (`home.nix`).
-- `home-manager/modules/` — Home Manager components:
-  - `desktop.nix`, `shell.nix`, `editors.nix`, `apps.nix`, `games.nix`, `core.nix`.
-  - Subdirectories: `dms/` (desktop management script/config) and `niri/` (`config.kdl`, `hm.kdl`).
+- `flake.nix` — inputs, `nixosConfigurations`, `formatter`.
+- `hosts/asus-expertbook/` — host-specific system configuration:
+  - `configuration.nix` — import-хаб, `hostName`, `stateVersion`.
+  - `hardware.nix`, `disko.nix`, `sops.nix`.
+  - `system/` — boot, locale, networking, nix, overlays, graphics, gaming, services, printing, users, packages.
+  - `desktop/` — `niri.nix` (Niri + DMS + greeter), `custom-edid.nix`.
+- `home-manager/` — user environment:
+  - `home.nix` — import-хаб.
+  - `modules/core.nix` — `home.*` и `mySystem.dotfilesRoot`.
+  - `modules/shell/`, `editors/`, `browsers/`, `comms/`, `media/`, `productivity/`, `desktop/`, `dms/`, `niri/`, `games/`.
 
 ## Key Refactoring Guidelines
 1. **Modularity**:
-   - Keep system-level modules under `hosts/asus-expertbook/` or a global `modules/` directory if shared.
+   - Keep system-level modules under `hosts/asus-expertbook/system/` or `desktop/`.
    - Keep user-level modules under `home-manager/modules/`.
-   - Always connect new sub-modules via `imports = [ ... ];` in parent files.
+   - Always connect new sub-modules via `imports = [ ... ];` in parent hub files (`configuration.nix`, `home.nix`, `shell.nix`, `desktop/default.nix`).
 
 2. **Immutable Elements**:
-   - Never remove or modify filesystem mounts (`fileSystems`), `swapDevices`, or `virtualisation.vmVariant` settings in `configuration.nix`.
-   - Preserve existing Btrfs and Disko integration.
+   - Never remove or modify filesystem mounts, `swapDevices`, or `virtualisation.vmVariant` settings.
+   - Preserve existing Btrfs and Disko integration (`hosts/asus-expertbook/disko.nix`).
 
 3. **Code Style**:
    - Standard Nix syntax with 2-space indentation.
