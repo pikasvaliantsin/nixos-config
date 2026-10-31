@@ -81,7 +81,8 @@ binds {
     Super+Shift+S { screenshot; }
 }
 spawn-at-startup "dbus-update-activation-environment" "--systemd" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=Niri:GNOME" "DISPLAY"
-spawn-at-startup "dms" "run"
+// DMS запускается как systemd-юнит (programs.dank-material-shell.systemd.enable),
+// поэтому здесь его больше не спавним — иначе будет второй экземпляр.
 hotkey-overlay{
   skip-at-startup
 }

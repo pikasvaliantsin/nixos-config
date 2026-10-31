@@ -1,0 +1,175 @@
+{
+  "materialWallpapers": {
+    "": {
+      "shared": {
+        "preset": "dank",
+        "seed": "#bbc4fb"
+      }
+    }
+  },
+  "weatherLocation": "",
+  "weatherCoordinates": "52.4238936,31.0131698",
+  "desktopWidgetInstancePositions": {
+    "dw_1789216553363_m53a38fgc": {
+      "eDP-1": {
+        "width": 1919.78125,
+        "height": 1079,
+        "x": 0.21875,
+        "y": 1
+      },
+      "HDMI-A-1": {
+        "width": 320,
+        "height": 480,
+        "x": 0,
+        "y": 0
+      },
+      "_synced": {
+        "x": 0.4166666666666667,
+        "y": 0.2777777777777778,
+        "width": 320,
+        "height": 480
+      },
+      "": {
+        "width": 160,
+        "height": 180,
+        "x": 0,
+        "y": 0
+      }
+    },
+    "dw_1789216643507_3i4xfj2km": {
+      "eDP-1": {
+        "width": 200,
+        "height": 200,
+        "x": 860,
+        "y": 440
+      },
+      "HDMI-A-1": {
+        "width": 200,
+        "height": 200,
+        "x": 942.453125,
+        "y": 426.01953125
+      }
+    }
+  },
+  "lockScreenAutoPositions": {
+    "eDP-1": {
+      "width": 1920,
+      "height": 1080,
+      "positions": {}
+    },
+    "HDMI-A-1": {
+      "width": 2240,
+      "height": 960,
+      "positions": {}
+    }
+  },
+  "terminalOverride": "ghostty",
+  "dockPins": {
+    "dock": [
+      "com.mitchellh.ghostty",
+      "com.ayugram.desktop",
+      "zen"
+    ]
+  },
+  "hiddenTrayIds": [
+    "steam"
+  ],
+  "trayItemOrder": [
+    "steam",
+    "chrome_status_icon_1",
+    "NetBird",
+    "udiskie"
+  ],
+  "recentColors": [
+    "#000000"
+  ],
+  "showThirdPartyPlugins": true,
+  "pluginBrowserSortMode": "name",
+  "enabledGpuPciIds": [
+    "1002:15e7"
+  ],
+  "vpnLastConnected": "ba4ca888-614c-425b-a4f3-572312a89927",
+  "lastPlayerIdentity": "Mozilla zen",
+  "hiddenOutputDeviceNames": [
+    "alsa_output.pci-0000_04_00.1.hdmi-stereo-extra1"
+  ],
+  "niriOutputSettings": {
+    "HDMI-A-1": {
+      "disabled": false
+    },
+    "eDP-1": {
+      "disabled": false,
+      "layout": {
+        "alwaysCenterSingleColumn": true
+      }
+    }
+  },
+  "activeDisplayProfile": {
+    "niri": "profile_1787905363503_4mwc2go"
+  },
+  "activeDisplayProfileModes": {
+    "niri": {
+      "eDP-1": {
+        "mode": "1920x1080@60.164"
+      },
+      "HDMI-A-1": {
+        "mode": "2240x960@119.898"
+      }
+    }
+  },
+  "lastAppliedIconTheme": "Papirus-Dark",
+  "launcherLastQuery": "po",
+  "launcherQueryHistory": [
+    "po",
+    "por",
+    "Rus",
+    "g",
+    "p",
+    "vsc",
+    "ru",
+    "you",
+    "port",
+    "fi",
+    "yout",
+    "Fil",
+    "Files",
+    "vs",
+    "files",
+    "yo",
+    "ve",
+    "A",
+    "y",
+    "ya",
+    "a",
+    "tele",
+    "netb",
+    "s",
+    "file",
+    "bot",
+    "v",
+    "net",
+    "ne",
+    "cl",
+    "post",
+    "fire",
+    "th",
+    "ves",
+    "pos",
+    "f",
+    "zo",
+    "q",
+    "z",
+    "t",
+    "wor",
+    "obs",
+    "а",
+    "st",
+    "w",
+    "ay",
+    "mus",
+    "gh",
+    "ca",
+    "cli"
+  ],
+  "configVersion": 7
+}

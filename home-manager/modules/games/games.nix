@@ -29,7 +29,6 @@ let
           done
         fi
   '';
-  portprotonQt = pkgs.callPackage ./portproton-qt.nix {};
 in
 {
   # Переменные для Steam / Gamescope / Wine
@@ -53,8 +52,7 @@ in
     protontricks
     mangohud
     fixSteamLayouts
-    portprotonQt
-  ];
+    ];
 
   # Автоматический запуск патчера префиксов при применении конфигурации
   home.activation.fixSteamPrefixes = config.lib.dag.entryAfter [ "writeBoundary" ] ''

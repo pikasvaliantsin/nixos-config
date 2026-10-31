@@ -17,6 +17,14 @@
 
   programs.dank-material-shell = {
     enable = true;
+    # Запускаем шелл через systemd-юнит: тогда `dms restart` идёт через
+    # `systemctl --user restart dms.service`, логи попадают в journal,
+    # а не в /dev/null, и нет зомби-процессов после падения.
+    systemd = {
+      enable = true;
+      # Не дёргать шелл при каждом nixos-rebuild switch.
+      restartIfChanged = false;
+    };
   };
 
   programs.dms-greeter = {

@@ -1,0 +1,41 @@
+{
+  "dankKDEConnect": {
+    "enabled": true,
+    "selectedDeviceId": ""
+  },
+  "dmsJira": {
+    "enabled": false,
+    "tokenSource": "file",
+    "demoMode": false,
+    "notifyAssigned": false,
+    "siteUrl": "https://gp-team.atlassian.net",
+    "email": "v.pikas@gpsolutions.com"
+  },
+  "quickCapture": {
+    "enabled": false
+  },
+  "bongoCat": {
+    "enabled": false,
+    "selectedDevicePath": "all",
+    "catSizePercent": 100,
+    "enableBlinking": true,
+    "soundEnabled": false,
+    "showMetrics": false,
+    "pawHoldTime": 0,
+    "catYOffset": 0,
+    "catColorMode": "classic"
+  },
+  "dcalUpcoming": {
+    "enabled": false
+  },
+  "dmsfilemanager": {
+    "enabled": true
+  },
+  "vpnControl": {
+    "enabled": false,
+    "iconStyle": "shield"
+  },
+  "activateLinux": {
+    "enabled": false
+  }
+}

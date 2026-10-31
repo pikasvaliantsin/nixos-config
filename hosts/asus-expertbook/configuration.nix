@@ -122,37 +122,65 @@
     package = pkgs.kdePackages.kdeconnect-kde;
   };
 
-  # Включаем Steam системно
-programs.steam = {
-  enable = true;
-  remotePlay.openFirewall = true;
-  extraCompatPackages = with pkgs; [
-    proton-ge-bin
-  ];
-  package = pkgs.steam.override {
-    extraPkgs = pkgs: with pkgs; [
-      freetype
-      fontconfig
+  # ========================================
+  # GRAPHICS & GAMING
+  # ========================================
+  # 32-битная графика для Mesa + аппаратное декодирование VA-API
+  hardware.graphics = {
+    enable = true;
+    enable32Bit = true;
+    extraPackages = with pkgs; [
+      libva
+      libva-utils
+      # Vulkan loader: без него /run/opengl-driver/lib/libvulkan.so.1
+      # отсутствует, и Wine/DXVK не могут получить VK_KHR_surface.
       vulkan-loader
       vulkan-tools
+      # libEGL.so.1 / libGL.so.1 (диспетчер GLVND) — нужны Wine для wgl/egl.
+      libglvnd
+    ];
+    extraPackages32 = [
+      # 32-битные loader и GLVND нужны лончеру RF4.exe и wine (WINE_LG).
+      pkgs.pkgsi686Linux.vulkan-loader
+      pkgs.pkgsi686Linux.libglvnd
     ];
   };
-};
-  # 32-битная графика для Mesa (необходима для Steam и Proton)
-  # + VA-API для аппаратного декодирования видео (OBS, mpv, celluloid)
-  hardware.graphics = {
-  enable = true;
-  enable32Bit = true;
-  extraPackages = with pkgs; [
-    libva
-    libva-utils
-    libva-vdpau-driver
-    mesa
+
+  # Wine — не nix-пакет, /etc/ld.so.cache на NixOS нет, поэтому libvulkan.so.1
+  # и libEGL.so.1 он может найти только через LD_LIBRARY_PATH.
+  environment.sessionVariables.LD_LIBRARY_PATH = [
+    "/run/opengl-driver/lib"
+    "/run/opengl-driver-32/lib"
   ];
-  extraPackages32 = with pkgs.pkgsi686Linux; [
-    mesa
-  ];
-};
+
+  # 32-битный ELF-загрузчик в стандартном месте /lib/ld-linux.so.2.
+  # Нужен Wine (wineboot, explorer, cmd) и 32-битному RF4Launcher.exe:
+  # без него любой 32-битный процесс Wine падает с "could not open".
+  environment.ldso32 = "${pkgs.pkgsi686Linux.glibc}/lib/ld-linux.so.2";
+
+  # Системный Steam и расширение FHS-рантайма
+  programs.steam = {
+    enable = true;
+    remotePlay.openFirewall = true;
+    extraCompatPackages = with pkgs; [
+      proton-ge-bin
+    ];
+    package = pkgs.steam.override {
+      extraPkgs = pkgs: with pkgs; [
+        vulkan-loader
+        vulkan-tools
+        fontconfig
+        freetype
+        libxkbcommon
+        gnutls
+        openssl
+        nss
+        nspr
+        dbus
+        zlib
+      ];
+    };
+  };
 
   # GameMode: авто-оптимизация при запуске игр (приоритет, governor, CPU boost)
   # + Gamescope: изоляция игровых процессов от Wayland-компа
@@ -221,11 +249,8 @@ programs.steam = {
   programs.fish.enable = true;
   programs.dconf.enable = true;
 
-  users.groups.portprotonqt = { };
   users.users.valen = {
     isNormalUser = true;
-    # Пароль берётся из sops (хранится зашифрованным в secrets.yaml).
-    # При первом входе система хеширует его автоматически.
     hashedPasswordFile = "/run/secrets/valen_password";
     extraGroups = [
       "wheel"
@@ -236,22 +261,39 @@ programs.steam = {
       "networkmanager"
       "lp"
       "scanner"
-      "portprotonqt"
     ];
     shell = pkgs.fish;
   };
 
   # ========================================
-  # NIX SETTINGS
+  # NIX SETTINGS & OVERLAYS
   # ========================================
   nixpkgs.config.allowUnfree = true;
   programs.appimage.enable = true;
   programs.nix-ld.enable = true;
 
   nixpkgs.overlays = [
+    # Оверлей для согласования steam-run с рантаймом Steam
     (final: prev: {
-      # Фикс: nixpkgs ≥26.05 переименовал minizip-ng → minizip,
-      # некоторые флейки (ayugram, zen) ждут старое имя пакета.
+      steam-run = (prev.steam.override {
+        extraPkgs = pkgs: with pkgs; [
+          vulkan-loader
+          vulkan-tools
+          fontconfig
+          freetype
+          libxkbcommon
+          gnutls
+          openssl
+          nss
+          nspr
+          dbus
+          zlib
+        ];
+      }).run;
+    })
+
+    # Пользовательские патчи и совместимость
+    (final: prev: {
       minizip-ng-compat = prev.minizip-ng;
       khal = prev.khal.overrideAttrs (old: {
         postInstall = (old.postInstall or "") + ''
@@ -267,7 +309,7 @@ programs.steam = {
       "nix-command"
       "flakes"
     ];
-    auto-optimise-store = false; # Отключаем авто-оптимизацию (вызывать вручную: nh clean store)
+    auto-optimise-store = false;
     max-jobs = "auto";
     trusted-users = [
       "root"
@@ -286,8 +328,8 @@ programs.steam = {
   };
 
   nix.gc = {
-    automatic = false; # Отключаем авто-очистку (вызывать вручную: nh clean all)
-    dates = ""; # Пусто, чтобы игнорировать по умолчанию
+    automatic = false;
+    dates = "";
   };
 
   services.gnome.gnome-keyring.enable = true;

@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "configurations": [
+    {
+      "id": "profile_1786305633922_036x55e",
+      "name": "1280x960+laptop",
+      "outputs": {
+        "eDP-1": {
+          "mode": "1920x1080@60.164",
+          "position": {
+            "x": 1280,
+            "y": 0
+          },
+          "scale": 1,
+          "transform": "Normal",
+          "vrr": false,
+          "disabled": false,
+          "niri": {}
+        },
+        "HDMI-A-1": {
+          "mode": "1280x960@60.000",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": 1,
+          "transform": "Normal",
+          "vrr": false,
+          "disabled": false,
+          "niri": {}
+        }
+      }
+    },
+    {
+      "id": "profile_1786305647816_bh6sqbb",
+      "name": "21:9",
+      "outputs": {
+        "HDMI-A-1": {
+          "mode": "3440x1440@49.998",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": 1,
+          "transform": "Normal",
+          "vrr": false,
+          "disabled": false,
+          "niri": {
+            "disabled": false
+          }
+        },
+        "eDP-1": {
+          "mode": "1920x1080@60.164",
+          "position": {
+            "x": 3440,
+            "y": 0
+          },
+          "scale": 1,
+          "transform": "Normal",
+          "vrr": false,
+          "disabled": false,
+          "niri": {
+            "disabled": false,
+            "layout": {
+              "alwaysCenterSingleColumn": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "auto_eed335ba",
+      "name": "",
+      "outputs": {
+        "HDMI-A-1": {
+          "mode": "2240x960@119.898",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": 1,
+          "transform": "Normal",
+          "vrr": false,
+          "disabled": false,
+          "niri": {
+            "disabled": false
+          }
+        },
+        "eDP-1": {
+          "mode": "1920x1080@60.164",
+          "position": {
+            "x": 2240,
+            "y": 0
+          },
+          "scale": 1,
+          "transform": "Normal",
+          "vrr": false,
+          "disabled": false,
+          "niri": {
+            "disabled": false
+          }
+        }
+      }
+    },
+    {
+      "id": "profile_1787905363503_4mwc2go",
+      "name": "gaming 21:9",
+      "outputs": {
+        "eDP-1": {
+          "mode": "1920x1080@60.164",
+          "position": {
+            "x": 2240,
+            "y": 0
+          },
+          "scale": 1,
+          "transform": "Normal",
+          "vrr": false,
+          "disabled": false,
+          "niri": {
+            "disabled": false
+          }
+        },
+        "HDMI-A-1": {
+          "mode": "2240x960@119.898",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "scale": 1,
+          "transform": "Normal",
+          "vrr": false,
+          "disabled": false,
+          "niri": {
+            "disabled": false
+          }
+        }
+      }
+    }
+  ]
+}

@@ -16,5 +16,6 @@
     ./modules/productivity/productivity.nix
     ./modules/desktop.nix
     ./modules/games/games.nix
+    ./modules/games/rf4.nix
   ];
 }
