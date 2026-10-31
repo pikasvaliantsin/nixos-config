@@ -1,14 +1,18 @@
-# nixos-config/hosts/asus-expertbook/niri.nix
+# Niri + DMS + greeter: всё, что относится к графической сессии хоста.
 {
   pkgs,
-  config,
   inputs,
   ...
 }:
 
 {
+  imports = [
+    inputs.dms.nixosModules.dank-material-shell
+    inputs.dank-greeter.nixosModules.default
+  ];
+
   # ========================================
-  # DISPLAY & COMPOSITOR
+  # COMPOSITOR
   # ========================================
   programs.niri = {
     enable = true;
@@ -67,4 +71,7 @@
     xkeyboard_config
     libxkbcommon
   ];
+
+  # Нужен для gtk/gsettings пользовательских приложений
+  programs.dconf.enable = true;
 }

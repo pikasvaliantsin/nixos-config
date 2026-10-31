@@ -7,7 +7,7 @@
 }:
 
 let
-  configPath = "${config.home.homeDirectory}/nixos-config/home-manager/modules/niri";
+  configPath = "${config.mySystem.dotfilesRoot}/home-manager/modules/niri";
   mkLink = file: config.lib.file.mkOutOfStoreSymlink "${configPath}/${file}";
 in
 {

@@ -1,6 +1,5 @@
 {
   config,
-  pkgs,
   lib,
   ...
 }:
@@ -35,9 +34,7 @@ in
     boot.kernelParams = [
       "drm.modeset=1"
       # Посылаем ядру сигнал сформировать CVT Reduced Blanking (R) для 2240x960 @ 120Hz
-      "video=${cfg.output}:${cfg.mode}MR-32@${cfg.refresh}e"
+      "video=${cfg.output}:${cfg.mode}MR-32@${cfg.refresh}"
     ];
-
-    boot.initrd.kernelModules = [ "amdgpu" ];
   };
 }

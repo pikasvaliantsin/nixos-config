@@ -2,7 +2,7 @@
 { config, pkgs, lib, inputs, ... }:
 
 let
-  cfg = config.mySystem.dms;
+  cfg = config.mySystem;
 
   # Всё состояние DMS (и фрагменты niri, которые он генерирует) держим в git-репозитории.
   # Это не стор-копии, а out-of-store симлинки: DMS пишет прямо в файлы репо,
@@ -41,7 +41,7 @@ in
       xdg.stateFile."dms/session.json".source = link "app/session.json";
     }
 
-    (lib.mkIf cfg.enable {
+    (lib.mkIf cfg.dms.enable {
       # Пакет и systemd-юнит включает NixOS-модуль (programs.dank-material-shell),
       # здесь — только home-manager-часть.
       programs.dank-material-shell = {
