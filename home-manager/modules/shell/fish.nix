@@ -1,8 +1,7 @@
-# nixos-config/home-manager/modules/shell/fish.nix
-{ pkgs, ... }:
+# Fish: интерактивный shell, приветствие и sops-хелперы.
+{ ... }:
 
 {
-  # Fish Shell
   programs.fish = {
     enable = true;
     shellInit = ''

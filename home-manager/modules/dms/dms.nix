@@ -7,7 +7,7 @@ let
   # Всё состояние DMS (и фрагменты niri, которые он генерирует) держим в git-репозитории.
   # Это не стор-копии, а out-of-store симлинки: DMS пишет прямо в файлы репо,
   # поэтому после переустановки конфиг восстанавливается из nixos-config как есть.
-  configRoot = "${config.home.homeDirectory}/nixos-config/home-manager/modules/dms";
+  configRoot = "${cfg.dotfilesRoot}/home-manager/modules/dms";
   link = path: config.lib.file.mkOutOfStoreSymlink "${configRoot}/${path}";
 in
 {

@@ -1,25 +1,29 @@
+# steam-tui — TUI-клиент Steam, собранный из upstream-релиза.
+# Подключается через pkgs.callPackage в shell/cli.nix.
 {
+  lib,
   rustPlatform,
   fetchFromGitHub,
   cmake,
   perl,
   pkg-config,
   zlib,
-  lib,
 }:
 
-rustPlatform.buildRustPackage (_final: {
-  pname = "steam-tui";
+let
   version = "2.1.0";
-
   src = fetchFromGitHub {
     owner = "vanyapoker";
     repo = "steam-tui";
-    tag = "v${_final.version}";
+    tag = "v${version}";
     hash = "sha256-iw4yZfkCynKq2gK39w82oPbGbNC5CZRpYSHNyNW/ogY=";
   };
+in
+rustPlatform.buildRustPackage {
+  pname = "steam-tui";
+  inherit version src;
 
-  cargoLock.lockFile = "${_final.src}/Cargo.lock";
+  cargoLock.lockFile = "${src}/Cargo.lock";
 
   doCheck = false;
 
@@ -40,4 +44,4 @@ rustPlatform.buildRustPackage (_final: {
     license = lib.licenses.mit;
     mainProgram = "steam-tui";
   };
-})
+}
