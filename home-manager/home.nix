@@ -14,7 +14,7 @@
     ./modules/comms/comms.nix
     ./modules/media/media.nix
     ./modules/productivity/productivity.nix
-    ./modules/desktop.nix
+    ./modules/desktop
     ./modules/games/games.nix
     ./modules/games/rf4.nix
   ];
