@@ -1,7 +1,6 @@
 # nixos-config/hosts/asus-expertbook/sops.nix
 {
   inputs,
-  config,
   lib,
   ...
 }:
@@ -39,6 +38,5 @@ in
     };
   };
 
-  systemd.services.sops-install-secrets.wantedBy =
-    lib.mkIf (!sopsReady) (lib.mkForce [ ]);
+  systemd.services.sops-install-secrets.wantedBy = lib.mkIf (!sopsReady) (lib.mkForce [ ]);
 }

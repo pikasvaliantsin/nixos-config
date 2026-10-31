@@ -1,16 +1,13 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+_:
 
 {
   # ========================================
   # NIX / PACKAGE MANAGEMENT
   # ========================================
-  nixpkgs.config.allowUnfree = true;
-  nixpkgs.overlays = [ (import ./overlays.nix) ];
+  nixpkgs = {
+    config.allowUnfree = true;
+    overlays = [ (import ./overlays.nix) ];
+  };
 
   # Интеграция внешних бинарников (AppImage, nix-ld)
   programs.appimage.enable = true;

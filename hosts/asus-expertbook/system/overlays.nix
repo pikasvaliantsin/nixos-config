@@ -1,10 +1,10 @@
 # Оверлеи хоста. Подключаются в system/nix.nix.
-final: prev:
-{
+_final: prev: {
   # Согласование steam-run с рантаймом системного Steam.
-  steam-run = (prev.steam.override {
-    extraPkgs = import ./steam-extra-pkgs.nix;
-  }).run;
+  steam-run =
+    (prev.steam.override {
+      extraPkgs = import ./steam-extra-pkgs.nix;
+    }).run;
 
   # Совместимость со старым именем пакета.
   minizip-ng-compat = prev.minizip-ng;

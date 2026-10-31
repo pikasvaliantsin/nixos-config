@@ -1,14 +1,16 @@
-{ ... }:
+_:
 
 {
-  networking.networkmanager.enable = true;
+  networking = {
+    networkmanager.enable = true;
 
-  # Файрвол с поддержкой NetBird
-  networking.firewall = {
-    enable = true;
-    trustedInterfaces = [ "wt0" ];
-    checkReversePath = "loose";
-    allowedUDPPorts = [ 51820 ];
+    # Файрвол с поддержкой NetBird
+    firewall = {
+      enable = true;
+      trustedInterfaces = [ "wt0" ];
+      checkReversePath = "loose";
+      allowedUDPPorts = [ 51820 ];
+    };
   };
 
   services.resolved.enable = true;

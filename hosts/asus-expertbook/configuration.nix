@@ -1,10 +1,10 @@
 # Точка входа хоста: только identity, stateVersion и подключение модулей.
-{ ... }:
+_:
 
 {
   imports = [
     ./hardware.nix
-    ./disko-config.nix
+    ./disko.nix
     ./sops.nix
 
     ./system/boot.nix

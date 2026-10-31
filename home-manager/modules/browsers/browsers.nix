@@ -1,4 +1,4 @@
-# nixos-config/home-manager/modules/browsers/browsers.nix
+# Браузеры: Firefox с декларативными настройками и Zen с кодеками.
 {
   pkgs,
   inputs,
@@ -32,50 +32,81 @@ let
   '';
 in
 {
-  home.packages = [
-    pkgs.thunderbird
-    (
-      let
-        zenPkg = inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default;
-      in
-      pkgs.symlinkJoin {
-        name = "zen-browser-patched";
-        paths = [ zenPkg ];
-        buildInputs = [ pkgs.makeWrapper ];
-        postBuild = ''
-          wrapProgram $out/bin/zen \
-            --prefix LD_LIBRARY_PATH : "${
-              pkgs.lib.makeLibraryPath [
-                pkgs.ffmpeg
-                pkgs.gst_all_1.gst-plugins-good
-                pkgs.gst_all_1.gst-plugins-bad
-                pkgs.gst_all_1.gst-plugins-ugly
-                pkgs.gst_all_1.gst-libav
-              ]
-            }"
-        '';
-      }
-    )
+  home = {
+    packages = [
+      pkgs.thunderbird
+      (
+        let
+          zenPkg = inputs.zen-browser.packages.${pkgs.stdenv.hostPlatform.system}.default;
+        in
+        pkgs.symlinkJoin {
+          name = "zen-browser-patched";
+          paths = [ zenPkg ];
+          buildInputs = [ pkgs.makeWrapper ];
+          postBuild = ''
+            wrapProgram $out/bin/zen \
+              --prefix LD_LIBRARY_PATH : "${
+                pkgs.lib.makeLibraryPath [
+                  pkgs.ffmpeg
+                  pkgs.gst_all_1.gst-plugins-good
+                  pkgs.gst_all_1.gst-plugins-bad
+                  pkgs.gst_all_1.gst-plugins-ugly
+                  pkgs.gst_all_1.gst-libav
+                ]
+              }"
+          '';
+        }
+      )
 
-    (pkgs.makeDesktopItem {
-      name = "youtube-stream-chromium";
-      desktopName = "YouTube Stream (Chromium)";
-      exec = "${pkgs.chromium}/bin/chromium --app=https://www.youtube.com --disable-background-networking --disable-sync --disable-translate --metrics-recording-only --no-default-browser-check --ozone-platform-hint=wayland";
-      icon = "youtube-vision";
-      categories = [
-        "AudioVideo"
-        "Network"
-      ];
-    })
+      (pkgs.makeDesktopItem {
+        name = "youtube-stream-chromium";
+        desktopName = "YouTube Stream (Chromium)";
+        exec = "${pkgs.chromium}/bin/chromium --app=https://www.youtube.com --disable-background-networking --disable-sync --disable-translate --metrics-recording-only --no-default-browser-check --ozone-platform-hint=wayland";
+        icon = "youtube-vision";
+        categories = [
+          "AudioVideo"
+          "Network"
+        ];
+      })
 
-    # Библиотеки декодинга для браузера (AAC, HEVC, H.264 SW)
-    pkgs.gst_all_1.gst-plugins-good
-    pkgs.gst_all_1.gst-plugins-bad
-    pkgs.gst_all_1.gst-plugins-ugly
-    pkgs.gst_all_1.gst-libav
-    pkgs.libvpx
-    pkgs.libwebp
-  ];
+      # Библиотеки декодинга для браузера (AAC, HEVC, H.264 SW)
+      pkgs.gst_all_1.gst-plugins-good
+      pkgs.gst_all_1.gst-plugins-bad
+      pkgs.gst_all_1.gst-plugins-ugly
+      pkgs.gst_all_1.gst-libav
+      pkgs.libvpx
+      pkgs.libwebp
+    ];
+
+    # Activation script: копирует canonical user.js во все .default*-профили Mozilla-браузеров.
+    # Программы Gecko ищут user.js внутри директории профилей, поэтому нужно писать прямо туда.
+    activation.copyUserJsToProfiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+      USERJS=${lib.escapeShellArg "${firefoxUserJs}"}
+
+      # Копируем в профили Firefox через общую директорию ~/.mozilla/firefox/
+      for dir in "$HOME"/.mozilla/firefox/* ; do
+        case "$dir" in
+          *".default-"*|*".default")
+            [ -d "$dir" ] || continue
+            cp --no-preserve=mode,ownership "$USERJS" "$dir/user.js"
+            ;;
+        esac
+      done
+
+      # Профили Zen находятся в ~/.config/zen/<hash>.Default Profile/
+      # Находим каталог с ".Default Profile" или ".default" паттерном
+      zen_dir=$(find "$HOME"/.config/zen -maxdepth 1 -mindepth 1 -type d -name "*.Default*" 2>/dev/null | head -n1)
+      if [ -n "$zen_dir" ]; then
+        cp --no-preserve=mode,ownership "$USERJS" "$zen_dir/user.js"
+      fi
+    '';
+
+    # Wayland интеграция
+    sessionVariables = {
+      MOZ_ENABLE_WAYLAND = "1";
+      MOZ_USE_INPUT_PROTOCOL = "wayland";
+    };
+  };
 
   # Firefox через programs.firefox — declarative about:config + создаёт .mozilla/firefox/<profile>/
   programs.firefox = {
@@ -101,34 +132,5 @@ in
         "browser.safebrowsing.phishing.enabled" = false;
       };
     };
-  };
-
-  # Activation script: копирует canonical user.js во все .default*-профили Mozilla-браузеров.
-  # Программы Gecko ищут user.js внутри директории профилей, поэтому нужно писать прямо туда.
-  home.activation.copyUserJsToProfiles = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-    USERJS=${lib.escapeShellArg "${firefoxUserJs}"}
-
-    # Копируем в профили Firefox через общую директорию ~/.mozilla/firefox/
-    for dir in "$HOME"/.mozilla/firefox/* ; do
-      case "$dir" in
-        *".default-"*|*".default")
-          [ -d "$dir" ] || continue
-          cp --no-preserve=mode,ownership "$USERJS" "$dir/user.js"
-          ;;
-      esac
-    done
-
-    # Профили Zen находятся в ~/.config/zen/<hash>.Default Profile/
-    # Находим каталог с ".Default Profile" или ".default" паттерном
-    zen_dir=$(find "$HOME"/.config/zen -maxdepth 1 -mindepth 1 -type d -name "*.Default*" 2>/dev/null | head -n1)
-    if [ -n "$zen_dir" ]; then
-      cp --no-preserve=mode,ownership "$USERJS" "$zen_dir/user.js"
-    fi
-  '';
-
-  # Wayland интеграция
-  home.sessionVariables = {
-    MOZ_ENABLE_WAYLAND = "1";
-    MOZ_USE_INPUT_PROTOCOL = "wayland";
   };
 }

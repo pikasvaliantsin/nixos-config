@@ -26,7 +26,8 @@ let
     name = "RF4SetupRU.exe";
   };
 
-  lsfg = pkgs.stdenvNoCC.mkDerivation {    pname = "lsfg-vk";
+  lsfg = pkgs.stdenvNoCC.mkDerivation {
+    pname = "lsfg-vk";
     version = lsfgVersion;
     src = lsfgSrc;
 
@@ -70,8 +71,8 @@ let
     export XDG_DATA_DIRS="${lsfg}/share''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
     export LSFGVK_ENV="1"
     export LSFGVK_DLL_PATH="''${RF4_LOSSLESS_DLL:-${lsfg}/share/lsfg/Lossless.dll}"
-    export LSFGVK_MULTIPLIER="4"
-    export LSFGVK_FLOW_SCALE="0.5"
+    export LSFGVK_MULTIPLIER="''${RF4_LSFG_MULTIPLIER:-3}"
+    export LSFGVK_FLOW_SCALE="''${RF4_LSFG_FLOW_SCALE:-0.5}"
     export LSFGVK_PERFORMANCE_MODE="1"
 
     # FIFO обязателен для lsfg; остальное — твои твики DXVK.

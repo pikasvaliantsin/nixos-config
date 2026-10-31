@@ -17,10 +17,12 @@
   };
 
   config = {
-    home.username = "valen";
-    home.homeDirectory = "/home/valen";
-    home.stateVersion = "26.11";
-    home.enableNixpkgsReleaseCheck = false;
+    home = {
+      username = "valen";
+      homeDirectory = "/home/valen";
+      stateVersion = "26.11";
+      enableNixpkgsReleaseCheck = false;
+    };
 
     programs.home-manager.enable = true;
   };

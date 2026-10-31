@@ -1,5 +1,5 @@
-# nixos-config/home-manager/modules/editors.nix
-{ pkgs, ... }:
+# NixVim и настройки Micro.
+_:
 
 {
   # Настройки Micro
@@ -65,22 +65,102 @@
     ];
 
     keymaps = [
-      { mode = "n"; key = "<leader>ff"; action = "<cmd>Telescope find_files<cr>"; options.desc = "Find files"; }
-      { mode = "n"; key = "<leader>fg"; action = "<cmd>Telescope live_grep<cr>"; options.desc = "Live grep"; }
-      { mode = "n"; key = "<leader>fb"; action = "<cmd>Telescope buffers<cr>"; options.desc = "Find buffers"; }
-      { mode = "n"; key = "<leader>fh"; action = "<cmd>Telescope help_tags<cr>"; options.desc = "Help tags"; }
-      { mode = "n"; key = "<leader>e"; action = "<cmd>Neotree toggle<cr>"; options.desc = "Toggle file tree"; }
-      { mode = "n"; key = "gd"; action = "<cmd>lua vim.lsp.buf.definition()<cr>"; options.desc = "Go to definition"; }
-      { mode = "n"; key = "gD"; action = "<cmd>lua vim.lsp.buf.declaration()<cr>"; options.desc = "Go to declaration"; }
-      { mode = "n"; key = "gi"; action = "<cmd>lua vim.lsp.buf.implementation()<cr>"; options.desc = "Go to implementation"; }
-      { mode = "n"; key = "gr"; action = "<cmd>lua vim.lsp.buf.references()<cr>"; options.desc = "Go to references"; }
-      { mode = "n"; key = "K"; action = "<cmd>lua vim.lsp.buf.hover()<cr>"; options.desc = "Hover documentation"; }
-      { mode = "n"; key = "<leader>ca"; action = "<cmd>lua vim.lsp.buf.code_action()<cr>"; options.desc = "Code action"; }
-      { mode = "n"; key = "<leader>rn"; action = "<cmd>lua vim.lsp.buf.rename()<cr>"; options.desc = "Rename symbol"; }
-      { mode = "n"; key = "<leader>f"; action = "<cmd>lua vim.lsp.buf.format({ async = true })<cr>"; options.desc = "Format file"; }
-      { mode = "n"; key = "[d"; action = "<cmd>lua vim.diagnostic.goto_prev()<cr>"; options.desc = "Previous diagnostic"; }
-      { mode = "n"; key = "]d"; action = "<cmd>lua vim.diagnostic.goto_next()<cr>"; options.desc = "Next diagnostic"; }
-      { mode = "n"; key = "<leader>d"; action = "<cmd>lua vim.diagnostic.open_float()<cr>"; options.desc = "Show diagnostic"; }
+      {
+        mode = "n";
+        key = "<leader>ff";
+        action = "<cmd>Telescope find_files<cr>";
+        options.desc = "Find files";
+      }
+      {
+        mode = "n";
+        key = "<leader>fg";
+        action = "<cmd>Telescope live_grep<cr>";
+        options.desc = "Live grep";
+      }
+      {
+        mode = "n";
+        key = "<leader>fb";
+        action = "<cmd>Telescope buffers<cr>";
+        options.desc = "Find buffers";
+      }
+      {
+        mode = "n";
+        key = "<leader>fh";
+        action = "<cmd>Telescope help_tags<cr>";
+        options.desc = "Help tags";
+      }
+      {
+        mode = "n";
+        key = "<leader>e";
+        action = "<cmd>Neotree toggle<cr>";
+        options.desc = "Toggle file tree";
+      }
+      {
+        mode = "n";
+        key = "gd";
+        action = "<cmd>lua vim.lsp.buf.definition()<cr>";
+        options.desc = "Go to definition";
+      }
+      {
+        mode = "n";
+        key = "gD";
+        action = "<cmd>lua vim.lsp.buf.declaration()<cr>";
+        options.desc = "Go to declaration";
+      }
+      {
+        mode = "n";
+        key = "gi";
+        action = "<cmd>lua vim.lsp.buf.implementation()<cr>";
+        options.desc = "Go to implementation";
+      }
+      {
+        mode = "n";
+        key = "gr";
+        action = "<cmd>lua vim.lsp.buf.references()<cr>";
+        options.desc = "Go to references";
+      }
+      {
+        mode = "n";
+        key = "K";
+        action = "<cmd>lua vim.lsp.buf.hover()<cr>";
+        options.desc = "Hover documentation";
+      }
+      {
+        mode = "n";
+        key = "<leader>ca";
+        action = "<cmd>lua vim.lsp.buf.code_action()<cr>";
+        options.desc = "Code action";
+      }
+      {
+        mode = "n";
+        key = "<leader>rn";
+        action = "<cmd>lua vim.lsp.buf.rename()<cr>";
+        options.desc = "Rename symbol";
+      }
+      {
+        mode = "n";
+        key = "<leader>f";
+        action = "<cmd>lua vim.lsp.buf.format({ async = true })<cr>";
+        options.desc = "Format file";
+      }
+      {
+        mode = "n";
+        key = "[d";
+        action = "<cmd>lua vim.diagnostic.goto_prev()<cr>";
+        options.desc = "Previous diagnostic";
+      }
+      {
+        mode = "n";
+        key = "]d";
+        action = "<cmd>lua vim.diagnostic.goto_next()<cr>";
+        options.desc = "Next diagnostic";
+      }
+      {
+        mode = "n";
+        key = "<leader>d";
+        action = "<cmd>lua vim.diagnostic.open_float()<cr>";
+        options.desc = "Show diagnostic";
+      }
     ];
 
     plugins = {
@@ -97,7 +177,16 @@
       treesitter = {
         enable = true;
         settings = {
-          ensure_installed = [ "nix" "bash" "fish" "lua" "yaml" "toml" "json" "markdown" ];
+          ensure_installed = [
+            "nix"
+            "bash"
+            "fish"
+            "lua"
+            "yaml"
+            "toml"
+            "json"
+            "markdown"
+          ];
           highlight.enable = true;
           indent.enable = true;
         };

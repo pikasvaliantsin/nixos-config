@@ -20,9 +20,6 @@ in
     inputs.dux-files.homeModules.dux-files
   ];
 
-  # DMS отключён на уровне home-manager (системный модуль включается в
-  # hosts/asus-expertbook/desktop/niri.nix). Включать через mySystem.dms.enable.
-  mySystem.dms.enable = false;
   programs.dux-files.enable = true;
 
   # Подключаем основной config.kdl через symlink

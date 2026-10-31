@@ -1,5 +1,5 @@
 # Fastfetch: приветствие при старте интерактивного Fish.
-{ ... }:
+_:
 
 {
   programs.fastfetch = {

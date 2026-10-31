@@ -36,9 +36,9 @@
                   "@" = {
                     mountpoint = "/";
                     mountOptions = [
-                      "compress=zstd:1"   # Лёгкая компрессия для системных файлов
-                      "noatime"             # Отключаем запись времени доступа
-                      "space_cache=v2"      # Оптимизация метаданных Btrfs
+                      "compress=zstd:1" # Лёгкая компрессия для системных файлов
+                      "noatime" # Отключаем запись времени доступа
+                      "space_cache=v2" # Оптимизация метаданных Btrfs
                     ];
                   };
                   "@nix" = {
@@ -52,7 +52,7 @@
                   "@log" = {
                     mountpoint = "/var/log";
                     mountOptions = [
-                      "compress=no"         # Логи не сжимаем — важна скорость записи
+                      "compress=no" # Логи не сжимаем — важна скорость записи
                       "noatime"
                       "space_cache=v2"
                     ];
@@ -79,7 +79,7 @@
                   "@home" = {
                     mountpoint = "/home";
                     mountOptions = [
-                      "compress=no"         # Без компрессии — важна скорость записи при загрузке игр
+                      "compress=no" # Без компрессии — важна скорость записи при загрузке игр
                       "noatime"
                       "space_cache=v2"
                     ];

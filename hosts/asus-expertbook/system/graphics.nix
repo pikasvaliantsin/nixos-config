@@ -1,7 +1,6 @@
 { pkgs, ... }:
 
 {
-  # 32-битная графика для Mesa + аппаратное декодирование VA-API
   hardware.graphics = {
     enable = true;
     enable32Bit = true;
@@ -22,15 +21,17 @@
     ];
   };
 
-  # Wine — не nix-пакет, /etc/ld.so.cache на NixOS нет, поэтому libvulkan.so.1
-  # и libEGL.so.1 он может найти только через LD_LIBRARY_PATH.
-  environment.sessionVariables.LD_LIBRARY_PATH = [
-    "/run/opengl-driver/lib"
-    "/run/opengl-driver-32/lib"
-  ];
+  environment = {
+    # Wine — не nix-пакет, /etc/ld.so.cache на NixOS нет, поэтому libvulkan.so.1
+    # и libEGL.so.1 он может найти только через LD_LIBRARY_PATH.
+    sessionVariables.LD_LIBRARY_PATH = [
+      "/run/opengl-driver/lib"
+      "/run/opengl-driver-32/lib"
+    ];
 
-  # 32-битный ELF-загрузчик в стандартном месте /lib/ld-linux.so.2.
-  # Нужен Wine (wineboot, explorer, cmd) и 32-битному RF4Launcher.exe:
-  # без него любой 32-битный процесс Wine падает с "could not open".
-  environment.ldso32 = "${pkgs.pkgsi686Linux.glibc}/lib/ld-linux.so.2";
+    # 32-битный ELF-загрузчик в стандартном месте /lib/ld-linux.so.2.
+    # Нужен Wine (wineboot, explorer, cmd) и 32-битному RF4Launcher.exe:
+    # без него любой 32-битный процесс Wine падает с "could not open".
+    ldso32 = "${pkgs.pkgsi686Linux.glibc}/lib/ld-linux.so.2";
+  };
 }

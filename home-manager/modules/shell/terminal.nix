@@ -1,5 +1,5 @@
 # Ghostty — терминал по умолчанию.
-{ ... }:
+_:
 
 {
   programs.ghostty = {
