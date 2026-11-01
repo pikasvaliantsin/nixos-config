@@ -205,14 +205,13 @@ _:
         end
 
         # sops set ожидает JSON-строку как значение (jq -Rs экранирует переводы строк).
+        # Передаём через stdin, чтобы ключ не светился в списке процессов.
         echo "Чтение ключа: $SSH_KEY"
-        set -l KEY_JSON (jq -Rs . <"$SSH_KEY")
-
         echo "Шифрование и запись в secrets/secrets.yaml..."
         if test -n "$AGE_PRIV_KEYS"
-            SOPS_AGE_KEY=(string join "\n" $AGE_PRIV_KEYS) sops set $SECRETS_FILE '["github_ssh_key"]' "$KEY_JSON"
+            jq -Rs . <"$SSH_KEY" | SOPS_AGE_KEY=(string join "\n" $AGE_PRIV_KEYS) sops set $SECRETS_FILE '["github_ssh_key"]' --value-stdin
         else
-            sops set $SECRETS_FILE '["github_ssh_key"]' "$KEY_JSON"
+            jq -Rs . <"$SSH_KEY" | sops set $SECRETS_FILE '["github_ssh_key"]' --value-stdin
         end
 
         set -l EXIT $status
