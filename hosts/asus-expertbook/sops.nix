@@ -35,6 +35,11 @@ in
       valen_password = {
         sopsFile = ../../secrets/secrets.yaml;
       };
+      opencode_api_key = {
+        sopsFile = ../../secrets/secrets.yaml;
+        owner = "valen";
+        mode = "0400";
+      };
     };
   };
 

@@ -16,20 +16,12 @@ input {
         natural-scroll
     }
 }
-output "HDMI-A-1" {
-    scale 1.000000
-    focus-at-startup
-    transform "normal"
-    position x=0 y=0
-    mode "3440x1440@50.000000"
-}
-output "eDP-1" {
-    scale 1.000000
-    transform "normal"
-    position x=3440 y=0
-    mode "1920x1080@60.000000"
-}
+// ВАЖНО: не держим здесь правила output — niri берёт первое совпавшее правило
+// для выхода, поэтому они перебивают ~/.config/niri/dms/outputs.kdl, который
+// DMS генерирует из выбранного профиля (и тогда после ребута возвращается
+// старое разрешение). Всё управление выходами — через DMS.
 screenshot-path "~/Pictures/Screenshots/%Y-%m-%d_%H-%M-%S.png"
+
 layout {
     gaps 12
     struts {

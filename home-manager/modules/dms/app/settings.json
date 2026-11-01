@@ -389,6 +389,10 @@
           "id": "capsLockIndicator",
           "enabled": true,
           "overflowMode": "section"
+        },
+        {
+          "id": "aiQuotas",
+          "enabled": true
         }
       ],
       "centerWidgets": [

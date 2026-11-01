@@ -37,5 +37,19 @@
   },
   "activateLinux": {
     "enabled": false
+  },
+  "aiQuotas": {
+    "enabled": true,
+    "claudeEnabled": false,
+    "codexEnabled": false,
+    "zaiEnabled": false,
+    "kimiEnabled": false,
+    "deepSeekEnabled": false,
+    "openRouterEnabled": false,
+    "grokEnabled": false,
+    "antigravityEnabled": false,
+    "openCodeApiKey": "",
+    "displayMode": "used",
+    "showResetCountdown": true
   }
 }
