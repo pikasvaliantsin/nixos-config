@@ -13,7 +13,6 @@ in
   imports = [
     ./fonts.nix
     ./gtk.nix
-    ./keyring.nix
     ./portals.nix
     ./udiskie.nix
     ../dms/dms.nix
