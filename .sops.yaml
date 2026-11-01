@@ -18,5 +18,4 @@ creation_rules:
   - path_regex: secrets/secrets\.yaml$
     # AGE-ключи: хостовый SSH-ключ (обязательно) + личный master key (опционально)
     # Разделяются запятой. sops-init подставляет их автоматически.
-    age: >-
-      INSERT_AGE_PUBLIC_KEY_HERE
+    age: age1ps03aszfl65ny2rm8mn3xjguf78t7lr5t0w06x2p7vzrmchc3auqv9ypcl,age1h0rwmg0d4g5d93m7p5zwm26hgeucnfjecyhxc5e6wklnwawpxpasvucgxm
