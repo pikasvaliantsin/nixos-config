@@ -173,9 +173,11 @@ _:
 
         set -l REPO_ROOT (git rev-parse --show-toplevel 2>/dev/null || echo .)
 
-        # Собираем приватные age-ключи для расшифровки/шифрования
+        # Собираем приватные age-ключи для расшифровки/шифрования.
+        # Хостовые ключи нужны sops-nix на boot, личный ключ пользователя —
+        # для редактирования секретов без sudo.
         set -l AGE_PRIV_KEYS
-        for keyfile in /etc/ssh/ssh_host_*_key
+        for keyfile in /etc/ssh/ssh_host_*_key $HOME/.ssh/id_ed25519
             if not test -f $keyfile
                 continue
             end
@@ -185,44 +187,35 @@ _:
             end
         end
 
-        # Считываем ключ целиком (многострочный)
-        echo "Чтение ключа: $SSH_KEY"
-        set -l KEY_LINES (cat "$SSH_KEY")
-
-        echo "Шифрование и запись в secrets/secrets.yaml..."
-
-        # sops --set принимает JSON-подобный путь и значение.
-        # Для многострочных значений используем sops --encrypt --input-type yaml
-        # с временным файлом, который содержит ТОЛЬКО обновляемый ключ,
-        # а затем merge-им в основной файл через sops -i --encrypt.
-        set -l TMP_YAML (mktemp --suffix .yaml)
-        printf 'github_ssh_key: |\n' > $TMP_YAML
-        for line in $KEY_LINES
-            printf '  %s\n' "$line" >> $TMP_YAML
+        # Первый запуск: secrets.yaml ещё не зашифрован. Шифруем его как есть,
+        # чтобы не потерять остальные ключи (например, valen_password).
+        if not grep -q '^sops:' $SECRETS_FILE
+            set -l TMP_ENC (mktemp --suffix .yaml)
+            if test -n "$AGE_PRIV_KEYS"
+                SOPS_AGE_KEY=(string join "\n" $AGE_PRIV_KEYS) sops --encrypt --input-type yaml $SECRETS_FILE >$TMP_ENC
+            else
+                sops --encrypt --input-type yaml $SECRETS_FILE >$TMP_ENC
+            end
+            or begin
+                rm -f $TMP_ENC
+                echo "Ошибка: не удалось зашифровать secrets/secrets.yaml"
+                return 1
+            end
+            mv $TMP_ENC $SECRETS_FILE
         end
 
-        # Если secrets.yaml пустой или содержит только плейсхолдер — шифруем напрямую
-        set -l LINE_COUNT (wc -l < $SECRETS_FILE)
-        if test "$LINE_COUNT" -le 3
-            if test -n "$AGE_PRIV_KEYS"
-                SOPS_AGE_KEY=(string join "\n" $AGE_PRIV_KEYS) sops --encrypt --input-type yaml $TMP_YAML > $SECRETS_FILE
-            else
-                sops --encrypt --input-type yaml $TMP_YAML > $SECRETS_FILE
-            end
+        # sops set ожидает JSON-строку как значение (jq -Rs экранирует переводы строк).
+        echo "Чтение ключа: $SSH_KEY"
+        set -l KEY_JSON (jq -Rs . <"$SSH_KEY")
+
+        echo "Шифрование и запись в secrets/secrets.yaml..."
+        if test -n "$AGE_PRIV_KEYS"
+            SOPS_AGE_KEY=(string join "\n" $AGE_PRIV_KEYS) sops set $SECRETS_FILE '["github_ssh_key"]' "$KEY_JSON"
         else
-            # Файл уже содержит секреты — используем --set для обновления одного ключа
-            # Формируем JSON-значение: экранируем переносы строк
-            set -l KEY_JSON (cat "$SSH_KEY" | string join "\\n")
-            set -l SOPS_ARGS -i --set '["github_ssh_key"]' -- "github_ssh_key: |\n  $KEY_JSON"
-            if test -n "$AGE_PRIV_KEYS"
-                SOPS_AGE_KEY=(string join "\n" $AGE_PRIV_KEYS) sops $SOPS_ARGS $SECRETS_FILE
-            else
-                sops $SOPS_ARGS $SECRETS_FILE
-            end
+            sops set $SECRETS_FILE '["github_ssh_key"]' "$KEY_JSON"
         end
 
         set -l EXIT $status
-        rm -f $TMP_YAML
 
         if test $EXIT -eq 0
             echo ""
