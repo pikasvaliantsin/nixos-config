@@ -1,16 +1,12 @@
-# nixos-config/hosts/asus-expertbook/sops.nix
+# sops-nix: секреты расшифровываются host-ключом при boot/активации.
+#
+# ВАЖНО: при переустановке перенеси /etc/ssh/ssh_host_ed25519_key
+# (и .pub) до первого nixos-rebuild — иначе секреты не расшифруются.
 {
   inputs,
-  lib,
   ...
 }:
 
-let
-  hasKeyFile = lib.pathExists "/var/lib/sops-nix/key.txt";
-  hasSshEd25519 = lib.pathExists "/etc/ssh/ssh_host_ed25519_key";
-  hasSshRsa = lib.pathExists "/etc/ssh/ssh_host_rsa_key";
-  sopsReady = hasKeyFile || hasSshEd25519 || hasSshRsa;
-in
 {
   imports = [
     inputs.sops-nix.nixosModules.sops
@@ -19,14 +15,9 @@ in
   sops = {
     defaultSopsFile = ../../secrets/secrets.yaml;
 
-    age = {
-      keyFile = lib.mkIf hasKeyFile "/var/lib/sops-nix/key.txt";
-      sshKeyPaths =
-        lib.optionals hasSshEd25519 [ "/etc/ssh/ssh_host_ed25519_key" ]
-        ++ lib.optionals hasSshRsa [ "/etc/ssh/ssh_host_rsa_key" ];
-    };
+    age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
 
-    secrets = lib.mkIf sopsReady {
+    secrets = {
       github_ssh_key = {
         sopsFile = ../../secrets/secrets.yaml;
         owner = "valen";
@@ -34,6 +25,9 @@ in
       };
       valen_password = {
         sopsFile = ../../secrets/secrets.yaml;
+        # Устанавливается до activation-скрипта users, иначе hashedPasswordFile
+        # не успевает появиться и пароль не обновится.
+        neededForUsers = true;
       };
       opencode_api_key = {
         sopsFile = ../../secrets/secrets.yaml;
@@ -42,6 +36,4 @@ in
       };
     };
   };
-
-  systemd.services.sops-install-secrets.wantedBy = lib.mkIf (!sopsReady) (lib.mkForce [ ]);
 }
