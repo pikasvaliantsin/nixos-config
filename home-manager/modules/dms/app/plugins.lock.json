@@ -6,6 +6,10 @@
       "path": "activateLinux",
       "commit": "5a46c354600446ed864d0f3c3eedf3722ff44361"
     },
+    "aiQuotas": {
+      "repo": "https://github.com/agneswd/dms-ai-quotas",
+      "commit": "2603129556d7e38fa9857fee2472b8dd8c29c492"
+    },
     "antigravityUsage": {
       "repo": "https://github.com/FeikoWielsma/dms-antigravity-cli",
       "commit": "b10676be20679702a3c5941e638972c32858a604"
