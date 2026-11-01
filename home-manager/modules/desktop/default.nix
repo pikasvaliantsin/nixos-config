@@ -23,8 +23,10 @@ in
   programs.dux-files.enable = true;
 
   # Подключаем основной config.kdl через symlink
-  xdg.configFile."niri/config.kdl".source = mkLink "config.kdl";
-  xdg.configFile."niri/hm.kdl".source = mkLink "hm.kdl";
+  xdg.configFile = {
+    "niri/config.kdl".source = mkLink "config.kdl";
+    "niri/hm.kdl".source = mkLink "hm.kdl";
+  };
 
   # XDG user dirs: без ~/.config/user-dirs.dirs DMS не находит ~/Pictures
   # и складывает скриншоты (dms screenshot) прямо в $HOME.
