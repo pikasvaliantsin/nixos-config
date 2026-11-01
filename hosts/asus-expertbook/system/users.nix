@@ -5,7 +5,8 @@
 
   users.users.valen = {
     isNormalUser = true;
-    hashedPasswordFile = "/run/secrets/valen_password";
+    # neededForUsers-секреты sops-nix кладёт в /run/secrets-for-users
+    hashedPasswordFile = "/run/secrets-for-users/valen_password";
     extraGroups = [
       "wheel"
       "video"
@@ -22,7 +23,7 @@
   # Пустой hashedPasswordFile означает вход без пароля. Не даём активации
   # пройти, если sops установил пустой секрет (например, до первого заполнения).
   system.activationScripts.checkValenPassword = ''
-    if [ -e /run/secrets/valen_password ] && [ ! -s /run/secrets/valen_password ]; then
+    if [ -e /run/secrets-for-users/valen_password ] && [ ! -s /run/secrets-for-users/valen_password ]; then
       echo "valen_password пуст: задай хеш в secrets/secrets.yaml перед rebuild" >&2
       exit 1
     fi

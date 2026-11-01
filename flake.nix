@@ -54,7 +54,14 @@
             home-manager = {
               useGlobalPkgs = true;
               useUserPackages = true;
-              backupFileExtension = "backup";
+              # Уникальные имена бэкапов: DMS периодически заменяет симлинки
+              # обычными файлами, фиксированный .backup быстро начинает конфликтовать.
+              backupCommand = pkgs.writeShellScript "hm-backup" ''
+                set -euo pipefail
+                target="$1"
+                ${pkgs.coreutils}/bin/mv -- "$target" \
+                  "$target.$(${pkgs.coreutils}/bin/date +%Y%m%d-%H%M%S).backup"
+              '';
               extraSpecialArgs = { inherit inputs; };
               users.valen.imports = [ ./home-manager/home.nix ];
             };
