@@ -21,7 +21,7 @@ home-manager/modules/dms/
 │   └── wpblur.kdl
 └── app/
     ├── settings.json       -> ~/.config/dms/settings.json
-    ├── plugin_settings.json-> ~/.config/dms/plugin_settings.json
+    ├── plugin_settings.json.template   шаблон без секретов (в git)
     ├── plugins.lock.json   -> ~/.config/dms/plugins.lock.json
     ├── monitors.json       -> ~/.config/dms/monitors.json
     ├── clsettings.json     -> ~/.config/dms/clsettings.json
@@ -30,6 +30,22 @@ home-manager/modules/dms/
 ```
 
 `niri/config.kdl` и `niri/hm.kdl` — тоже out-of-store симлинки (см. `desktop.nix`).
+
+## Секреты в plugin_settings.json
+
+`app/plugin_settings.json` **не трекается в git** (см. `.gitignore`): DMS хранит
+там API-ключи плагинов, например `openCodeApiKey`. На новой машине HM создаёт
+файл из `app/plugin_settings.json.template` с пустыми ключами, после чего DMS
+может писать в него как обычно.
+
+Для защиты от случайного коммита включён hook:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Он проверяет staged changes на OpenCode API-ключи, age/SSH-приватные ключи
+и GitHub-токены.
 
 ## Что НЕ восстанавливается автоматически
 

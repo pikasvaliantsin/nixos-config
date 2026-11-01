@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Простой pre-commit guard: не даём закоммитить очевидные секреты.
+# Активируется через: git config core.hooksPath .githooks
+set -euo pipefail
+
+oc_prefix='oc_'
+age_prefix='AGE-SECRET-'
+key_header='-----BEGIN '
+gh_prefix='ghp_'
+gh_pat_prefix='github_pat_'
+
+patterns="${oc_prefix}sk_[A-Za-z0-9]|${age_prefix}KEY-|${key_header}(OPENSSH|RSA|EC|DSA) PRIVATE KEY-----|${gh_prefix}[A-Za-z0-9]{20,}|${gh_pat_prefix}[A-Za-z0-9_]{20,}"
+
+# Сам hook не сканируем: в нём по определению есть строки-паттерны.
+if git diff --cached --no-color -U0 -- . ':(exclude).githooks/pre-commit' \
+  | grep -E '^\+[^+]' \
+  | grep -Eq "$patterns"; then
+  echo "pre-commit: в staged changes найден секрет. Коммит отменён." >&2
+  echo "Убери секрет из файла или положи его в sops." >&2
+  exit 1
+fi

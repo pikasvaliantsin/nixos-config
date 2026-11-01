@@ -25,4 +25,13 @@ in
 
   # Док-пины, порядок трея, настройки outputs и прочее состояние сессии.
   xdg.stateFile."dms/session.json".source = link "app/session.json";
+
+  # plugin_settings.json не трекается в git: DMS хранит там API-ключи плагинов.
+  # На новой машине создаём файл из обезличенного шаблона.
+  home.activation.seedDmsPluginSettings = config.lib.dag.entryAfter [ "linkGeneration" ] ''
+    target="${configRoot}/app/plugin_settings.json"
+    if [ ! -e "$target" ]; then
+      install -m 600 ${./app/plugin_settings.json.template} "$target"
+    fi
+  '';
 }

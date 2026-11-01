@@ -33,3 +33,5 @@ Thumbs.db
 # --- IDE ---
 .idea/
 .vscode/
+# --- DMS runtime state (может содержать API-ключи) ---
+home-manager/modules/dms/app/plugin_settings.json
