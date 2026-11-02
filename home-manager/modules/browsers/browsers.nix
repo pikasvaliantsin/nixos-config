@@ -1,5 +1,6 @@
 # Браузеры: Firefox с декларативными настройками и Zen с кодеками.
 {
+  config,
   pkgs,
   inputs,
   lib,
@@ -30,6 +31,26 @@ let
     pref("browser.safebrowsing.downloads.remote.enabled", false);
     pref("browser.safebrowsing.phishing.enabled", false);
   '';
+
+  # Отдельный профиль для YouTube-приложения: свои cookies/кэш,
+  # без доступа к системному keyring (там нет паролей, только YouTube-сессия).
+  youtubeArgs = [
+    "--app=https://www.youtube.com"
+    "--user-data-dir=${config.home.homeDirectory}/.local/share/youtube-chromium"
+    "--password-store=basic"
+    "--start-maximized"
+    "--no-first-run"
+    "--no-default-browser-check"
+    "--disable-background-networking"
+    "--disable-component-update"
+    "--disable-domain-reliability"
+    "--disable-sync"
+    "--disable-breakpad"
+    "--disable-crash-reporter"
+    "--metrics-recording-only"
+    "--disable-features=Translate,OptimizationHints,MediaRouter"
+    "--ozone-platform-hint=wayland"
+  ];
 in
 {
   home = {
@@ -61,7 +82,7 @@ in
       (pkgs.makeDesktopItem {
         name = "youtube-stream-chromium";
         desktopName = "YouTube Stream (Chromium)";
-        exec = "${pkgs.chromium}/bin/chromium --app=https://www.youtube.com --disable-background-networking --disable-sync --disable-translate --metrics-recording-only --no-default-browser-check --ozone-platform-hint=wayland";
+        exec = "${pkgs.chromium}/bin/chromium ${lib.concatStringsSep " " youtubeArgs}";
         icon = "youtube-vision";
         categories = [
           "AudioVideo"

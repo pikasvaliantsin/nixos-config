@@ -39,11 +39,6 @@ in
       QT_IM_MODULE = "simple";
       XMODIFIERS = "@im=none";
 
-      # Эти переменные уже заданы в hosts/asus-expertbook/desktop/niri.nix (системно).
-      # Оставлены здесь как fallback для Wine/Gamescope внутри сессии Niri.
-      XKB_DEFAULT_LAYOUT = "us,ru";
-      XKB_DEFAULT_OPTIONS = "grp:win_space_toggle";
-      XKB_CONFIG_ROOT = "${pkgs.xkeyboard_config}/share/X11/xkb";
     };
 
     # Игровые утилиты и вспомогательные скрипты

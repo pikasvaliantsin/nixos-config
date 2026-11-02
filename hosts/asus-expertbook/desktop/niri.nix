@@ -55,18 +55,19 @@
       xdg-desktop-portal-gnome
     ];
 
-    # Раскладка XKB для X11 / Xwayland / Gamescope
+    # Раскладка XKB для X11 / Xwayland / Gamescope.
+    # Сам Niri input (layout/options) настраивает DMS и пишет в dms/input.kdl.
     xserver.xkb = {
       layout = "us,ru";
-      options = "grp:win_space_toggle";
+      options = "grp:win_space_toggle,compose:ralt,ctrl:nocaps";
     };
   };
 
-  # Глобальные переменные окружения для Wayland/XKB
+  # Глобальные переменные окружения для Xwayland/Electron/Gamescope.
   environment = {
     sessionVariables = {
       XKB_DEFAULT_LAYOUT = "us,ru";
-      XKB_DEFAULT_OPTIONS = "grp:win_space_toggle";
+      XKB_DEFAULT_OPTIONS = "grp:win_space_toggle,compose:ralt,ctrl:nocaps";
       XKB_CONFIG_ROOT = "${pkgs.xkeyboard_config}/share/X11/xkb";
       XDG_DATA_DIRS = [
         "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"
