@@ -13,6 +13,16 @@ _:
   programs.appimage.enable = true;
   programs.nix-ld.enable = true;
 
+  # Автоочистка: раз в неделю удаляем поколения старше 14 дней.
+  # Без options nix-collect-garbage чистит только мёртвые пути и не трогает
+  # старые generation'ы.
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    randomizedDelaySec = "45min";
+    options = "--delete-older-than 14d";
+  };
+
   nix.settings = {
     experimental-features = [
       "nix-command"

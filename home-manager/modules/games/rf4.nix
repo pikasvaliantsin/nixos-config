@@ -5,7 +5,8 @@
 # фиксированного релиза.
 #
 #   rf4-install /путь/к/установщику.exe   — однократная установка игры
-#   rf4                                    — запуск (gamescope + lsfg + MangoHud)
+#   rf4                                    — игра: Xwayland + lsfg 2x
+#   rf4-native                             — псевдоним rf4
 #
 # Префикс: ~/Games/rf4 (внутри Proton использует ~/Games/rf4/pfx).
 
@@ -59,7 +60,6 @@ let
   proton = pkgs.proton-ge-bin.steamcompattool;
   prefix = "$HOME/Games/rf4";
   umu = lib.getExe pkgs.umu-launcher;
-  gamescope = lib.getExe pkgs.gamescope;
 
   # Общее окружение для установщика и запуска.
   commonEnv = ''
@@ -67,28 +67,35 @@ let
     export GAMEID="0"
     export WINEPREFIX="${prefix}"
 
+    # Твои твики DXVK. tearFree (FIFO) нужен для lsfg, заодно убирает разрывы.
+    export DXVK_CONFIG="d3d11.samplerAnisotropy=0;d3d11.maxTessFactor=0;d3d11.disableMsaa=True;dxvk.maxChunkSize=32;dxvk.gpl=True;dxgi.tearFree=True"
+
+    # Лаунчер RF4 — это QtWebEngine (Chromium). Под Wine он инициализирует
+    # D3D11 через DXVK/Vulkan, и слой lsfg в этом процессе роняет heap
+    # (malloc: smallbin double linked list corrupted). Лаунчеру GPU не нужен.
+    export QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu --disable-gpu-compositing --disable-features=Vulkan''${QTWEBENGINE_CHROMIUM_FLAGS:+ $QTWEBENGINE_CHROMIUM_FLAGS}"
+  '';
+
+  # Окружение генератора кадров (только для rf4; rf4-native его не получает).
+  lsfgEnv = ''
     # Слой lsfg-vk и его DLL (DLL можно переопределить через RF4_LOSSLESS_DLL).
     export XDG_DATA_DIRS="${lsfg}/share''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
     export LSFGVK_ENV="1"
     export LSFGVK_DLL_PATH="''${RF4_LOSSLESS_DLL:-${lsfg}/share/lsfg/Lossless.dll}"
-    export LSFGVK_MULTIPLIER="''${RF4_LSFG_MULTIPLIER:-3}"
-    export LSFGVK_FLOW_SCALE="''${RF4_LSFG_FLOW_SCALE:-0.5}"
+    export LSFGVK_MULTIPLIER="''${RF4_LSFG_MULTIPLIER:-2}"
+    export LSFGVK_FLOW_SCALE="''${RF4_LSFG_FLOW_SCALE:-0.6}"
     export LSFGVK_PERFORMANCE_MODE="1"
 
-    # FIFO обязателен для lsfg; остальное — твои твики DXVK.
-    export DXVK_CONFIG="d3d11.samplerAnisotropy=0;d3d11.maxTessFactor=0;d3d11.disableMsaa=True;dxvk.maxChunkSize=32;dxvk.gpl=True;dxgi.tearFree=True"
-
-    # gamescope ищет mangohud в PATH для --mangoapp.
-    export PATH="${lib.makeBinPath [ pkgs.mangohud ]}:$PATH"
+    # Выключить генерацию, оставив gamescope+FSR: RF4_LSFG=0 rf4
+    if [ "''${RF4_LSFG:-1}" = "0" ]; then
+      export DISABLE_LSFGVK="1"
+    fi
   '';
 
-  rf4 = pkgs.writeShellScriptBin "rf4" ''
-    set -eu
-    ${commonEnv}
-
+  # Поиск лаунчера (установщик может положить игру в другой каталог).
+  findExe = ''
     exe="${prefix}/pfx/drive_c/Games/RF4/RF4Launcher.exe"
     if [ ! -f "$exe" ]; then
-      # Установщик может положить игру в другой каталог — ищем.
       exe=$(find "${prefix}/pfx/drive_c" -maxdepth 4 -iname 'RF4Launcher.exe' 2>/dev/null | head -n1 || true)
     fi
     if [ -z "''${exe:-}" ] || [ ! -f "$exe" ]; then
@@ -96,21 +103,46 @@ let
       echo "Сначала: rf4-install" >&2
       exit 1
     fi
+  '';
 
-    # Внутреннее разрешение (21:9 по умолчанию); можно переопределить:
-    #   RF4_GS_W=1400 RF4_GS_H=600 rf4
-    GS_W="''${RF4_GS_W:-1680}"
-    GS_H="''${RF4_GS_H:-720}"
+  # Основной режим: Xwayland + генерация кадров 2x.
+  #
+  #   rf4                             — Xwayland + lsfg 2x (по умолчанию)
+  #   env RF4_LSFG=0 rf4              — без генерации
+  #   env RF4_LSFG_MULTIPLIER=3 rf4
+  #   env RF4_WAYLAND=1 rf4           — через winewayland (с lsfg нестабилен)
+  rf4 = pkgs.writeShellScriptBin "rf4" ''
+    set -eu
+    ${commonEnv}
 
-    exec ${gamescope} \
-      -w "$GS_W" -h "$GS_H" \
-      -W 2240 -H 960 \
-      -r 120 \
-      -S fit \
-      -f \
-      --force-grab-cursor \
-      --mangoapp \
-      -- ${umu} "$exe"
+    ${findExe}
+
+    # MangoHud не переживает запуск через umu/pressure-vessel, поэтому FPS
+    # показываем средствами DXVK (базовый FPS игры):
+    #   RF4_HUD=fps — включён, RF4_HUD= — выключен.
+    export DXVK_HUD="''${RF4_HUD-fps}"
+
+    # Слой lsfg-vk падает в презентации через Wayland-WSI
+    # (wsi_wl_swapchain_queue_present -> vk_drm_syncobj_wait_many),
+    # поэтому по умолчанию Xwayland. Wayland включается вручную:
+    #   RF4_WAYLAND=1 rf4
+    if [ "''${RF4_WAYLAND:-0}" = "1" ]; then
+      export PROTON_ENABLE_WAYLAND="1"
+    fi
+
+    # Для плавности нужен VRR; включаем на выходе монитора (RF4_VRR=0 — не трогать).
+    if [ "''${RF4_VRR:-1}" = "1" ] && command -v niri >/dev/null 2>&1; then
+      niri msg output "''${RF4_OUTPUT:-HDMI-A-1}" vrr on >/dev/null 2>&1 || true
+    fi
+
+    ${lsfgEnv}
+
+    exec ${umu} "$exe"
+  '';
+
+  # Старое имя основного режима — оставлено для совместимости.
+  rf4-native = pkgs.writeShellScriptBin "rf4-native" ''
+    exec ${rf4}/bin/rf4 "$@"
   '';
 
   rf4-install = pkgs.writeShellScriptBin "rf4-install" ''
@@ -137,18 +169,26 @@ in
   home.packages = [
     pkgs.umu-launcher
     rf4
+    rf4-native
     rf4-install
   ];
 
+  # Иконка игры (извлечена из RF4Launcher.exe).
+  home.file.".local/share/icons/hicolor/256x256/apps/rf4.png".source = ./rf4.png;
+
   xdg.enable = true;
 
-  xdg.desktopEntries.rf4 = {
+  # Имя desktop-файла совпадает с app-id окна игры под Xwayland
+  # ("steam_app_0"), чтобы док группировал ярлык и запущенное окно.
+  xdg.desktopEntries."steam_app_0" = {
     name = "Russian Fishing 4";
-    comment = "Russian Fishing 4 (сайтовая версия) через umu + GE-Proton";
+    genericName = "Fishing simulator";
+    comment = "Русская Рыбалка 4 (сайтовая версия) через umu + GE-Proton";
     exec = "rf4";
-    icon = "applications-games";
+    icon = "rf4";
     terminal = false;
     categories = [ "Game" ];
     type = "Application";
+    startupNotify = true;
   };
 }
