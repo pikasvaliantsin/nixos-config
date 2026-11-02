@@ -176,11 +176,18 @@ in
   # Иконка игры (извлечена из RF4Launcher.exe).
   home.file.".local/share/icons/hicolor/256x256/apps/rf4.png".source = ./rf4.png;
 
+  # DMS для app-id вида steam_app_N игнорирует Icon из .desktop и всегда ищет
+  # иконку темы с именем steam_icon_N. GAMEID=0 → steam_icon_0.
+  home.file.".local/share/icons/hicolor/256x256/apps/steam_icon_0.png" = {
+    source = ./rf4.png;
+    force = true;
+  };
+
   xdg.enable = true;
 
-  # Имя desktop-файла совпадает с app-id окна игры под Xwayland
-  # ("steam_app_0"), чтобы док группировал ярлык и запущенное окно.
-  xdg.desktopEntries."steam_app_0" = {
+  # DMS подменяет app-id "steam_app_0" на "steam_icon_0" (см. appIdSubstitutions),
+  # поэтому desktop-файл называется так же — тогда док находит имя и иконку.
+  xdg.desktopEntries."steam_icon_0" = {
     name = "Russian Fishing 4";
     genericName = "Fishing simulator";
     comment = "Русская Рыбалка 4 (сайтовая версия) через umu + GE-Proton";
