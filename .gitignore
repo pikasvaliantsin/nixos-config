@@ -35,3 +35,6 @@ Thumbs.db
 .vscode/
 # --- DMS runtime state (может содержать API-ключи) ---
 home-manager/modules/dms/app/plugin_settings.json
+
+# DMS генерирует этот файл сам (миграция биндов)
+home-manager/modules/dms/config/binds-next.kdl
