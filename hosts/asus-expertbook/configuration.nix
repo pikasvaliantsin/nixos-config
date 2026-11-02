@@ -12,6 +12,7 @@ _:
     ./system/networking.nix
     ./system/printing.nix
     ./system/services.nix
+    ./system/fingerprint.nix
     ./system/graphics.nix
     ./system/gaming.nix
     ./system/nix.nix

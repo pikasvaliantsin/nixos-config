@@ -1091,5 +1091,7 @@
   "springBounce": 1,
   "textRenderType": 0,
   "textRenderQuality": 0,
-  "avatarRing": "none"
+  "avatarRing": "none",
+  "lockPamExternallyManaged": false,
+  "enableFprint": true
 }
