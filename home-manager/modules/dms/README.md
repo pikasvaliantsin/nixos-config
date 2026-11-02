@@ -31,6 +31,23 @@ home-manager/modules/dms/
 
 `niri/config.kdl` и `niri/hm.kdl` — тоже out-of-store симлинки (см. `desktop.nix`).
 
+## Wallhaven Carousel
+
+Плагин `wallhavenCarousel` добавляет полноэкранную карусель обоев с поиском по
+Wallhaven (SFW, без API-ключа), избранным, цветовыми/теговыми фильтрами и
+скачиванием прямо в папку обоев.
+
+- установка: `dms plugins install wallhavenCarousel`
+- восстановление после переустановки: `dms plugins restore ~/.config/dms/plugins.lock.json`
+- зависимости: `python3`, `imagemagick` (добавлены в `dms.nix`)
+- открыть: `dms ipc call wallhavenCarousel toggle`
+- сразу в поиск Wallhaven: `dms ipc call wallhavenCarousel discover`
+- в конфиге есть desktop-entry `Wallhaven` и бинд `Mod+Shift+Tab`
+- настройки: DMS → Settings → Plugins → Wallhaven Carousel
+
+API-ключ Wallhaven не обязателен; если добавить, он будет храниться в
+`plugin_settings.json` (файл не трекается в git).
+
 ## Секреты в plugin_settings.json
 
 `app/plugin_settings.json` **не трекается в git** (см. `.gitignore`): DMS хранит

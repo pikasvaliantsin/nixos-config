@@ -1,42 +1,17 @@
 {
   "lockfileVersion": 1,
   "plugins": {
-    "activateLinux": {
-      "repo": "https://github.com/hthienloc/dms-plugins",
-      "path": "activateLinux",
-      "commit": "5a46c354600446ed864d0f3c3eedf3722ff44361"
-    },
     "aiQuotas": {
       "repo": "https://github.com/agneswd/dms-ai-quotas",
       "commit": "2603129556d7e38fa9857fee2472b8dd8c29c492"
     },
-    "antigravityUsage": {
-      "repo": "https://github.com/FeikoWielsma/dms-antigravity-cli",
-      "commit": "b10676be20679702a3c5941e638972c32858a604"
-    },
-    "bongoCat": {
-      "repo": "https://github.com/hthienloc/dms-bongo-cat",
-      "commit": "237b1a34b2fb8d90e4f4c8656af758c3d7dab638"
-    },
-    "dcalUpcoming": {
-      "repo": "https://github.com/leoamaro01/dms-dcal",
-      "commit": "8a140c03231a06cbf2cc3754312477c4e9aaadaa"
-    },
-    "dmsJira": {
-      "repo": "https://github.com/Klievan/dms-jira",
-      "commit": "1f4f10a7ed35e9ebbf8eb57d69871cb57faab8d2"
-    },
-    "dmsfilemanager": {
-      "repo": "https://github.com/suruibin/dms-filemanager",
-      "commit": "712154f3eb5dae789ce03f0700488163928395fa"
-    },
-    "quickCapture": {
-      "repo": "https://github.com/hthienloc/dms-quick-capture",
-      "commit": "d84703fb9b1ae20c3870130fca4dae9a6b57b5c0"
-    },
     "vpnControl": {
       "repo": "https://github.com/schneipp/dms-plugin-vpn-control",
       "commit": "f7cfd655ec950a74033e345f1c771d8229e4bf1e"
+    },
+    "wallhavenCarousel": {
+      "repo": "https://github.com/alicercedigital/wallhaven-carousel",
+      "commit": "ada62d38575c8eef3386ecef67fcf8c29f7ee1fa"
     }
   }
 }

@@ -33,6 +33,7 @@ environment {
 
 binds {
     Mod+B { spawn "zen"; }
+    Mod+Shift+Tab { spawn "dms" "ipc" "call" "wallhavenCarousel" "toggle"; }
     "Shift+Page_Up" repeat=false { spawn "./scripts/toogle_key.sh"; }
     Super+G repeat=false { spawn "steam"; }
 }

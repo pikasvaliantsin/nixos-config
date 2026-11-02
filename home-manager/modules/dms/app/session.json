@@ -63,12 +63,12 @@
       }
     },
     "HDMI-A-1": {
-      "width": 3440,
-      "height": 1440,
+      "width": 2240,
+      "height": 960,
       "positions": {
         "lock_clock": {
-          "x": 1510,
-          "y": 48
+          "x": 48,
+          "y": 375
         }
       }
     }
@@ -78,7 +78,8 @@
     "dock": [
       "com.mitchellh.ghostty",
       "com.ayugram.desktop",
-      "zen"
+      "zen",
+      "wallhavenCarousel"
     ]
   },
   "hiddenTrayIds": [
@@ -87,6 +88,7 @@
   "trayItemOrder": [
     "steam",
     "chrome_status_icon_1",
+    "NetBird",
     "udiskie"
   ],
   "recentColors": [
@@ -127,14 +129,14 @@
     }
   },
   "lastAppliedIconTheme": "Papirus-Dark",
-  "launcherLastQuery": "russ",
+  "launcherLastQuery": "you",
   "launcherQueryHistory": [
+    "you",
+    "r",
+    "ru",
     "russ",
     "netb",
-    "r",
-    "you",
     "rus",
-    "ru",
     "y",
     "Rus",
     "po",
