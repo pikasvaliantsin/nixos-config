@@ -43,6 +43,8 @@
     {
       formatter.${system} = pkgs.nixfmt;
 
+      packages.${system}.openide = pkgs.callPackage ./pkgs/openide { };
+
       nixosConfigurations.asus-expertbook = nixpkgs.lib.nixosSystem {
         specialArgs = { inherit inputs; };
         modules = [

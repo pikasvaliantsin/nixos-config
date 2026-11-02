@@ -9,6 +9,8 @@
 .
 ├── flake.nix                 # вход, inputs, nixosConfigurations, formatter
 ├── flake.lock
+├── pkgs/
+│   └── openide/              # OpenIDE: пакет из официального tar.gz
 ├── secrets/                  # sops-зашифрованные секреты
 ├── hosts/
 │   └── asus-expertbook/
@@ -93,6 +95,23 @@ checkout указывают симлинки. Это позволяет испо
 набором живых конфигов.
 
 Подробности — в `home-manager/modules/dms/README.md`.
+
+## OpenIDE
+
+`pkgs/openide/default.nix` собирает IDE из официального Linux-дистрибутива
+(openide.ru) с вендорским JetBrains Runtime от Axiom JSC. Пакет подключается
+в `home-manager/modules/editors/openide.nix`.
+
+Обновление версии:
+
+1. Взять `version`, `buildNumber` и ссылки на `*.tar.gz` со страницы
+   <https://openide.ru/download/>.
+2. Обновить `version`, `buildNumber` и `sources` в `pkgs/openide/default.nix`.
+3. Пересчитать хэши (для `x86_64` и `aarch64`):
+
+   ```bash
+   nix store prefetch-file https://download.openide.ru/<buildNumber>/openIDE-<buildNumber>.tar.gz
+   ```
 
 ## Соглашения
 
