@@ -117,7 +117,10 @@
           "vrr": false,
           "disabled": false,
           "niri": {
-            "disabled": false
+            "disabled": false,
+            "layout": {
+              "alwaysCenterSingleColumn": true
+            }
           }
         },
         "HDMI-A-1": {
@@ -128,10 +131,11 @@
           },
           "scale": 1,
           "transform": "Normal",
-          "vrr": false,
+          "vrr": true,
           "disabled": false,
           "niri": {
-            "disabled": false
+            "disabled": false,
+            "vrrOnDemand": null
           }
         }
       }
