@@ -36,6 +36,61 @@
       enable = true;
       compositor.name = "niri";
       configHome = "/home/valen";
+
+      # Greeter запускает niri с дефолтным конфигом без output-секций,
+      # поэтому мониторы там раскладываются автоматически. Фиксируем ту же
+      # раскладку, что и в сессии: HDMI-A-1 слева, eDP-1 справа.
+      compositor.customConfig = ''
+        hotkey-overlay {
+            skip-at-startup
+        }
+
+        environment {
+            DMS_RUN_GREETER "1"
+        }
+
+        input {
+            keyboard {
+                xkb {
+                }
+                numlock
+            }
+
+            touchpad {
+                tap
+                natural-scroll
+            }
+
+            mouse {
+            }
+
+            trackpoint {
+            }
+        }
+
+        gestures {
+            hot-corners {
+                off
+            }
+        }
+
+        layout {
+            background-color "#000000"
+        }
+
+        output "HDMI-A-1" {
+            mode "2240x960@119.898"
+            scale 1
+            position x=0 y=0
+            variable-refresh-rate
+        }
+
+        output "eDP-1" {
+            mode "1920x1080@60.164"
+            scale 1
+            position x=2240 y=0
+        }
+      '';
     };
 
     # X11 / Xwayland
