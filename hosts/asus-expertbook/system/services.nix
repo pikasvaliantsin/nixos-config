@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+_:
 
 {
   # ========================================
@@ -38,7 +38,6 @@
     # ========================================
     # DESKTOP SERVICES
     # ========================================
-    flatpak.enable = true;
     upower.enable = true;
     udisks2.enable = true;
     gvfs.enable = true;
@@ -55,10 +54,5 @@
   hardware.bluetooth = {
     enable = true;
     powerOnBoot = true;
-  };
-
-  programs.kdeconnect = {
-    enable = true;
-    package = pkgs.kdePackages.kdeconnect-kde;
   };
 }

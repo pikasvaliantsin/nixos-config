@@ -243,7 +243,6 @@ _:
       cat = "bat";
       update = "cd ~/nixos-config && nh os switch .#asus-expertbook";
       upgrade = "cd ~/nixos-config && nix flake update";
-      stui = "steam-tui -c steamcmd -s ~/.local/share/Steam -u valentaen312";
       clear = "pyroclear";
     };
   };

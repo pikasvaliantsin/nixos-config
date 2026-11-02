@@ -28,7 +28,7 @@
 │           ├── steam-extra-pkgs.nix
 │           ├── graphics.nix  # VA-API, Vulkan, 32-bit, Wine
 │           ├── gaming.nix    # Steam, GameMode, Gamescope
-│           ├── services.nix  # звук, Bluetooth, Flatpak, keyring, питание
+│           ├── services.nix  # звук, Bluetooth, keyring, питание
 │           ├── printing.nix  # печать, сканер, ipp-usb
 │           ├── users.nix
 │           └── packages.nix  # минимальный набор системных пакетов
@@ -47,7 +47,7 @@
         ├── desktop/          # хаб: fonts/gtk/keyring/portals/udiskie
         ├── dms/              # DMS: app/ и config/ — живые конфиги
         ├── niri/             # config.kdl, hm.kdl
-        └── games/            # games, rf4, steam-tui
+        └── games/            # games, rf4
 ```
 
 Принцип: `configuration.nix` и `home.nix` — только import-хабы. Всё остальное —

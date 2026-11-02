@@ -1,23 +1,7 @@
-# NixVim и настройки Micro.
+# NixVim (Neovim).
 _:
 
 {
-  # Настройки Micro
-  xdg.configFile."micro/settings.json" = {
-    text = ''
-      {
-        "colorscheme": "solarized",
-        "tabstospaces": true,
-        "tabwidth": 2,
-        "autosu": true,
-        "ruler": true,
-        "softwrap": true,
-        "clipboard": "external"
-      }
-    '';
-    force = true;
-  };
-
   # Настройки NixVim (Neovim)
   programs.nixvim = {
     enable = true;

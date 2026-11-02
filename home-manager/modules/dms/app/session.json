@@ -87,7 +87,6 @@
   "trayItemOrder": [
     "steam",
     "chrome_status_icon_1",
-    "NetBird",
     "udiskie"
   ],
   "recentColors": [
@@ -128,8 +127,13 @@
     }
   },
   "lastAppliedIconTheme": "Papirus-Dark",
-  "launcherLastQuery": "ru",
+  "launcherLastQuery": "russ",
   "launcherQueryHistory": [
+    "russ",
+    "netb",
+    "r",
+    "you",
+    "rus",
     "ru",
     "y",
     "Rus",
@@ -138,7 +142,6 @@
     "g",
     "p",
     "vsc",
-    "you",
     "port",
     "fi",
     "yout",
@@ -152,7 +155,6 @@
     "ya",
     "a",
     "tele",
-    "netb",
     "s",
     "file",
     "bot",
@@ -176,10 +178,7 @@
     "st",
     "w",
     "ay",
-    "mus",
-    "gh",
-    "ca",
-    "cli"
+    "mus"
   ],
   "configVersion": 7
 }

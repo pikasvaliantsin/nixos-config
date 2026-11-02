@@ -1,6 +1,6 @@
 {
   "dankKDEConnect": {
-    "enabled": true,
+    "enabled": false,
     "selectedDeviceId": ""
   },
   "dmsJira": {

@@ -17,11 +17,10 @@
     # Иконки для терминала/Yazi (Nerd Fonts)
     nerd-fonts.symbols-only
 
-    # Иконки и темы GTK
+    # Иконки GTK. Papirus и Catppuccin GTK подключаются через gtk.nix,
+    # здесь дублировать их не нужно.
     hicolor-icon-theme
     adwaita-icon-theme
-    papirus-icon-theme
     font-awesome_6
-    catppuccin-gtk
   ];
 }

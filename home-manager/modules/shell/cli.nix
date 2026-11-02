@@ -16,10 +16,6 @@
     fd
     _7zip-zstd
 
-    # Сетевые утилиты
-    wget
-    curl
-
     # Архивация
     unzip
 
@@ -31,14 +27,12 @@
     # Wayland-утилиты
     libinput
     wl-clipboard
-    cliphist
 
     # TUI-утилиты
     nh
     lazygit
     lazyssh
     opencode
-    (pkgs.callPackage ../games/steam-tui.nix { })
     inputs.pyroclear.packages.${pkgs.stdenv.hostPlatform.system}.default
     # Отдельный CLI dgop из nixpkgs (в dms 2.0 он встроен в бэкенд как
     # библиотека, поэтому nix-модуль dms его больше не ставит)

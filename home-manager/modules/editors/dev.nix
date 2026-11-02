@@ -7,12 +7,8 @@
     vscodium
     gcc
 
-    # LSP-серверы (standalone для CLI и для Neovim)
-    nixd
+    # NixVim сам ставит LSP-серверы из editors.nix; здесь оставляем только
+    # то, что нужно вне Neovim (форматтер для CLI/`nix fmt`).
     nixfmt
-    bash-language-server
-    yaml-language-server
-    taplo
-    lua-language-server
   ];
 }

@@ -3,7 +3,6 @@
 
 {
   imports = [
-    inputs.nix-flatpak.homeManagerModules.nix-flatpak
     inputs.nixvim.homeModules.nixvim
     ./modules/core.nix
     ./modules/core/secrets.nix

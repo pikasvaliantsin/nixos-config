@@ -23,7 +23,6 @@
 
     ayugram-desktop.url = "github:ndfined-crp/ayugram-desktop";
 
-    nix-flatpak.url = "github:gmodena/nix-flatpak";
     nixvim.url = "github:nix-community/nixvim";
     disko.url = "github:nix-community/disko";
     pyroclear.url = "github:shreyanth-sureshkrishnaa/pyroclear";
