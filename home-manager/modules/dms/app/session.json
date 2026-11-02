@@ -7,6 +7,7 @@
       }
     }
   },
+  "wallpaperPath": "/home/valen/Pictures/wallhaven-gwqpmd.jpg",
   "weatherLocation": "",
   "weatherCoordinates": "52.4238936,31.0131698",
   "desktopWidgetInstancePositions": {
@@ -76,8 +77,9 @@
   "terminalOverride": "ghostty",
   "dockPins": {
     "dock": [
-      "com.mitchellh.ghostty",
       "com.ayugram.desktop",
+      "com.mitchellh.ghostty",
+      "steam_app_0",
       "zen",
       "wallhavenCarousel"
     ]
@@ -129,8 +131,10 @@
     }
   },
   "lastAppliedIconTheme": "Papirus-Dark",
-  "launcherLastQuery": "you",
+  "launcherLastQuery": "Op",
   "launcherQueryHistory": [
+    "Op",
+    "w",
     "you",
     "r",
     "ru",
@@ -178,9 +182,7 @@
     "obs",
     "а",
     "st",
-    "w",
-    "ay",
-    "mus"
+    "ay"
   ],
   "configVersion": 7
 }
