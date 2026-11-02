@@ -54,7 +54,7 @@ in
     Name=Wallhaven
     GenericName=Wallpaper Browser
     Comment=Wallhaven wallpaper carousel
-    Exec=dms ipc call wallhavenCarousel toggle
+    Exec=dms ipc call wallhavenCarousel discover
     Icon=preferences-desktop-wallpaper
     Terminal=false
     Categories=Graphics;Settings;
