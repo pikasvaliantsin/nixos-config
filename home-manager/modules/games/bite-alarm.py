@@ -200,6 +200,21 @@ def main() -> int:
     verbose = "--verbose" in sys.argv
     once = "--once" in sys.argv
 
+    if "--beep" in sys.argv:
+        make_beep(SOUND)
+        count = 2 if "--double" in sys.argv else 1
+        for i in range(count):
+            for player in (["pw-play", SOUND], ["paplay", SOUND], ["aplay", "-q", SOUND]):
+                try:
+                    subprocess.run(player, stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL, check=False)
+                    break
+                except FileNotFoundError:
+                    continue
+            if i + 1 < count:
+                time.sleep(0.15)
+        return 0
+
     if "--stdin" in sys.argv:
         w, h, px = parse_ppm(sys.stdin.buffer.read())
         score, rec, spec = match_icon(px, w, h)

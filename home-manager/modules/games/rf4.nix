@@ -208,13 +208,15 @@ let
   # Включить/выключить сигнал (биндится на Mod+Alt+B).
   bite-alarm-toggle = pkgs.writeShellScriptBin "bite-alarm-toggle" ''
     set -eu
-    if ${pkgs.procps}/bin/pgrep -f "[b]ite-alarm\.py" >/dev/null 2>&1; then
-      ${pkgs.procps}/bin/pkill -f "[b]ite-alarm\.py" || true
+    if ${pkgs.procps}/bin/pgrep -f "[b]ite-alarm\.py$" >/dev/null 2>&1; then
+      ${pkgs.procps}/bin/pkill -f "[b]ite-alarm\.py$" || true
+      ${bite-alarm}/bin/bite-alarm --beep --double
       dms ipc call toast info "Bite alarm: выключен" >/dev/null 2>&1 || true
     else
       mkdir -p "$HOME/.cache/bite-alarm"
       ${pkgs.util-linux}/bin/setsid ${bite-alarm}/bin/bite-alarm \
         >"$HOME/.cache/bite-alarm/alarm.log" 2>&1 </dev/null &
+      ${bite-alarm}/bin/bite-alarm --beep
       dms ipc call toast info "Bite alarm: включён" >/dev/null 2>&1 || true
     fi
   '';
