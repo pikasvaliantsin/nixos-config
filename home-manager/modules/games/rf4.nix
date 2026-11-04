@@ -8,6 +8,7 @@
 #   rf4                                    — игра: Xwayland + lsfg 2x
 #   rf4-gamescope                          — 1680x720 + FSR + lsfg 2x (апскейл)
 #   rf4-native                             — псевдоним rf4
+#   bite-alarm                             — звук при появлении значка рыбки
 #
 # Префикс: ~/Games/rf4 (внутри Proton использует ~/Games/rf4/pfx).
 
@@ -197,6 +198,13 @@ let
     exec "$GS" "''${ARGS[@]}" -f --force-grab-cursor --mangoapp -- ${umu} "$exe"
   '';
 
+  # Звуковой сигнал при появлении значка рыбки. Только grim + звук,
+  # в игру не вмешивается и ввод не эмулирует.
+  bite-alarm = pkgs.writeShellScriptBin "bite-alarm" ''
+    export PATH="${lib.makeBinPath [ pkgs.grim pkgs.pipewire ]}:$PATH"
+    exec ${pkgs.python3}/bin/python3 ${./bite-alarm.py} "$@"
+  '';
+
   rf4-install = pkgs.writeShellScriptBin "rf4-install" ''
     set -eu
     ${commonEnv}
@@ -224,6 +232,7 @@ in
     rf4-native
     rf4-gamescope
     rf4-install
+    bite-alarm
   ];
 
   # Иконка игры (извлечена из RF4Launcher.exe).
