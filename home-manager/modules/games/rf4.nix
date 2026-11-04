@@ -6,6 +6,7 @@
 #
 #   rf4-install /путь/к/установщику.exe   — однократная установка игры
 #   rf4                                    — игра: Xwayland + lsfg 2x
+#   rf4-gamescope                          — 1680x720 + FSR + lsfg 2x (апскейл)
 #   rf4-native                             — псевдоним rf4
 #
 # Префикс: ~/Games/rf4 (внутри Proton использует ~/Games/rf4/pfx).
@@ -145,6 +146,57 @@ let
     exec ${rf4}/bin/rf4 "$@"
   '';
 
+  # Апскейл 1680x720 -> 2240x960 через gamescope + FSR, плюс lsfg 2x.
+  # gamescope запускается через security-wrapper с CAP_SYS_NICE: без него
+  # композитор пейсит кадры с обычным приоритетом и картинка рвётся.
+  #
+  #   rf4-gamescope                      — FSR + lsfg 2x + MangoHud
+  #   env RF4_LSFG=0 rf4-gamescope       — без генерации
+  #   env RF4_GS_FILTER=sgsr rf4-gamescope
+  rf4-gamescope = pkgs.writeShellScriptBin "rf4-gamescope" ''
+    set -eu
+    ${commonEnv}
+    ${lsfgEnv}
+
+    ${findExe}
+
+    # Счётчик FPS рисует MangoHud (gamescope --mangoapp), DXVK HUD не нужен.
+    unset DXVK_HUD
+
+    # gamescope ищет mangoapp в PATH.
+    export PATH="${lib.makeBinPath [ pkgs.mangohud ]}:$PATH"
+
+    # VRR на выходе монитора.
+    if [ "''${RF4_VRR:-1}" = "1" ] && command -v niri >/dev/null 2>&1; then
+      niri msg output "''${RF4_OUTPUT:-HDMI-A-1}" vrr on >/dev/null 2>&1 || true
+    fi
+
+    # Wrapper с cap_sys_nice; если его нет — обычный бинарь из store.
+    GS="/run/wrappers/bin/gamescope"
+    if [ ! -x "$GS" ]; then
+      GS="${lib.getExe pkgs.gamescope}"
+    fi
+
+    GS_W="''${RF4_GS_W:-1680}"
+    GS_H="''${RF4_GS_H:-720}"
+    GS_R="''${RF4_GS_R:-120}"
+    GS_FILTER="''${RF4_GS_FILTER:-fsr}"
+    GS_SHARP="''${RF4_GS_SHARPNESS:-5}"
+
+    ARGS=(-w "$GS_W" -h "$GS_H" -W 2240 -H 960 -r "$GS_R" -S "''${RF4_GS_SCALER:-fit}")
+    if [ "$GS_FILTER" != "none" ]; then
+      ARGS+=(-F "$GS_FILTER" --fsr-sharpness "$GS_SHARP")
+    fi
+    if [ -n "''${RF4_GS_LIMIT:-}" ]; then
+      ARGS+=(--framerate-limit "$RF4_GS_LIMIT")
+    fi
+    if [ "''${RF4_GS_ADAPTIVE:-1}" = "1" ]; then
+      ARGS+=(--adaptive-sync)
+    fi
+
+    exec "$GS" "''${ARGS[@]}" -f --force-grab-cursor --mangoapp -- ${umu} "$exe"
+  '';
+
   rf4-install = pkgs.writeShellScriptBin "rf4-install" ''
     set -eu
     ${commonEnv}
@@ -170,6 +222,7 @@ in
     pkgs.umu-launcher
     rf4
     rf4-native
+    rf4-gamescope
     rf4-install
   ];
 
