@@ -13,7 +13,7 @@
     BITE_REGION      область grim (по умолчанию "690,884 40x40")
     BITE_THRESHOLD   сколько белых пикселей считать значком (120)
     BITE_WHITE       порог яркости пикселя 0-255 (140; ночью значок тусклее)
-    BITE_COOLDOWN    пауза между сигналами, сек (6)
+    BITE_RELEASE     сколько кадров подряд без значка до перевзвода (3)
     BITE_INTERVAL    пауза между кадрами, сек (0.15)
     BITE_SOUND       путь к wav (по умолчанию в XDG_CACHE_HOME)
 """
@@ -32,10 +32,10 @@ CACHE = os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
 REGION = os.environ.get("BITE_REGION", "690,884 40x40")
 THRESHOLD = int(os.environ.get("BITE_THRESHOLD", "120"))
 WHITE_LEVEL = int(os.environ.get("BITE_WHITE", "140"))
-COOLDOWN = float(os.environ.get("BITE_COOLDOWN", "6"))
 SOUND = os.environ.get("BITE_SOUND", os.path.join(CACHE, "bite-alarm", "beep.wav"))
 INTERVAL = float(os.environ.get("BITE_INTERVAL", "0.15"))
 NEED_FRAMES = 2  # столько кадров подряд выше порога
+RELEASE_FRAMES = int(os.environ.get("BITE_RELEASE", "3"))  # false-кадров до перевзвода
 
 
 def make_beep(path: str) -> None:
@@ -149,7 +149,8 @@ def main() -> int:
     print(f"region={REGION} threshold={THRESHOLD} cooldown={COOLDOWN}s")
     print("Ctrl+C — остановить")
     above = 0
-    last_beep = 0.0
+    below = 0
+    armed = True
     last_check = 0.0
     visible = True
 
@@ -178,16 +179,18 @@ def main() -> int:
 
         if n >= THRESHOLD:
             above += 1
+            below = 0
+            if above >= NEED_FRAMES and armed:
+                print(f"ПОКЛЁВКА (white={n})", flush=True)
+                play()
+                armed = False
+                if once:
+                    return 0
         else:
             above = 0
-
-        if above >= NEED_FRAMES and (time.time() - last_beep) > COOLDOWN:
-            print(f"ПОКЛЁВКА (white={n})", flush=True)
-            play()
-            last_beep = time.time()
-            above = 0
-            if once:
-                return 0
+            below += 1
+            if below >= RELEASE_FRAMES:
+                armed = True
 
         time.sleep(INTERVAL)
 
