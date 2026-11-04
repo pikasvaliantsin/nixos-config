@@ -10,9 +10,11 @@
     ./bite-alarm.py --stdin      # разобрать PPM из stdin (для теста)
 
 Настройки через переменные окружения:
-    BITE_REGION      область grim (по умолчанию "690,884 40x40")
-    BITE_THRESHOLD   сколько белых пикселей считать значком (120)
+    BITE_REGION      область grim (по умолчанию "692,886 36x36")
+    BITE_SCORE       порог совпадения с шаблоном 0..1 (0.5)
     BITE_WHITE       порог яркости пикселя 0-255 (140; ночью значок тусклее)
+    BITE_RECALL      минимум совпадения белых пикселей шаблона (0.6)
+    BITE_SPEC        минимум совпадения тёмного фона шаблона (0.6)
     BITE_RELEASE     сколько кадров подряд без значка до перевзвода (3)
     BITE_INTERVAL    пауза между кадрами, сек (0.15)
     BITE_SOUND       путь к wav (по умолчанию в XDG_CACHE_HOME)
@@ -29,13 +31,52 @@ import wave
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
-REGION = os.environ.get("BITE_REGION", "690,884 40x40")
-THRESHOLD = int(os.environ.get("BITE_THRESHOLD", "120"))
+REGION = os.environ.get("BITE_REGION", "692,886 36x36")
 WHITE_LEVEL = int(os.environ.get("BITE_WHITE", "140"))
 SOUND = os.environ.get("BITE_SOUND", os.path.join(CACHE, "bite-alarm", "beep.wav"))
 INTERVAL = float(os.environ.get("BITE_INTERVAL", "0.15"))
 NEED_FRAMES = 2  # столько кадров подряд выше порога
 RELEASE_FRAMES = int(os.environ.get("BITE_RELEASE", "3"))  # false-кадров до перевзвода
+MATCH_SCORE = float(os.environ.get("BITE_SCORE", "0.5"))
+MATCH_RECALL = float(os.environ.get("BITE_RECALL", "0.6"))
+MATCH_SPEC = float(os.environ.get("BITE_SPEC", "0.6"))
+
+# Бинарный шаблон значка (30x30), снят с дневного кадра при WHITE_LEVEL=140.
+TEMPLATE = [
+    "000000000111111111111000000000",
+    "000000011111111111111110000000",
+    "000000111111111111111111000000",
+    "000011111111000000111111110000",
+    "000111111000000000000111111000",
+    "000111110000000000000011111000",
+    "001111100000000000000001111100",
+    "011111000000000000000000111110",
+    "011110000000000000000000011110",
+    "111100010000001110000000001111",
+    "111100110001111110111000001111",
+    "111100110011111110111110001111",
+    "111000111111111110111111000111",
+    "111000111111111101111111000111",
+    "111000011111111101111111100111",
+    "111000011111111101111111100111",
+    "111000111111111101111111000111",
+    "111000111111111110111111000111",
+    "111100110011111110111110001111",
+    "111100110001111110111000001111",
+    "111100010000001110000000001111",
+    "011110000000000000000000011110",
+    "011111000000000000000000111110",
+    "001111100000000000000001111100",
+    "000111110000000000000011111000",
+    "000111111000000000000111111000",
+    "000011111111000000111111110000",
+    "000000111111111111111111000000",
+    "000000011111111111111110000000",
+    "000000000111111111111000000000",
+]
+TW = TH = len(TEMPLATE)
+T_ONES = sum(row.count("1") for row in TEMPLATE)
+T_ZEROS = TW * TH - T_ONES
 
 
 def make_beep(path: str) -> None:
@@ -78,15 +119,34 @@ def parse_ppm(data: bytes):
     return width, height, data[idx:idx + width * height * 3]
 
 
-def white_pixels(px: bytes) -> int:
-    n = 0
-    for i in range(0, len(px) - 2, 3):
+def match_icon(px: bytes, w: int, h: int):
+    """Сравнивает область с шаблоном значка. Возвращает (score, recall, spec)."""
+    bright = bytearray(w * h)
+    for idx in range(w * h):
+        i = idx * 3
         r, g, b = px[i], px[i + 1], px[i + 2]
         mn = min(r, g, b)
         mx = max(r, g, b)
-        if mn > WHITE_LEVEL and mx - mn < 45:
-            n += 1
-    return n
+        bright[idx] = 1 if (mn > WHITE_LEVEL and mx - mn < 45) else 0
+
+    best = (0.0, 0.0, 0.0, 0, 0)
+    for dy in range(h - TH + 1):
+        for dx in range(w - TW + 1):
+            ones = zeros = 0
+            for y in range(TH):
+                row = TEMPLATE[y]
+                base = (y + dy) * w + dx
+                for x in range(TW):
+                    if row[x] == "1":
+                        ones += bright[base + x]
+                    else:
+                        zeros += 1 - bright[base + x]
+            rec = ones / T_ONES
+            spec = zeros / T_ZEROS
+            score = rec * spec
+            if score > best[0]:
+                best = (score, rec, spec, dx, dy)
+    return best[0], best[1], best[2]
 
 
 def capture() -> bytes:
@@ -141,12 +201,16 @@ def main() -> int:
     once = "--once" in sys.argv
 
     if "--stdin" in sys.argv:
-        n = white_pixels(parse_ppm(sys.stdin.buffer.read())[2])
-        print(f"white={n} threshold={THRESHOLD} -> {'BITE' if n >= THRESHOLD else 'no'}")
+        w, h, px = parse_ppm(sys.stdin.buffer.read())
+        score, rec, spec = match_icon(px, w, h)
+        ok = score >= MATCH_SCORE and rec >= MATCH_RECALL and spec >= MATCH_SPEC
+        print(f"score={score:.2f} rec={rec:.2f} spec={spec:.2f} -> "
+              f"{'BITE' if ok else 'no'}")
         return 0
 
     make_beep(SOUND)
-    print(f"region={REGION} threshold={THRESHOLD} cooldown={COOLDOWN}s")
+    print(f"region={REGION} score>={MATCH_SCORE} interval={INTERVAL}s "
+          f"release={RELEASE_FRAMES}")
     print("Ctrl+C — остановить")
     above = 0
     below = 0
@@ -168,20 +232,21 @@ def main() -> int:
             continue
 
         try:
-            n = white_pixels(parse_ppm(capture())[2])
+            w, h, px = parse_ppm(capture())
+            score, rec, spec = match_icon(px, w, h)
         except Exception as exc:  # noqa: BLE001
             print(f"capture error: {exc}", file=sys.stderr)
             time.sleep(0.5)
             continue
 
         if verbose:
-            print(f"white={n}", flush=True)
+            print(f"score={score:.2f} rec={rec:.2f} spec={spec:.2f}", flush=True)
 
-        if n >= THRESHOLD:
+        if score >= MATCH_SCORE and rec >= MATCH_RECALL and spec >= MATCH_SPEC:
             above += 1
             below = 0
             if above >= NEED_FRAMES and armed:
-                print(f"ПОКЛЁВКА (white={n})", flush=True)
+                print(f"ПОКЛЁВКА (score={score:.2f})", flush=True)
                 play()
                 armed = False
                 if once:
