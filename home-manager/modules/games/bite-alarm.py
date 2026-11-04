@@ -12,6 +12,7 @@
 Настройки через переменные окружения:
     BITE_REGION      область grim (по умолчанию "690,884 40x40")
     BITE_THRESHOLD   сколько белых пикселей считать значком (120)
+    BITE_WHITE       порог яркости пикселя 0-255 (140; ночью значок тусклее)
     BITE_COOLDOWN    пауза между сигналами, сек (6)
     BITE_INTERVAL    пауза между кадрами, сек (0.15)
     BITE_SOUND       путь к wav (по умолчанию в XDG_CACHE_HOME)
@@ -30,6 +31,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.environ.get("XDG_CACHE_HOME", os.path.expanduser("~/.cache"))
 REGION = os.environ.get("BITE_REGION", "690,884 40x40")
 THRESHOLD = int(os.environ.get("BITE_THRESHOLD", "120"))
+WHITE_LEVEL = int(os.environ.get("BITE_WHITE", "140"))
 COOLDOWN = float(os.environ.get("BITE_COOLDOWN", "6"))
 SOUND = os.environ.get("BITE_SOUND", os.path.join(CACHE, "bite-alarm", "beep.wav"))
 INTERVAL = float(os.environ.get("BITE_INTERVAL", "0.15"))
@@ -82,7 +84,7 @@ def white_pixels(px: bytes) -> int:
         r, g, b = px[i], px[i + 1], px[i + 2]
         mn = min(r, g, b)
         mx = max(r, g, b)
-        if mn > 190 and mx - mn < 45:
+        if mn > WHITE_LEVEL and mx - mn < 45:
             n += 1
     return n
 
