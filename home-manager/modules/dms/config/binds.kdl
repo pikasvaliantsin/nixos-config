@@ -134,6 +134,6 @@ binds {
     Super+Shift+B { spawn "firefox"; }
     Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
     Mod+O repeat=false { toggle-overview; }
-    Mod+Shift+Slash { show-hotkey-overlay; }
     Mod+Tab repeat=false { toggle-overview; }
+    Mod+Alt+B hotkey-overlay-title="Bite Alarm" { spawn "bite-alarm-toggle"; }
 }
