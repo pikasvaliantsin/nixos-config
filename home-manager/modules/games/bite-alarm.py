@@ -13,9 +13,11 @@
     BITE_REGION      область grim (по умолчанию "690,884 40x40")
     BITE_THRESHOLD   сколько белых пикселей считать значком (120)
     BITE_COOLDOWN    пауза между сигналами, сек (6)
-    BITE_SOUND       путь к wav (по умолчанию beep.wav рядом)
+    BITE_INTERVAL    пауза между кадрами, сек (0.15)
+    BITE_SOUND       путь к wav (по умолчанию в XDG_CACHE_HOME)
 """
 
+import json
 import math
 import os
 import struct
@@ -30,6 +32,7 @@ REGION = os.environ.get("BITE_REGION", "690,884 40x40")
 THRESHOLD = int(os.environ.get("BITE_THRESHOLD", "120"))
 COOLDOWN = float(os.environ.get("BITE_COOLDOWN", "6"))
 SOUND = os.environ.get("BITE_SOUND", os.path.join(CACHE, "bite-alarm", "beep.wav"))
+INTERVAL = float(os.environ.get("BITE_INTERVAL", "0.15"))
 NEED_FRAMES = 2  # столько кадров подряд выше порога
 
 
@@ -93,6 +96,34 @@ def capture() -> bytes:
     return res.stdout
 
 
+def game_visible() -> bool:
+    """Игра должна быть активна на HDMI, иначе grim снимет браузер/десктоп."""
+    try:
+        wins = json.loads(subprocess.check_output(
+            ["niri", "msg", "--json", "windows"], stderr=subprocess.DEVNULL))
+        wss = json.loads(subprocess.check_output(
+            ["niri", "msg", "--json", "workspaces"], stderr=subprocess.DEVNULL))
+    except Exception:  # noqa: BLE001
+        return True  # не блокируем, если niri недоступен
+
+    game = [w for w in wins
+            if w.get("app_id") == "steam_app_0"
+            or "Russian Fishing 4" in (w.get("title") or "")]
+    if not game:
+        return False
+
+    active = {w["id"] for w in wss
+              if w.get("is_active") and w.get("output") == "HDMI-A-1"}
+
+    for w in game:
+        if w.get("workspace_id") not in active:
+            continue
+        size = (w.get("layout") or {}).get("window_size") or [0, 0]
+        if size[0] >= 2000 and size[1] >= 900:
+            return True
+    return False
+
+
 def play() -> None:
     for player in (["pw-play", SOUND], ["paplay", SOUND], ["aplay", "-q", SOUND]):
         try:
@@ -117,8 +148,22 @@ def main() -> int:
     print("Ctrl+C — остановить")
     above = 0
     last_beep = 0.0
+    last_check = 0.0
+    visible = True
 
     while True:
+        now = time.time()
+        if now - last_check >= 1.0:
+            visible = game_visible()
+            last_check = now
+            if verbose and not visible:
+                print("игра не на экране — жду", flush=True)
+
+        if not visible:
+            above = 0
+            time.sleep(0.3)
+            continue
+
         try:
             n = white_pixels(parse_ppm(capture())[2])
         except Exception as exc:  # noqa: BLE001
@@ -142,7 +187,7 @@ def main() -> int:
             if once:
                 return 0
 
-        time.sleep(0.15)
+        time.sleep(INTERVAL)
 
 
 if __name__ == "__main__":
