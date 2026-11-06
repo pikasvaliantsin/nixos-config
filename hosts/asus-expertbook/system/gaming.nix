@@ -131,6 +131,10 @@ in
       env.PATH = "$(PATH):/etc/profiles/per-user/valen/bin";
       apps = [
         {
+          # Просто текущий экран: подходит, если игра уже запущена.
+          name = "Desktop";
+        }
+        {
           name = "RF4";
           cmd = "rf4";
           "auto-detach" = "true";
