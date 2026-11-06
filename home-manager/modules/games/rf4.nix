@@ -221,6 +221,24 @@ let
     fi
   '';
 
+  # Удержание клавиши [ (альтернативная ЛКМ) для равномерной проводки.
+  # Биндится на Mod+Alt+R; повторное нажатие отпускает клавишу.
+  reel-hold = pkgs.writeShellScriptBin "reel-hold" ''
+    set -eu
+    export PATH="${lib.makeBinPath [ pkgs.wtype pkgs.coreutils ]}:$PATH"
+    KEY="''${REEL_KEY:-bracketleft}"
+    STATE="''${XDG_RUNTIME_DIR:-/tmp}/reel-hold"
+    if [ -e "$STATE" ]; then
+      wtype -p "$KEY"
+      rm -f "$STATE"
+      dms ipc call toast info "Проводка: отпущено" >/dev/null 2>&1 || true
+    else
+      wtype -P "$KEY"
+      : > "$STATE"
+      dms ipc call toast info "Проводка: удержание $KEY" >/dev/null 2>&1 || true
+    fi
+  '';
+
   rf4-install = pkgs.writeShellScriptBin "rf4-install" ''
     set -eu
     ${commonEnv}
@@ -250,6 +268,7 @@ in
     rf4-install
     bite-alarm
     bite-alarm-toggle
+    reel-hold
   ];
 
   # Иконка игры (извлечена из RF4Launcher.exe).

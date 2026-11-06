@@ -136,4 +136,5 @@ binds {
     Mod+O repeat=false { toggle-overview; }
     Mod+Tab repeat=false { toggle-overview; }
     Mod+Alt+B hotkey-overlay-title="Bite Alarm" { spawn "bite-alarm-toggle"; }
+    Mod+Alt+R hotkey-overlay-title="Reel Hold" { spawn "reel-hold"; }
 }
