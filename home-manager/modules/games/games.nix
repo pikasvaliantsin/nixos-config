@@ -59,6 +59,27 @@ in
     activation.fixSteamPrefixes = config.lib.dag.entryAfter [ "writeBoundary" ] ''
       ${fixSteamLayouts}/bin/fix-steam-layouts
     '';
+
+    # Preset input-remapper для виртуального геймпада Sunshine.
+    # Кладём только если файла ещё нет: ручные правки через GUI не затираются.
+    activation.rf4InputRemapper = config.lib.dag.entryAfter [ "writeBoundary" ] ''
+      cfg="$HOME/.config/input-remapper-2"
+      preset="$cfg/presets/(libvirtualhid) X-Box Series Controller/rf4.json"
+      mkdir -p "$(dirname "$preset")"
+      if [ ! -e "$preset" ]; then
+        cp ${./rf4-input-remapper.json} "$preset"
+      fi
+      if [ ! -e "$cfg/config.json" ]; then
+        cat > "$cfg/config.json" <<'EOF'
+{
+    "version": "2.2.1",
+    "autoload": {
+        "(libvirtualhid) X-Box Series Controller": "rf4"
+    }
+}
+EOF
+      fi
+    '';
   };
 
   # input-remapper — системный демон, но config_dir он узнаёт только от

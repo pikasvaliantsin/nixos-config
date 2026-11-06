@@ -1,0 +1,187 @@
+[
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 304
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_GRAVE"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 305
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_3"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 307
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_1"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 308
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_2"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 310
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_SPACE"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 1,
+                "code": 314
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_ESC"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 3,
+                "code": 0,
+                "analog_threshold": -30
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_A"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 3,
+                "code": 0,
+                "analog_threshold": 30
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_D"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 3,
+                "code": 1,
+                "analog_threshold": -30
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_W"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 3,
+                "code": 1,
+                "analog_threshold": 30
+            }
+        ],
+        "target_uinput": "keyboard",
+        "output_symbol": "KEY_S"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 3,
+                "code": 4,
+                "analog_threshold": -30
+            }
+        ],
+        "target_uinput": "mouse",
+        "output_type": 1,
+        "output_code": 272
+    },
+    {
+        "input_combination": [
+            {
+                "type": 3,
+                "code": 4,
+                "analog_threshold": 30
+            }
+        ],
+        "target_uinput": "mouse",
+        "output_type": 1,
+        "output_code": 273
+    },
+    {
+        "input_combination": [
+            {
+                "type": 3,
+                "code": 3,
+                "analog_threshold": 30
+            }
+        ],
+        "target_uinput": "keyboard + mouse",
+        "output_symbol": "hold_keys(KEY_LEFTSHIFT, BTN_LEFT)"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 3,
+                "code": 17,
+                "analog_threshold": -1
+            }
+        ],
+        "target_uinput": "mouse",
+        "output_type": 1,
+        "output_code": 275
+    },
+    {
+        "input_combination": [
+            {
+                "type": 3,
+                "code": 17,
+                "analog_threshold": 1
+            }
+        ],
+        "target_uinput": "mouse",
+        "output_type": 1,
+        "output_code": 276
+    },
+    {
+        "input_combination": [
+            {
+                "type": 3,
+                "code": 16,
+                "analog_threshold": -1
+            }
+        ],
+        "target_uinput": "keyboard + mouse",
+        "output_symbol": "hold_keys(KEY_R, BTN_SIDE)"
+    },
+    {
+        "input_combination": [
+            {
+                "type": 3,
+                "code": 16,
+                "analog_threshold": 1
+            }
+        ],
+        "target_uinput": "keyboard + mouse",
+        "output_symbol": "hold_keys(KEY_R, BTN_EXTRA)"
+    }
+]
