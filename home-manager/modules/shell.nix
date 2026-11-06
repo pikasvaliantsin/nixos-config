@@ -7,6 +7,7 @@ _:
     ./shell/cli.nix
     ./shell/fish.nix
     ./shell/git.nix
+    ./shell/starship.nix
     ./shell/terminal.nix
     ./shell/fastfetch.nix
   ];
