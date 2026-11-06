@@ -114,6 +114,13 @@ in
     KERNEL=="uinput", GROUP="input", MODE="0660"
   '';
 
+  # input-remapper: системный демон маппинга геймпада на клавиатуру/мышь
+  # (замена постоянно запущенному antimicrox).
+  services.input-remapper = {
+    enable = true;
+    enableUdevRules = true;
+  };
+
   # Стрим на телефон: Sunshine (хост) + Moonlight (клиент).
   # niri — wlroots, поэтому захват через wlr-screencopy; кодирование VAAPI.
   services.sunshine = {
@@ -125,6 +132,10 @@ in
       capture = "wlr";
       encoder = "vaapi";
       output_name = "HDMI-A-1";
+      # Стабильный профиль виртуального геймпада: имя устройства в evdev
+      # всегда "(libvirtualhid) X-Box Series Controller", от него зависит
+      # preset input-remapper.
+      gamepad = "xseries";
     };
 
     applications = {

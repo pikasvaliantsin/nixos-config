@@ -60,4 +60,24 @@ in
       ${fixSteamLayouts}/bin/fix-steam-layouts
     '';
   };
+
+  # input-remapper — системный демон, но config_dir он узнаёт только от
+  # пользовательского процесса. При логине сообщаем ему каталог конфигурации
+  # и запускаем autoload; дальше udev-правило подхватывает виртуальный
+  # геймпад Sunshine при подключении телефона.
+  systemd.user.services.input-remapper-autoload = {
+    Unit = {
+      Description = "Autoload input-remapper presets";
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${pkgs.input-remapper}/bin/input-remapper-control --command autoload";
+      RemainAfterExit = true;
+      Restart = "on-failure";
+      RestartSec = 2;
+      StartLimitBurst = 10;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
 }
