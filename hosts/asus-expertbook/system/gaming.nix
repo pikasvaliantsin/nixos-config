@@ -114,6 +114,31 @@ in
     KERNEL=="uinput", GROUP="input", MODE="0660"
   '';
 
+  # Стрим на телефон: Sunshine (хост) + Moonlight (клиент).
+  # niri — wlroots, поэтому захват через wlr-screencopy; кодирование VAAPI.
+  services.sunshine = {
+    enable = true;
+    openFirewall = true;
+
+    settings = {
+      sunshine_name = "asus-expertbook";
+      capture = "wlr";
+      encoder = "vaapi";
+      output_name = "HDMI-A-1";
+    };
+
+    applications = {
+      env.PATH = "$(PATH):/etc/profiles/per-user/valen/bin";
+      apps = [
+        {
+          name = "RF4";
+          cmd = "rf4";
+          "auto-detach" = "true";
+        }
+      ];
+    };
+  };
+
   # Штатная polkit-политика gamemode объявляет allow_active=no, поэтому
   # переключение governor и /proc/sys через pkexec в игре требует пароль и
   # молча не срабатывает. Разрешаем это членам группы gamemode.
