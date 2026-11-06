@@ -109,6 +109,11 @@ in
     group = "root";
   };
 
+  # Доступ к /dev/uinput для reel-hold (удержание физического keycode).
+  services.udev.extraRules = ''
+    KERNEL=="uinput", GROUP="input", MODE="0660"
+  '';
+
   # Штатная polkit-политика gamemode объявляет allow_active=no, поэтому
   # переключение governor и /proc/sys через pkexec в игре требует пароль и
   # молча не срабатывает. Разрешаем это членам группы gamemode.

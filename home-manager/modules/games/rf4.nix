@@ -222,24 +222,27 @@ let
   '';
 
   # Удержание клавиши [ (альтернативная ЛКМ) для равномерной проводки.
-  # Mod+Alt+R — включить/выключить. Пока удержание активно, reel-watch.py
-  # слушает физическое нажатие [ и снимает удержание (без инжекта и кликов).
+  # Mod+Alt+R — включить/выключить. Удержание идёт через uinput (физический
+  # keycode, не зависит от раскладки). reel-watch.py снимает удержание, если
+  # ты сам нажал [.
   reel-hold = pkgs.writeShellScriptBin "reel-hold" ''
     set -eu
-    export PATH="${lib.makeBinPath [ pkgs.wtype pkgs.coreutils ]}:$PATH"
-    KEY="''${REEL_KEY:-bracketleft}"
+    export PATH="${lib.makeBinPath [ pkgs.coreutils ]}:$PATH"
+    export REEL_KEYCODE="''${REEL_KEYCODE:-26}"
     STATE="''${XDG_RUNTIME_DIR:-/tmp}/reel-hold"
     PIDFILE="$STATE.pid"
+    WATCHPID="$STATE.watch"
 
     release() {
+      if [ -e "$WATCHPID" ]; then
+        kill "$(cat "$WATCHPID")" 2>/dev/null || true
+        rm -f "$WATCHPID"
+      fi
       if [ -e "$PIDFILE" ]; then
         kill "$(cat "$PIDFILE")" 2>/dev/null || true
         rm -f "$PIDFILE"
       fi
-      if [ -e "$STATE" ]; then
-        wtype -p "$KEY"
-        rm -f "$STATE"
-      fi
+      rm -f "$STATE"
     }
 
     case "''${1:-}" in
@@ -252,13 +255,16 @@ let
           release
           dms ipc call toast info "Проводка: выключена" >/dev/null 2>&1 || true
         else
-          wtype -P "$KEY"
           : > "$STATE"
           mkdir -p "$HOME/.cache"
           ${pkgs.util-linux}/bin/setsid ${pkgs.python3}/bin/python3 \
-            ${./reel-watch.py} >"$HOME/.cache/reel-hold.log" 2>&1 </dev/null &
+            ${./reel-hold-daemon.py} >"$HOME/.cache/reel-hold.log" 2>&1 </dev/null &
           echo $! > "$PIDFILE"
-          dms ipc call toast info "Проводка: удержание $KEY" >/dev/null 2>&1 || true
+          sleep 0.3
+          ${pkgs.util-linux}/bin/setsid ${pkgs.python3}/bin/python3 \
+            ${./reel-watch.py} >"$HOME/.cache/reel-watch.log" 2>&1 </dev/null &
+          echo $! > "$WATCHPID"
+          dms ipc call toast info "Проводка: удержание" >/dev/null 2>&1 || true
         fi
         ;;
     esac
