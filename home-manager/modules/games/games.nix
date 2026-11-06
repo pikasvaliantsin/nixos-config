@@ -74,9 +74,6 @@ in
       Type = "oneshot";
       ExecStart = "${pkgs.input-remapper}/bin/input-remapper-control --command autoload";
       RemainAfterExit = true;
-      Restart = "on-failure";
-      RestartSec = 2;
-      StartLimitBurst = 10;
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };
