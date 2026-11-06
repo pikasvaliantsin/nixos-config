@@ -132,9 +132,9 @@ in
       capture = "wlr";
       encoder = "vaapi";
       output_name = "HDMI-A-1";
-      # Стабильный профиль виртуального геймпада: имя устройства в evdev
-      # всегда "(libvirtualhid) X-Box Series Controller", от него зависит
-      # preset input-remapper.
+      # Стабильный профиль виртуального геймпада. В evdev устройство видно
+      # как "Sunshine (libvirtualhid) X-Box Series Controller" — от этого имени
+      # зависит preset input-remapper.
       gamepad = "xseries";
     };
 

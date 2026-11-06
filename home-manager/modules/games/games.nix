@@ -64,7 +64,7 @@ in
     # Кладём только если файла ещё нет: ручные правки через GUI не затираются.
     activation.rf4InputRemapper = config.lib.dag.entryAfter [ "writeBoundary" ] ''
       cfg="$HOME/.config/input-remapper-2"
-      preset="$cfg/presets/(libvirtualhid) X-Box Series Controller/rf4.json"
+      preset="$cfg/presets/Sunshine (libvirtualhid) X-Box Series Controller/rf4.json"
       mkdir -p "$(dirname "$preset")"
       if [ ! -e "$preset" ]; then
         cp ${./rf4-input-remapper.json} "$preset"
@@ -74,7 +74,7 @@ in
 {
     "version": "2.2.1",
     "autoload": {
-        "(libvirtualhid) X-Box Series Controller": "rf4"
+        "Sunshine (libvirtualhid) X-Box Series Controller": "rf4"
     }
 }
 EOF
