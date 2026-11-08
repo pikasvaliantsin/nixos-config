@@ -147,7 +147,7 @@ in
         }
         {
           name = "RF4";
-          cmd = "rf4";
+          cmd = "rf4-stream";
           "auto-detach" = "true";
         }
       ];

@@ -147,6 +147,25 @@ let
     exec ${rf4}/bin/rf4 "$@"
   '';
 
+  # Запуск для стрима: Sunshine создаёт виртуальный геймпад уже после старта
+  # приложения, а RF4 (Unity/Proton) намертво виснет, если джойстик воткнуть
+  # в уже запущенную игру. Ждём появления геймпада (и пары секунд на
+  # forwarded-устройство input-remapper), затем запускаем игру.
+  rf4-stream = pkgs.writeShellScriptBin "rf4-stream" ''
+    set -eu
+    i=0
+    while [ "$i" -lt 40 ]; do
+      if ${pkgs.gnugrep}/bin/grep -q 'Name="Sunshine (libvirtualhid) X-Box Series Controller"' /proc/bus/input/devices 2>/dev/null; then
+        # Дать input-remapper создать forwarded-копию геймпада.
+        ${pkgs.coreutils}/bin/sleep 2
+        break
+      fi
+      i=$((i + 1))
+      ${pkgs.coreutils}/bin/sleep 0.5
+    done
+    exec ${rf4}/bin/rf4 "$@"
+  '';
+
   # Апскейл 1680x720 -> 2240x960 через gamescope + FSR, плюс lsfg 2x.
   # gamescope запускается через security-wrapper с CAP_SYS_NICE: без него
   # композитор пейсит кадры с обычным приоритетом и картинка рвётся.
@@ -295,6 +314,7 @@ in
     pkgs.umu-launcher
     rf4
     rf4-native
+    rf4-stream
     rf4-gamescope
     rf4-install
     bite-alarm
