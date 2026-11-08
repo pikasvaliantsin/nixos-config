@@ -261,28 +261,42 @@ let
       --bind /tmp/.X11-unix /tmp/.X11-unix \
       --tmpfs /home/valen \
       --bind "$SAFE" "$SAFE" \
-      --bind-try "$HOME/.local/share/umu" "$HOME/.local/share/umu" \
-      --bind-try "$HOME/.cache/umu" "$HOME/.cache/umu" \
+      --bind-try "$SAFE/umu" "$HOME/.local/share/umu" \
+      --bind-try "$SAFE/cache-umu" "$HOME/.cache/umu" \
       ${umu} "$exe"
   '';
 
-  # Однократное создание изолированной копии из основного ~/Games/rf4.
-  # btrfs-reflink: копия почти не занимает места, изменения COW.
+  # Однократное создание максимально чистой изолированной копии.
+  # Копируется только каталог игры + отдельный кэш umu; Wine-префикс
+  # создаётся с нуля (новый MachineGuid, без сессии/настроек/аккаунта).
+  # btrfs-reflink: 63 ГБ игры занимают место только при изменениях.
   rf4-safe-init = pkgs.writeShellScriptBin "rf4-safe-init" ''
     set -eu
     SRC="$HOME/Games/rf4"
     DST="$HOME/Games/rf4-safe"
+    if [ "''${1:-}" = "--force" ]; then
+      ${pkgs.coreutils}/bin/rm -rf "$DST"
+    fi
     if [ -e "$DST" ]; then
-      echo "Уже существует: $DST"
+      echo "Уже существует: $DST (пересоздать: rf4-safe-init --force)"
       exit 0
     fi
-    ${pkgs.coreutils}/bin/cp -a --reflink=auto "$SRC" "$DST"
-    P="$DST/drive_c/users/steamuser/AppData/Roaming/RussianFishingLLC/RussianFishing4"
-    ${pkgs.coreutils}/bin/rm -f "$P/Session.dat"
-    ${pkgs.coreutils}/bin/rm -rf "$P/Temp"
-    ${pkgs.coreutils}/bin/rm -f "$P/Player.log" "$P/Player-prev.log"
-    ${pkgs.coreutils}/bin/rm -f "$DST/pfx.lock"
-    echo "Готово: $DST (Session.dat не перенесён)"
+
+    ${pkgs.coreutils}/bin/mkdir -p "$DST/drive_c/Games"
+    ${pkgs.coreutils}/bin/cp -a --reflink=auto "$SRC/drive_c/Games/RF4" "$DST/drive_c/Games/RF4"
+
+    # Отдельный кэш umu/Steam Runtime: основной ~/.local/share/umu не общий.
+    ${pkgs.coreutils}/bin/mkdir -p "$DST/umu" "$DST/cache-umu"
+    if [ -d "$HOME/.local/share/umu" ]; then
+      ${pkgs.coreutils}/bin/cp -a --reflink=auto "$HOME/.local/share/umu/." "$DST/umu/"
+    fi
+    if [ -d "$HOME/.cache/umu" ]; then
+      ${pkgs.coreutils}/bin/cp -a --reflink=auto "$HOME/.cache/umu/." "$DST/cache-umu/"
+    fi
+
+    echo "Готово: $DST"
+    echo "Чистый префикс: без Session/Settings/Preferences/Crafting, свой umu-кэш."
+    echo "Первый запуск создаст новый Wine-префикс и попросит логин."
   '';
 
   # D-pad -> F13–F16 (input-remapper), демон превращает их в XTEST-колесо.
