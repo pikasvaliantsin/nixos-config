@@ -230,7 +230,7 @@ let
     ${commonEnv}
     export WINEPREFIX="$SAFE"
 
-    exe="$SAFE/pfx/drive_c/Games/RF4/RF4Launcher.exe"
+    exe="$SAFE/drive_c/Games/RF4/RF4Launcher.exe"
     if [ ! -f "$exe" ]; then
       echo "RF4 не найдена в $SAFE" >&2
       exit 1
@@ -277,7 +277,7 @@ let
       exit 0
     fi
     ${pkgs.coreutils}/bin/cp -a --reflink=auto "$SRC" "$DST"
-    P="$DST/pfx/drive_c/users/steamuser/AppData/Roaming/RussianFishingLLC/RussianFishing4"
+    P="$DST/drive_c/users/steamuser/AppData/Roaming/RussianFishingLLC/RussianFishing4"
     ${pkgs.coreutils}/bin/rm -f "$P/Session.dat"
     ${pkgs.coreutils}/bin/rm -rf "$P/Temp"
     ${pkgs.coreutils}/bin/rm -f "$P/Player.log" "$P/Player-prev.log"
