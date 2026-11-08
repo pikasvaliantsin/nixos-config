@@ -119,9 +119,9 @@ in
     # процессов (игра/Wine), но оставляем доступным input-remapper: он работает
     # от root, забирает геймпад и отдаёт игре клавиатуру/мышь.
     # Так можно подключаться к уже рабочей сессии в любой момент.
-    SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="Sunshine (libvirtualhid) X-Box Series Controller", OWNER="root", GROUP="root", MODE="0000", TAG-="uaccess"
-    SUBSYSTEM=="input", KERNEL=="js*", ATTRS{name}=="Sunshine (libvirtualhid) X-Box Series Controller", OWNER="root", GROUP="root", MODE="0000", TAG-="uaccess"
-    SUBSYSTEM=="hidraw", ENV{HID_PHYS}=="libvirtualhid/uhid/*", OWNER="root", GROUP="root", MODE="0000", TAG-="uaccess"
+    SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="Sunshine (libvirtualhid) X-Box Series Controller", OWNER="root", GROUP="root", MODE="0000", TAG-="uaccess", RUN+="${pkgs.acl}/bin/setfacl -b $env{DEVNAME}"
+    SUBSYSTEM=="input", KERNEL=="js*", ATTRS{name}=="Sunshine (libvirtualhid) X-Box Series Controller", OWNER="root", GROUP="root", MODE="0000", TAG-="uaccess", RUN+="${pkgs.acl}/bin/setfacl -b $env{DEVNAME}"
+    SUBSYSTEM=="hidraw", ENV{HID_PHYS}=="libvirtualhid/uhid/*", OWNER="root", GROUP="root", MODE="0000", TAG-="uaccess", RUN+="${pkgs.acl}/bin/setfacl -b $env{DEVNAME}"
   '';
 
   # input-remapper: системный демон маппинга геймпада на клавиатуру/мышь
