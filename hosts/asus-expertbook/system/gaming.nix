@@ -112,6 +112,16 @@ in
   # Доступ к /dev/uinput для reel-hold (удержание физического keycode).
   services.udev.extraRules = ''
     KERNEL=="uinput", GROUP="input", MODE="0660"
+
+    # RF4 (Unity/Proton) намертво виснет, когда в уже запущенную игру
+    # подключают джойстик. Sunshine создаёт виртуальный геймпад при каждом
+    # подключении телефона. Прячем его event/js/hidraw-узлы от пользовательских
+    # процессов (игра/Wine), но оставляем доступным input-remapper: он работает
+    # от root, забирает геймпад и отдаёт игре клавиатуру/мышь.
+    # Так можно подключаться к уже рабочей сессии в любой момент.
+    SUBSYSTEM=="input", KERNEL=="event*", ATTRS{name}=="Sunshine (libvirtualhid) X-Box Series Controller", OWNER="root", GROUP="root", MODE="0000", TAG-="uaccess"
+    SUBSYSTEM=="input", KERNEL=="js*", ATTRS{name}=="Sunshine (libvirtualhid) X-Box Series Controller", OWNER="root", GROUP="root", MODE="0000", TAG-="uaccess"
+    SUBSYSTEM=="hidraw", ENV{HID_PHYS}=="libvirtualhid/uhid/*", OWNER="root", GROUP="root", MODE="0000", TAG-="uaccess"
   '';
 
   # input-remapper: системный демон маппинга геймпада на клавиатуру/мышь
