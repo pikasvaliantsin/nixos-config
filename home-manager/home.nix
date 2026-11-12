@@ -17,5 +17,6 @@
     ./modules/desktop
     ./modules/games/games.nix
     ./modules/games/rf4.nix
+    ./modules/games/fs25.nix
   ];
 }

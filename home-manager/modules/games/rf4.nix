@@ -217,88 +217,6 @@ let
     exec "$GS" "''${ARGS[@]}" -f --force-grab-cursor --mangoapp -- ${umu} "$exe"
   '';
 
-  # Изолированная копия RF4: отдельный префикс + bwrap-песочница.
-  # Основной ~/Games/rf4 и его настройки не видны и не меняются.
-  rf4-safe = pkgs.writeShellScriptBin "rf4-safe" ''
-    set -eu
-    SAFE="$HOME/Games/rf4-safe"
-    if [ ! -d "$SAFE" ]; then
-      echo "Нет изолированной копии. Сначала: rf4-safe-init" >&2
-      exit 1
-    fi
-
-    ${commonEnv}
-    export WINEPREFIX="$SAFE"
-
-    exe="$SAFE/drive_c/Games/RF4/RF4Launcher.exe"
-    if [ ! -f "$exe" ]; then
-      echo "RF4 не найдена в $SAFE" >&2
-      exit 1
-    fi
-
-    export DXVK_HUD="''${RF4_HUD-fps}"
-    if [ "''${RF4_WAYLAND:-0}" = "1" ]; then
-      export PROTON_ENABLE_WAYLAND="1"
-    fi
-    if [ "''${RF4_VRR:-1}" = "1" ] && command -v niri >/dev/null 2>&1; then
-      niri msg output "''${RF4_OUTPUT:-HDMI-A-1}" vrr on >/dev/null 2>&1 || true
-    fi
-
-    ${lsfgEnv}
-
-    RUNTIME="''${XDG_RUNTIME_DIR:-/run/user/1000}"
-
-    exec ${pkgs.bubblewrap}/bin/bwrap \
-      --dev-bind /dev /dev \
-      --proc /proc \
-      --ro-bind /nix/store /nix/store \
-      --ro-bind /run/current-system /run/current-system \
-      --ro-bind /etc /etc \
-      --ro-bind /sys /sys \
-      --ro-bind-try /run/opengl-driver /run/opengl-driver \
-      --bind "$RUNTIME" "$RUNTIME" \
-      --tmpfs /tmp \
-      --bind /tmp/.X11-unix /tmp/.X11-unix \
-      --tmpfs /home/valen \
-      --bind "$SAFE" "$SAFE" \
-      --bind-try "$SAFE/umu" "$HOME/.local/share/umu" \
-      --bind-try "$SAFE/cache-umu" "$HOME/.cache/umu" \
-      ${umu} "$exe"
-  '';
-
-  # Однократное создание максимально чистой изолированной копии.
-  # Копируется только каталог игры + отдельный кэш umu; Wine-префикс
-  # создаётся с нуля (новый MachineGuid, без сессии/настроек/аккаунта).
-  # btrfs-reflink: 63 ГБ игры занимают место только при изменениях.
-  rf4-safe-init = pkgs.writeShellScriptBin "rf4-safe-init" ''
-    set -eu
-    SRC="$HOME/Games/rf4"
-    DST="$HOME/Games/rf4-safe"
-    if [ "''${1:-}" = "--force" ]; then
-      ${pkgs.coreutils}/bin/rm -rf "$DST"
-    fi
-    if [ -e "$DST" ]; then
-      echo "Уже существует: $DST (пересоздать: rf4-safe-init --force)"
-      exit 0
-    fi
-
-    ${pkgs.coreutils}/bin/mkdir -p "$DST/drive_c/Games"
-    ${pkgs.coreutils}/bin/cp -a --reflink=auto "$SRC/drive_c/Games/RF4" "$DST/drive_c/Games/RF4"
-
-    # Отдельный кэш umu/Steam Runtime: основной ~/.local/share/umu не общий.
-    ${pkgs.coreutils}/bin/mkdir -p "$DST/umu" "$DST/cache-umu"
-    if [ -d "$HOME/.local/share/umu" ]; then
-      ${pkgs.coreutils}/bin/cp -a --reflink=auto "$HOME/.local/share/umu/." "$DST/umu/"
-    fi
-    if [ -d "$HOME/.cache/umu" ]; then
-      ${pkgs.coreutils}/bin/cp -a --reflink=auto "$HOME/.cache/umu/." "$DST/cache-umu/"
-    fi
-
-    echo "Готово: $DST"
-    echo "Чистый префикс: без Session/Settings/Preferences/Crafting, свой umu-кэш."
-    echo "Первый запуск создаст новый Wine-префикс и попросит логин."
-  '';
-
   # D-pad -> F13–F16 (input-remapper), демон превращает их в XTEST-колесо.
   # Виртуальная мышь input-remapper не доходила до Unity/RF4, а XTEST
   # (как физическая мышь) работает.
@@ -310,7 +228,12 @@ let
   # Звуковой сигнал при появлении значка рыбки. Только grim + звук,
   # в игру не вмешивается и ввод не эмулирует.
   bite-alarm = pkgs.writeShellScriptBin "bite-alarm" ''
-    export PATH="${lib.makeBinPath [ pkgs.grim pkgs.pipewire ]}:$PATH"
+    export PATH="${
+      lib.makeBinPath [
+        pkgs.grim
+        pkgs.pipewire
+      ]
+    }:$PATH"
     exec ${pkgs.python3}/bin/python3 ${./bite-alarm.py} "$@"
   '';
 
@@ -406,8 +329,6 @@ in
     rf4-native
     rf4-stream
     rf4-gamescope
-    rf4-safe
-    rf4-safe-init
     rf4-wheel-xtest
     rf4-install
     bite-alarm
@@ -448,18 +369,6 @@ in
     genericName = "Fishing simulator";
     comment = "Русская Рыбалка 4 (сайтовая версия) через umu + GE-Proton";
     exec = "rf4";
-    icon = "rf4";
-    terminal = false;
-    categories = [ "Game" ];
-    type = "Application";
-    startupNotify = true;
-  };
-
-  xdg.desktopEntries."rf4-safe" = {
-    name = "Russian Fishing 4 (safe copy)";
-    genericName = "Fishing simulator (isolated)";
-    comment = "Изолированная копия РР4 в bwrap-песочнице";
-    exec = "rf4-safe";
     icon = "rf4";
     terminal = false;
     categories = [ "Game" ];
