@@ -22,6 +22,8 @@
     };
 
     ayugram-desktop.url = "github:ndfined-crp/ayugram-desktop";
+    # Нужен напрямую, чтобы пересобрать tg_owt против ffmpeg_6 (ABI).
+    tg_owt.url = "github:ndfined-crp/tg_owt";
 
     nixvim.url = "github:nix-community/nixvim";
 
@@ -50,6 +52,7 @@
 
       packages.${system} = {
         openide = pkgs.callPackage ./pkgs/openide { };
+        ayugram-ffmpeg6 = pkgs.callPackage ./pkgs/ayugram-ffmpeg6 { inherit inputs; };
 
         # Атрибуты для ночного билдера на VPS (nixos-servers/modules/nix-cache.nix):
         # он собирает их на сервере, Harmonia отдаёт ноуту уже готовое.

@@ -4,6 +4,6 @@
 {
   home.packages = [
     pkgs.vesktop
-    inputs.ayugram-desktop.packages.${pkgs.stdenv.hostPlatform.system}.default
+    inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.ayugram-ffmpeg6
   ];
 }
