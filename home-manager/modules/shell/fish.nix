@@ -231,6 +231,37 @@ _:
             return 1
         end
       '';
+
+      # upgrade: обновляет flake inputs и сразу коммитит flake.lock.
+      # Nix сам перечисляет обновлённые inputs (rev + дата) в сообщении коммита.
+      upgrade = ''
+        set -l repo ~/nixos-config
+        cd $repo; or return 1
+
+        set -l dirty 0
+        git diff --quiet -- flake.lock; or set dirty 1
+        git diff --cached --quiet -- flake.lock; or set dirty 1
+        if test $dirty -eq 1
+            echo "flake.lock уже изменён — сначала закоммить или откати его:" >&2
+            echo "  git add flake.lock && git commit -m 'chore(flake): sync lock'" >&2
+            echo "  git checkout -- flake.lock" >&2
+            return 1
+        end
+
+        set -l before (git rev-parse HEAD)
+        nix flake update --commit-lock-file $argv
+        or return $status
+
+        if test "$before" = (git rev-parse HEAD)
+            echo "Все inputs уже актуальны — коммит не создан."
+            return 0
+        end
+
+        set -l sha (git rev-parse --short HEAD)
+        echo ""
+        git --no-pager log -1 --format='%h %s%n%b'
+        echo "Откат: git revert $sha"
+      '';
     };
 
     shellAliases = {
@@ -242,7 +273,6 @@ _:
       edit = "nvim";
       cat = "bat";
       update = "cd ~/nixos-config && nh os switch .#asus-expertbook";
-      upgrade = "cd ~/nixos-config && nix flake update";
       clear = "pyroclear";
     };
   };
