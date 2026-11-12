@@ -11,7 +11,10 @@ _:
       settings = {
         charger = {
           governor = "performance";
-          turbo = "auto";
+          # turbo=auto НЕ возвращает boost после работы от батареи: секция
+          # battery ставит turbo=never, а "auto" просто не трогает значение.
+          # Итог — на зарядке CPU живёт на 2.3 ГГц вместо 4.35 ГГц.
+          turbo = "always";
         };
         battery = {
           governor = "powersave";

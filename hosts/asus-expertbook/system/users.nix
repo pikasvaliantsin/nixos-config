@@ -16,6 +16,8 @@
       "networkmanager"
       "lp"
       "scanner"
+      # Нужна GameMode для renice игровых процессов (CAP_SYS_NICE)
+      "gamemode"
     ];
     shell = pkgs.fish;
   };

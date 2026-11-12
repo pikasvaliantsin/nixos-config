@@ -7,7 +7,8 @@
 #   - Kernel-PnP 410: диск PCI\VEN_144D&DEV_A80A отваливается после пробуждения.
 #
 # Что делает модуль:
-#   1. Не выключает контроллер NVMe полностью при suspend (^simple_suspend).
+#   1. Отключает ACPI storage-D3 quirk (noacpi=1), из-за которого ядро
+#      ставит simple_suspend и полностью выключает контроллер при сне.
 #   2. Отключает APST — автономные переходы питания NVMe.
 #   3. Запрещает D3cold для NVMe и его PCIe-моста при загрузке и перед каждым сном.
 #
@@ -22,9 +23,14 @@
 
 {
   boot.kernelParams = [
-    # 144d:a80a — Samsung PM9A1/980 Pro. Убираем принудительный simple suspend,
-    # из-за которого контроллер полностью выключается при уходе в сон.
-    "nvme.quirks=144d:a80a:^simple_suspend"
+    # Отключаем ACPI storage-D3 quirk. Именно из-за него ядро ставит
+    # NVME_QUIRK_SIMPLE_SUSPEND и полностью выключает контроллер при сне.
+    #
+    # Важно: nvme.quirks=144d:a80a:^simple_suspend на ядре 7.3.1 вызывает
+    # page fault в quirks_param_set() при загрузке модуля nvme — NVMe не
+    # инициализируется, /home не монтируется, графика не стартует.
+    # Поэтому используем noacpi=1: тот же эффект без сломанного парсера.
+    "nvme.noacpi=1"
 
     # Отключаем Autonomous Power State Transition: диск не будет сам уходить
     # в глубокие PS-состояния в простое.
@@ -43,15 +49,14 @@
     before = [ "sleep.target" ];
     wantedBy = [ "sleep.target" ];
 
-    serviceConfig = {
-      Type = "oneshot";
-      script = ''
-        for dev in 0000:03:00.0 0000:00:02.4; do
-          if [ -e "/sys/bus/pci/devices/$dev/d3cold_allowed" ]; then
-            echo 0 > "/sys/bus/pci/devices/$dev/d3cold_allowed"
-          fi
-        done
-      '';
-    };
+    script = ''
+      for dev in 0000:03:00.0 0000:00:02.4; do
+        if [ -e "/sys/bus/pci/devices/$dev/d3cold_allowed" ]; then
+          echo 0 > "/sys/bus/pci/devices/$dev/d3cold_allowed"
+        fi
+      done
+    '';
+
+    serviceConfig.Type = "oneshot";
   };
 }

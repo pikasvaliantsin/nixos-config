@@ -33,5 +33,10 @@
     # Нужен Wine (wineboot, explorer, cmd) и 32-битному RF4Launcher.exe:
     # без него любой 32-битный процесс Wine падает с "could not open".
     ldso32 = "${pkgs.pkgsi686Linux.glibc}/lib/ld-linux.so.2";
+
+    # CS2/RADV: кэш пайплайнов CS2 весит сотни мегабайт. Дефолтный лимит Mesa
+    # (1G) вытесняется другими играми → на следующем запуске снова компиляция
+    # шейдеров и фризы в первые минуты матча.
+    sessionVariables.MESA_SHADER_CACHE_MAX_SIZE = "4G";
   };
 }
