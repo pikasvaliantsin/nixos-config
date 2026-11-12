@@ -8,6 +8,8 @@ _:
     ./sops.nix
 
     ./system/boot.nix
+    ./system/nvme-power.nix
+    ./system/sleep-policy.nix
     ./system/locale.nix
     ./system/networking.nix
     ./system/printing.nix
@@ -16,6 +18,7 @@ _:
     ./system/graphics.nix
     ./system/gaming.nix
     ./system/nix.nix
+    ./system/nix-cache.nix
     ./system/users.nix
     ./system/packages.nix
 
