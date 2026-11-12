@@ -1,5 +1,5 @@
 {
-  "currentThemeName": "custom",
+  "currentThemeName": "dynamic",
   "customThemeFile": "/home/valen/.config/dms/themes/dankViolet/theme.json",
   "registryThemeVariants": {
     "catppuccin": {
@@ -25,6 +25,7 @@
       "showOnLastDisplay": true,
       "position": 1,
       "mode": "compact",
+      "middleClickAction": "close",
       "taskbarAlign": "center",
       "widgetExpansion": "popout",
       "iconSize": 40,
@@ -86,8 +87,8 @@
       ]
     }
   ],
-  "currentThemeCategory": "registry",
-  "matugenScheme": "scheme-monochrome",
+  "currentThemeCategory": "dynamic",
+  "matugenScheme": "scheme-tonal-spot",
   "matugenContrast": 1,
   "dmsWindowsFloatingSeeded": [
     "niri",
@@ -251,7 +252,7 @@
     {
       "id": "runningApps",
       "enabled": true,
-      "w": 4,
+      "w": 8,
       "h": 1,
       "small": true,
       "col": 0,
@@ -264,7 +265,7 @@
       "h": 1,
       "small": true,
       "col": 7,
-      "row": 5
+      "row": 6
     }
   ],
   "centeringMode": "geometric",
@@ -588,7 +589,8 @@
       "islandRouteMedia": "island",
       "islandRouteWeather": "island",
       "islandRouteWallpaper": "island",
-      "islandDashTabs": true
+      "islandDashTabs": true,
+      "islandCompactThickness": 32
     },
     {
       "id": "dot1790848340588",
@@ -773,10 +775,11 @@
       "islandPalette": "dim",
       "islandNotificationExpand": false,
       "islandSatellitesEnabled": true,
-      "islandSatelliteGap": 12,
+      "islandSatelliteGap": 6,
       "followInterfaceStyle": false,
       "widgetFollowInterfaceStyle": true,
-      "dot": true
+      "dot": true,
+      "islandCompactThickness": 32
     }
   ],
   "desktopWidgetInstances": [
@@ -850,7 +853,7 @@
   "frameLauncherEmergeSide": "top",
   "barInsetPaddingSyncAll": true,
   "frameBarInsetPadding": 16,
-  "configVersion": 42,
+  "configVersion": 43,
   "reduceMotion": true,
   "audioShowStreamDevices": false,
   "osdAudioOutputEnabled": true,
@@ -859,7 +862,7 @@
   },
   "audioMono": false,
   "blurBorderEnabled": false,
-  "radiusMode": "scale",
+  "radiusMode": "fixed",
   "focusRingWidth": 2,
   "focusRingEnabled": false,
   "m3ElevationEnabled": true,
@@ -1051,8 +1054,17 @@
     }
   ],
   "lockScreenShowPowerActions": true,
+  "powerMenuActions": [
+    "reboot",
+    "logout",
+    "poweroff",
+    "lock",
+    "restart"
+  ],
+  "acSuspendTimeout": 0,
+  "batterySuspendTimeout": 0,
   "focusFollowsMouse": 0,
-  "displaySnapToEdge": false,
+  "displaySnapToEdge": true,
   "lockAtStartup": true,
   "dashTabs": [
     {
@@ -1073,11 +1085,15 @@
     },
     {
       "id": "wellbeing",
-      "enabled": true
+      "enabled": false
     },
     {
       "id": "notifications",
-      "enabled": false
+      "enabled": true
+    },
+    {
+      "id": "settings",
+      "enabled": true
     }
   ],
   "dashTabsEvenlySpaced": true,
@@ -1093,5 +1109,9 @@
   "textRenderQuality": 0,
   "avatarRing": "none",
   "lockPamExternallyManaged": false,
-  "enableFprint": true
+  "enableFprint": true,
+  "greeterEnableFprint": true,
+  "interfaceStyle": "classic",
+  "density": "dense",
+  "matugenSpec": "2025"
 }

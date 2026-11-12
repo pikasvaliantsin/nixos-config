@@ -109,7 +109,7 @@
         "eDP-1": {
           "mode": "1920x1080@60.164",
           "position": {
-            "x": 2240,
+            "x": 2235,
             "y": 0
           },
           "scale": 1,
@@ -134,8 +134,7 @@
           "vrr": true,
           "disabled": false,
           "niri": {
-            "disabled": false,
-            "vrrOnDemand": null
+            "disabled": false
           }
         }
       }

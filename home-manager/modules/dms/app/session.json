@@ -7,7 +7,7 @@
       }
     }
   },
-  "wallpaperPath": "/home/valen/Pictures/wallhaven-gwqpmd.jpg",
+  "wallpaperPath": "/home/valen/Pictures/wallhaven-powprp.png",
   "weatherLocation": "",
   "weatherCoordinates": "52.4238936,31.0131698",
   "desktopWidgetInstancePositions": {
@@ -58,8 +58,8 @@
       "height": 1080,
       "positions": {
         "lock_clock": {
-          "x": 48,
-          "y": 435
+          "x": 1452,
+          "y": 822
         }
       }
     },
@@ -68,8 +68,8 @@
       "height": 960,
       "positions": {
         "lock_clock": {
-          "x": 48,
-          "y": 375
+          "x": 1772,
+          "y": 702
         }
       }
     }
@@ -81,7 +81,8 @@
       "com.mitchellh.ghostty",
       "steam_app_0",
       "zen",
-      "wallhavenCarousel"
+      "wallhavenCarousel",
+      "dev.duxlabs.files"
     ]
   },
   "hiddenTrayIds": [
@@ -102,7 +103,7 @@
     "1002:15e7"
   ],
   "vpnLastConnected": "ba4ca888-614c-425b-a4f3-572312a89927",
-  "lastPlayerIdentity": "Chromium",
+  "lastPlayerIdentity": "Mozilla zen",
   "hiddenOutputDeviceNames": [
     "alsa_output.pci-0000_04_00.1.hdmi-stereo-extra1"
   ],
@@ -131,11 +132,19 @@
     }
   },
   "lastAppliedIconTheme": "Papirus-Dark",
-  "launcherLastQuery": "Op",
   "launcherQueryHistory": [
+    "far",
+    "f",
+    "you",
+    "v",
+    "F",
+    "ve",
+    "d",
+    "zed",
+    "z",
+    "ser",
     "Op",
     "w",
-    "you",
     "r",
     "ru",
     "russ",
@@ -156,7 +165,6 @@
     "vs",
     "files",
     "yo",
-    "ve",
     "A",
     "ya",
     "a",
@@ -164,7 +172,6 @@
     "s",
     "file",
     "bot",
-    "v",
     "net",
     "ne",
     "cl",
@@ -173,16 +180,9 @@
     "th",
     "ves",
     "pos",
-    "f",
     "zo",
     "q",
-    "z",
-    "t",
-    "wor",
-    "obs",
-    "а",
-    "st",
-    "ay"
+    "t"
   ],
   "configVersion": 7
 }
