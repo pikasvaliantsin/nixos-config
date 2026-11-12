@@ -38,3 +38,7 @@ home-manager/modules/dms/app/plugin_settings.json
 
 # DMS генерирует этот файл сам (миграция биндов)
 home-manager/modules/dms/config/binds-next.kdl
+
+# --- Proton / vkd3d runtime caches ---
+vkd3d-proton.cache
+vkd3d-proton.cache.write
