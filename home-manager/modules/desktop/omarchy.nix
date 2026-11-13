@@ -72,7 +72,10 @@ in
     run mkdir -p "${stateDir}/current"
     run mkdir -p "${stateDir}/agents/usage"
     run rm -rf "${stateDir}/current/theme"
-    run ln -s "${confDir}/theme" "${stateDir}/current/theme"
+    # theme-set generates colors.toml/shell.toml under the shared theme state.
+    # Prefer that when present; the packaged static theme is only the initial
+    # fallback before the first theme switch.
+    run sh -c 'if [ -f "${config.home.homeDirectory}/.local/state/theme/current/colors.toml" ]; then ln -s "${config.home.homeDirectory}/.local/state/theme/current" "${stateDir}/current/theme"; else ln -s "${confDir}/theme" "${stateDir}/current/theme"; fi'
     # Niri has no Hyprland instance signature. The constant marks this
     # compositor session as already introduced, so the startup cover never
     # maps and the desktop is visible immediately.
