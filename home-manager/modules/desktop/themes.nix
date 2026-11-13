@@ -327,7 +327,7 @@ let
       if [ ! -f "$out/ghostty.conf" ]; then
         cat >"$out/ghostty.conf" <<EOF
       background = $bg
-      background-opacity = 1.0
+      background-opacity = 0.85
       foreground = $fg
       cursor-color = $accent
       cursor-text = $bg

@@ -5,9 +5,9 @@
   programs.ghostty = {
     enable = true;
     settings = {
-      # Solid background: 0.7 over a colorful wallpaper washed out text and
-      # made focused/unfocused windows hard to tell apart.
-      background-opacity = 1.0;
+      # Omarchy-style glass: translucent background, blurred by niri
+      # (see the ghostty window-rule in niri/config.kdl).
+      background-opacity = 0.85;
       window-decoration = true;
       font-family = "JetBrains Mono";
       font-size = 12;

@@ -82,6 +82,17 @@ window-rule {
     clip-to-geometry true
 }
 
+// Omarchy-style glass terminal: ghostty renders a translucent background,
+// niri blurs the wallpaper behind it (xray keeps it cheap on AMD).
+window-rule {
+    match app-id="^com.mitchellh.ghostty$"
+
+    background-effect {
+        blur true
+        xray true
+    }
+}
+
 window-rule {
     match app-id="^org.gnome.Calculator$"
     match app-id="^org.keepassxc.KeePassXC$"
