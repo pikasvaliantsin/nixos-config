@@ -11,6 +11,16 @@ Singleton {
   readonly property var list: server.trackedNotifications
   readonly property int count: list && list.values ? list.values.length : 0
 
+  property bool doNotDisturb: false
+
+  function setDoNotDisturb(value) {
+    root.doNotDisturb = !!value
+  }
+
+  function toggleDoNotDisturb() {
+    root.setDoNotDisturb(!root.doNotDisturb)
+  }
+
   function clearAll() {
     const items = list.values.slice()
     for (let i = items.length - 1; i >= 0; i--) items[i].dismiss()
@@ -24,7 +34,9 @@ Singleton {
     imageSupported: true
     bodyMarkupSupported: false
     onNotification: n => {
-      n.tracked = true
+      // Do Not Disturb means nothing reaches the center. The notification is
+      // not tracked, so it never shows up in the list or the count.
+      if (!root.doNotDisturb) n.tracked = true
     }
   }
 }

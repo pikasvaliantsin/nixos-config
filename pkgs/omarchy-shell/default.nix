@@ -33,6 +33,7 @@
   pulseaudio,
   glib,
   brightnessctl,
+  systemd,
   niri,
 }:
 
@@ -68,6 +69,7 @@ let
     pulseaudio
     glib
     brightnessctl
+    systemd
     niri
     quickshell
   ];

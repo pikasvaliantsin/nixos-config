@@ -20,11 +20,18 @@ Singleton {
     root.notificationsOpen = false
   }
 
+  function toggleDnd() {
+    Notifications.toggleDoNotDisturb()
+  }
+
   IpcHandler {
     target: "notifications"
     function toggle(): void { root.toggle() }
     function open(): void { root.open() }
     function close(): void { root.close() }
     function clear(): void { Notifications.clearAll() }
+    function dnd(): void { root.toggleDnd() }
+    function count(): string { return String(Notifications.count) }
+    function quiet(): string { return Notifications.doNotDisturb ? "on" : "off" }
   }
 }

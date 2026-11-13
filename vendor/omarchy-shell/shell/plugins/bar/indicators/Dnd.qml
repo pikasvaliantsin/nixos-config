@@ -1,12 +1,12 @@
 import QtQuick
 import qs.Commons
+import qs.Custom
 import qs.Ui
 
 BarIndicator {
   id: root
 
-  readonly property var notificationService: bar?.shell?.firstPartyServiceFor("omarchy.notifications")
-  readonly property bool dnd: notificationService ? notificationService.doNotDisturb : false
+  readonly property bool dnd: Notifications.doNotDisturb
 
   active: dnd
   activeText: "󰂛"
@@ -15,8 +15,6 @@ BarIndicator {
   inactiveTooltipText: I18n.t("bar.silenceNotifications")
 
   onPressed: function() {
-    if (root.notificationService) {
-      root.notificationService.setDoNotDisturb(!root.notificationService.doNotDisturb)
-    }
+    Notifications.toggleDoNotDisturb()
   }
 }
