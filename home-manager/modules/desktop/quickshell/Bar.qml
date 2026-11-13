@@ -637,7 +637,7 @@ PanelWindow {
             Item {
                 visible: Tray.all.length > 0
                 width: 18
-                height: bar.height
+                height: 16
 
                 Icon {
                     anchors.centerIn: parent
