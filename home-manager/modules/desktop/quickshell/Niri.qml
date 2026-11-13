@@ -14,6 +14,11 @@ Singleton {
     property string layoutName: ""
     property string layoutShort: ""
 
+    readonly property string focusedOutput: {
+        for (const w of root.workspaces) if (w.is_focused) return w.output;
+        return "";
+    }
+
     function shortLayout(name) {
         if (!name) return "";
         if (name.indexOf("Russian") >= 0) return "RU";

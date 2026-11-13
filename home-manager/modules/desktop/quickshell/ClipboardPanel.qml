@@ -13,32 +13,21 @@ PanelWindow {
         right: true
     }
     margins {
-        top: Theme.barHeight + 2
+        top: 2
         right: 8
     }
     implicitWidth: 440
     implicitHeight: Math.min(640, 150 + Math.max(1, Clip.visibleEntries.length) * 96)
     color: "transparent"
-    visible: Clip.open
+    required property var modelData
+    screen: modelData
+    visible: Clip.open && modelData.name === Niri.focusedOutput
     exclusiveZone: 0
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-clipboard"
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
-    IpcHandler {
-        target: "clipboard"
-        function toggle(): void {
-            const v = !Clip.open;
-            Ui.netOpen = false;
-            Ui.btOpen = false;
-            Ui.notifOpen = false;
-            Clip.open = v;
-        }
-        function open(): void { Clip.open = true; }
-        function close(): void { Clip.open = false; }
-        function clear(): void { Clip.clear(); }
-    }
 
     onVisibleChanged: {
         if (visible) {

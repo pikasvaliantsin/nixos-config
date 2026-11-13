@@ -14,7 +14,7 @@ PanelWindow {
         right: true
     }
     margins {
-        top: Theme.barHeight + 2
+        top: 2
         right: 8
     }
     implicitWidth: 400
@@ -23,7 +23,9 @@ PanelWindow {
         + Net.vpn.length * 34
         + (panel.selectedNetwork !== null ? 38 : 0))
     color: "transparent"
-    visible: Ui.netOpen
+    required property var modelData
+    screen: modelData
+    visible: Ui.netOpen && modelData.name === Niri.focusedOutput
     exclusiveZone: 0
 
     WlrLayershell.layer: WlrLayer.Overlay
@@ -32,17 +34,6 @@ PanelWindow {
 
     property var selectedNetwork: null
 
-    IpcHandler {
-        target: "network"
-        function toggle(): void {
-            const v = !Ui.netOpen;
-            Ui.btOpen = false;
-            Ui.notifOpen = false;
-            Clip.open = false;
-            Ui.netOpen = v;
-        }
-        function close(): void { Ui.netOpen = false; }
-    }
 
     onVisibleChanged: {
         if (visible) {

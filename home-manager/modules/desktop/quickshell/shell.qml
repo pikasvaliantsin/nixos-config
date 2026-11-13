@@ -5,14 +5,27 @@ import Quickshell
 ShellRoot {
     Variants {
         model: Quickshell.screens
-        delegate: Bar {
-            modelData: modelData
-        }
+        delegate: Bar { modelData: modelData }
     }
 
-    DismissLayer {}
-    NotificationPanel {}
-    ClipboardPanel {}
-    NetworkPanel {}
-    BluetoothPanel {}
+    Variants {
+        model: Quickshell.screens
+        delegate: DismissLayer {}
+    }
+    Variants {
+        model: Quickshell.screens
+        delegate: NotificationPanel {}
+    }
+    Variants {
+        model: Quickshell.screens
+        delegate: ClipboardPanel {}
+    }
+    Variants {
+        model: Quickshell.screens
+        delegate: NetworkPanel {}
+    }
+    Variants {
+        model: Quickshell.screens
+        delegate: BluetoothPanel {}
+    }
 }

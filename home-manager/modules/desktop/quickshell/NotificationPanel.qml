@@ -13,31 +13,20 @@ PanelWindow {
         right: true
     }
     margins {
-        top: Theme.barHeight + 2
+        top: 2
         right: 8
     }
     implicitWidth: 360
     implicitHeight: Math.min(560, Math.max(140, column.implicitHeight + 24))
     color: "transparent"
-    visible: Ui.notifOpen
+    required property var modelData
+    screen: modelData
+    visible: Ui.notifOpen && modelData.name === Niri.focusedOutput
     exclusiveZone: 0
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-notifications"
 
-    IpcHandler {
-        target: "notifications"
-        function toggle(): void {
-            const v = !Ui.notifOpen;
-            Ui.netOpen = false;
-            Ui.btOpen = false;
-            Clip.open = false;
-            Ui.notifOpen = v;
-        }
-        function open(): void { Ui.notifOpen = true; }
-        function close(): void { Ui.notifOpen = false; }
-        function clear(): void { Notif.clearAll(); }
-    }
 
     Rectangle {
         anchors.fill: parent

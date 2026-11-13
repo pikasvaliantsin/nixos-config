@@ -14,29 +14,20 @@ PanelWindow {
         right: true
     }
     margins {
-        top: Theme.barHeight + 2
+        top: 2
         right: 8
     }
     implicitWidth: 400
     implicitHeight: Math.min(560, 150 + Math.max(1, Bt.devices.length) * 46)
     color: "transparent"
-    visible: Ui.btOpen
+    required property var modelData
+    screen: modelData
+    visible: Ui.btOpen && modelData.name === Niri.focusedOutput
     exclusiveZone: 0
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-bluetooth"
 
-    IpcHandler {
-        target: "bluetooth"
-        function toggle(): void {
-            const v = !Ui.btOpen;
-            Ui.netOpen = false;
-            Ui.notifOpen = false;
-            Clip.open = false;
-            Ui.btOpen = v;
-        }
-        function close(): void { Ui.btOpen = false; }
-    }
 
     onVisibleChanged: {
         if (!visible) Bt.setDiscovering(false);

@@ -13,11 +13,13 @@ PanelWindow {
         right: true
     }
     margins {
-        top: Theme.barHeight
+        top: 0
     }
     color: "transparent"
     exclusiveZone: 0
-    visible: Ui.notifOpen || Clip.open || Ui.netOpen || Ui.btOpen
+    required property var modelData
+    screen: modelData
+    visible: (Ui.notifOpen || Clip.open || Ui.netOpen || Ui.btOpen) && modelData.name === Niri.focusedOutput
 
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "quickshell-dismiss"
