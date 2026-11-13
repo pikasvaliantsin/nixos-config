@@ -5,6 +5,7 @@ binds {
     // --- сессия, лаунчер, центр уведомлений -------------------------------
     Alt+Space hotkey-overlay-title="Лаунчер" { spawn "walker"; }
     Mod+D hotkey-overlay-title="Лаунчер" { spawn "walker"; }
+    Mod+Shift+D hotkey-overlay-title="Поиск файлов" { spawn "walker" "-m" "files"; }
     Mod+N hotkey-overlay-title="Уведомления" { spawn "quickshell" "ipc" "call" "notifications" "toggle"; }
     Mod+V hotkey-overlay-title="Буфер обмена" { spawn "quickshell" "ipc" "call" "clipboard" "toggle"; }
     Mod+Alt+L hotkey-overlay-title="Блокировка" { spawn "gtklock"; }

@@ -167,44 +167,9 @@ in
   '';
 
   # Walker + Elephant: лаунчер и провайдеры (приложения, буфер, файлы, окна).
-  xdg.configFile."walker/config.toml".text = ''
-    theme = "default"
-    force_keyboard_focus = false
-    click_to_close = true
-
-    [providers]
-    default = ["desktopapplications", "calc", "clipboard", "files", "windows", "symbols", "websearch"]
-    empty = ["desktopapplications"]
-    max_results = 50
-
-    [[providers.prefixes]]
-    prefix = ";"
-    provider = "providerlist"
-
-    [[providers.prefixes]]
-    prefix = ">"
-    provider = "runner"
-
-    [[providers.prefixes]]
-    prefix = "/"
-    provider = "files"
-
-    [[providers.prefixes]]
-    prefix = "."
-    provider = "symbols"
-
-    [[providers.prefixes]]
-    prefix = "="
-    provider = "calc"
-
-    [[providers.prefixes]]
-    prefix = ":"
-    provider = "clipboard"
-
-    [[providers.prefixes]]
-    prefix = "$"
-    provider = "windows"
-  '';
+  # Конфиг лежит в репозитории, правки подхватываются без пересборки.
+  xdg.configFile."walker/config.toml".source =
+    config.lib.file.mkOutOfStoreSymlink "${config.mySystem.dotfilesRoot}/home-manager/modules/desktop/walker/config.toml";
 
   systemd.user.services.elephant = {
     Unit = {

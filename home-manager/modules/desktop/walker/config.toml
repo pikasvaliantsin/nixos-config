@@ -1,0 +1,46 @@
+theme = "default"
+force_keyboard_focus = false
+click_to_close = true
+
+# Не показывать F1-F4 quick activation и подсказки действий внизу.
+hide_quick_activation = true
+hide_action_hints = true
+
+[providers]
+# По умолчанию — только приложения (и калькулятор). Остальное по префиксам:
+# / файлы, : буфер, > команды, = калькулятор, $ окна, . символы, @ websearch.
+default = ["desktopapplications", "calc"]
+empty = ["desktopapplications"]
+max_results = 50
+
+[[providers.prefixes]]
+prefix = ";"
+provider = "providerlist"
+
+[[providers.prefixes]]
+prefix = ">"
+provider = "runner"
+
+[[providers.prefixes]]
+prefix = "/"
+provider = "files"
+
+[[providers.prefixes]]
+prefix = "."
+provider = "symbols"
+
+[[providers.prefixes]]
+prefix = "="
+provider = "calc"
+
+[[providers.prefixes]]
+prefix = ":"
+provider = "clipboard"
+
+[[providers.prefixes]]
+prefix = "$"
+provider = "windows"
+
+[[providers.prefixes]]
+prefix = "@"
+provider = "websearch"
