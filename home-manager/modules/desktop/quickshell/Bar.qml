@@ -592,64 +592,21 @@ PanelWindow {
 
     Component {
         id: trayComp
-        Row {
-            spacing: 7
+        Item {
+            visible: Tray.all.length > 0
+            width: 18
+            height: bar.height
 
-            Repeater {
-                model: Tray.visible.slice(0, 3)
-                delegate: Item {
-                    id: trayItem
-                    required property var modelData
-                    width: 16
-                    height: 16
-
-                    Image {
-                        anchors.fill: parent
-                        sourceSize.width: 16
-                        sourceSize.height: 16
-                        source: trayItem.modelData.icon
-                    }
-
-                    QsMenuAnchor {
-                        id: trayMenu
-                        menu: trayItem.modelData.menu
-                        anchor.item: trayItem
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
-                        onClicked: (mouse) => {
-                            if (mouse.button === Qt.MiddleButton) {
-                                trayItem.modelData.secondaryActivate();
-                            } else if (trayItem.modelData.hasMenu) {
-                                trayMenu.open();
-                            } else if (mouse.button === Qt.LeftButton) {
-                                trayItem.modelData.activate();
-                            } else {
-                                trayItem.modelData.secondaryActivate();
-                            }
-                        }
-                    }
-                }
+            Icon {
+                anchors.centerIn: parent
+                glyph: Ui.trayOpen ? "\uf078" : "\uf054"
+                color: Ui.trayOpen ? Theme.primary : Theme.fgMuted
+                size: 9
             }
 
-            Item {
-                visible: Tray.visible.length > 3 || Tray.ignored.length > 0
-                width: visible ? 14 : 0
-                height: 16
-
-                Icon {
-                    anchors.centerIn: parent
-                    glyph: Ui.trayOpen ? "\uf077" : "\uf078"
-                    color: Theme.fgMuted
-                    size: 10
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: Ui.toggleTray()
-                }
+            MouseArea {
+                anchors.fill: parent
+                onClicked: Ui.toggleTray()
             }
         }
     }
