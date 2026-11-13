@@ -8,6 +8,7 @@ singleton Sys 1.0 Sys.qml
 singleton Notif 1.0 Notif.qml
 singleton Ui 1.0 Ui.qml
 singleton Clip 1.0 Clip.qml
+singleton Tray 1.0 Tray.qml
 Bar 1.0 Bar.qml
 Icon 1.0 Icon.qml
 NotificationPanel 1.0 NotificationPanel.qml

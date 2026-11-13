@@ -2,9 +2,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import Quickshell.Services.SystemTray
 
-// Развёрнутый трей: все иконки сеткой, меню — через QsMenuAnchor.
+// Развёрнутый трей: все иконки сеткой. ПКМ — скрыть/показать.
 PanelWindow {
     id: panel
 
@@ -16,7 +15,7 @@ PanelWindow {
         top: Theme.barHeight + 6
         right: 8
     }
-    implicitWidth: Math.max(220, content.implicitWidth + 24)
+    implicitWidth: Math.max(240, content.implicitWidth + 24)
     implicitHeight: content.implicitHeight + 24
     color: "transparent"
     visible: Ui.trayOpen
@@ -44,12 +43,24 @@ PanelWindow {
         anchors.centerIn: parent
         spacing: 10
 
-        Text {
-            text: "Трей"
-            color: Theme.fgMuted
-            font.family: Theme.font
-            font.pixelSize: 11
+        Row {
             anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 8
+
+            Text {
+                text: "Трей"
+                color: Theme.fgMuted
+                font.family: Theme.font
+                font.pixelSize: 11
+            }
+            Text {
+                text: Tray.ignored.length > 0
+                    ? Tray.visible.length + " · скрыто " + Tray.ignored.length
+                    : String(Tray.visible.length)
+                color: Theme.fgMuted
+                font.family: Theme.font
+                font.pixelSize: 10
+            }
         }
 
         Grid {
@@ -58,12 +69,13 @@ PanelWindow {
             anchors.horizontalCenter: parent.horizontalCenter
 
             Repeater {
-                model: SystemTray.items
+                model: Tray.all
                 delegate: Item {
                     id: cell
                     required property var modelData
                     width: 34
                     height: 34
+                    opacity: Tray.isHidden(cell.modelData.id) ? 0.45 : 1.0
 
                     Rectangle {
                         anchors.fill: parent
@@ -79,6 +91,15 @@ PanelWindow {
                         source: cell.modelData.icon
                     }
 
+                    Icon {
+                        visible: Tray.isHidden(cell.modelData.id)
+                        anchors.right: parent.right
+                        anchors.bottom: parent.bottom
+                        glyph: "\uf070"
+                        size: 8
+                        color: Theme.warning
+                    }
+
                     QsMenuAnchor {
                         id: menu
                         menu: cell.modelData.menu
@@ -90,20 +111,28 @@ PanelWindow {
                         anchors.fill: parent
                         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                         onClicked: (mouse) => {
-                            if (mouse.button === Qt.MiddleButton) {
+                            if (mouse.button === Qt.RightButton) {
+                                Tray.toggleHidden(cell.modelData.id);
+                            } else if (mouse.button === Qt.MiddleButton) {
                                 cell.modelData.secondaryActivate();
                             } else if (cell.modelData.hasMenu) {
                                 menu.open();
-                            } else if (mouse.button === Qt.LeftButton) {
+                            } else {
                                 cell.modelData.activate();
                                 Ui.trayOpen = false;
-                            } else {
-                                cell.modelData.secondaryActivate();
                             }
                         }
                     }
                 }
             }
+        }
+
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: "ЛКМ — открыть · ПКМ — скрыть/показать"
+            color: Theme.fgMuted
+            font.family: Theme.font
+            font.pixelSize: 9
         }
     }
 }

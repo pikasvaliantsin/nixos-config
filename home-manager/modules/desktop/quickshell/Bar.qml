@@ -27,7 +27,7 @@ PanelWindow {
 
     readonly property var player: Mpris.players.values.length > 0 ? Mpris.players.values[0] : null
     readonly property var workspaces: Niri.workspacesFor(screenData.name)
-    readonly property int trayCount: SystemTray.items.values.length
+    readonly property int trayCount: Tray.visible.length
 
     function spawn(args) {
         proc.command = args;
@@ -597,13 +597,11 @@ PanelWindow {
             spacing: 7
 
             Repeater {
-                model: SystemTray.items
+                model: Tray.visible.slice(0, 3)
                 delegate: Item {
                     id: trayItem
                     required property var modelData
-                    required property int index
-                    visible: index < 3
-                    width: visible ? 16 : 0
+                    width: 16
                     height: 16
 
                     Image {
@@ -638,7 +636,7 @@ PanelWindow {
             }
 
             Item {
-                visible: bar.trayCount > 3
+                visible: Tray.visible.length > 3 || Tray.ignored.length > 0
                 width: visible ? 14 : 0
                 height: 16
 
