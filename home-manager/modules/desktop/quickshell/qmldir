@@ -6,5 +6,10 @@ singleton Bt 1.0 Bt.qml
 singleton Weather 1.0 Weather.qml
 singleton Sys 1.0 Sys.qml
 singleton Notif 1.0 Notif.qml
+singleton Ui 1.0 Ui.qml
+singleton Clip 1.0 Clip.qml
 Bar 1.0 Bar.qml
+Icon 1.0 Icon.qml
 NotificationPanel 1.0 NotificationPanel.qml
+ClipboardPanel 1.0 ClipboardPanel.qml
+TrayDrawer 1.0 TrayDrawer.qml

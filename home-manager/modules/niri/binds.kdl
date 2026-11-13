@@ -6,7 +6,7 @@ binds {
     Alt+Space hotkey-overlay-title="Лаунчер" { spawn "fuzzel"; }
     Mod+D hotkey-overlay-title="Лаунчер" { spawn "fuzzel"; }
     Mod+N hotkey-overlay-title="Уведомления" { spawn "quickshell" "ipc" "call" "notifications" "toggle"; }
-    Mod+V hotkey-overlay-title="Буфер обмена" { spawn "sh" "-lc" "cliphist list | fuzzel --dmenu | cliphist decode | wl-copy"; }
+    Mod+V hotkey-overlay-title="Буфер обмена" { spawn "quickshell" "ipc" "call" "clipboard" "toggle"; }
     Mod+Alt+L hotkey-overlay-title="Блокировка" { spawn "gtklock"; }
     Super+X hotkey-overlay-title="Питание" { spawn "wlogout"; }
     Mod+M hotkey-overlay-title="Монитор процессов" { spawn "ghostty" "-e" "dgop" "top"; }
@@ -35,6 +35,8 @@ binds {
     Print { screenshot; }
     XF86Launch1 { screenshot; }
     Super+Shift+S hotkey-overlay-title="Скриншот: область" { screenshot; }
+    Ctrl+Shift+S hotkey-overlay-title="Последний скриншот → буфер" { spawn "last-shot"; }
+    Ctrl+Alt+S hotkey-overlay-title="Скриншот → путь в буфер" { spawn "shot-path"; }
     Ctrl+Print { screenshot-screen; }
     Ctrl+XF86Launch1 { screenshot-screen; }
     Alt+Print { screenshot-window; }

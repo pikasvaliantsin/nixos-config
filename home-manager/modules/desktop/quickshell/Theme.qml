@@ -19,7 +19,7 @@ Singleton {
     readonly property color warning: pal.warning
 
     readonly property int radius: 12
-    readonly property int barHeight: 34
+    readonly property int barHeight: 36
     readonly property string font: "Inter"
 
     function reload() {
