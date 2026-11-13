@@ -9,6 +9,8 @@ Singleton {
 
     property bool trayExpanded: false
     property bool notifOpen: false
+    property bool netOpen: false
+    property bool btOpen: false
 
     IpcHandler {
         target: "tray"

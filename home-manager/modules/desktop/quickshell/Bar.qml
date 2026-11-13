@@ -392,7 +392,18 @@ PanelWindow {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: bar.spawn(["ghostty", "-e", "impala"])
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onClicked: (mouse) => {
+                    if (mouse.button === Qt.RightButton) {
+                        bar.spawn(["ghostty", "-e", "impala"]);
+                    } else {
+                        const open = !Ui.netOpen;
+                        Ui.btOpen = false;
+                        Ui.notifOpen = false;
+                        Clip.open = false;
+                        Ui.netOpen = open;
+                    }
+                }
             }
         }
     }
@@ -424,7 +435,18 @@ PanelWindow {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: bar.spawn(["ghostty", "-e", "bluetui"])
+                acceptedButtons: Qt.LeftButton | Qt.RightButton
+                onClicked: (mouse) => {
+                    if (mouse.button === Qt.RightButton) {
+                        bar.spawn(["ghostty", "-e", "bluetui"]);
+                    } else {
+                        const open = !Ui.btOpen;
+                        Ui.netOpen = false;
+                        Ui.notifOpen = false;
+                        Clip.open = false;
+                        Ui.btOpen = open;
+                    }
+                }
             }
         }
     }

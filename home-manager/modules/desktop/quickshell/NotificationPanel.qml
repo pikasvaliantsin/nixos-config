@@ -27,7 +27,13 @@ PanelWindow {
 
     IpcHandler {
         target: "notifications"
-        function toggle(): void { Ui.notifOpen = !Ui.notifOpen; }
+        function toggle(): void {
+            const v = !Ui.notifOpen;
+            Ui.netOpen = false;
+            Ui.btOpen = false;
+            Clip.open = false;
+            Ui.notifOpen = v;
+        }
         function open(): void { Ui.notifOpen = true; }
         function close(): void { Ui.notifOpen = false; }
         function clear(): void { Notif.clearAll(); }

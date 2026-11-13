@@ -13,4 +13,6 @@ ShellRoot {
     DismissLayer {}
     NotificationPanel {}
     ClipboardPanel {}
+    NetworkPanel {}
+    BluetoothPanel {}
 }

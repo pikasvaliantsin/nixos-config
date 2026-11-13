@@ -28,7 +28,13 @@ PanelWindow {
 
     IpcHandler {
         target: "clipboard"
-        function toggle(): void { Clip.toggle(); }
+        function toggle(): void {
+            const v = !Clip.open;
+            Ui.netOpen = false;
+            Ui.btOpen = false;
+            Ui.notifOpen = false;
+            Clip.open = v;
+        }
         function open(): void { Clip.open = true; }
         function close(): void { Clip.open = false; }
         function clear(): void { Clip.clear(); }

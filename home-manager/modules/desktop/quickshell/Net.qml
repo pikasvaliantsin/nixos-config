@@ -1,61 +1,80 @@
 pragma Singleton
 import QtQuick
 import Quickshell
-import Quickshell.Io
+import Quickshell.Networking
 
-// Сеть через NetworkManager (nmcli).
+// Сеть через нативный NetworkManager-бэкенд Quickshell.
 Singleton {
     id: root
 
-    property bool connected: false
-    property bool wifi: false
-    property string name: ""
-    property int strength: 0
-
-    function refresh() {
-        if (!poll.running) poll.running = true;
+    readonly property var devices: Networking.devices.values
+    readonly property var wifiDevice: {
+        for (const d of devices) if (d.type === DeviceType.Wifi) return d;
+        return null;
+    }
+    readonly property var wiredDevice: {
+        for (const d of devices) if (d.type === DeviceType.Wired) return d;
+        return null;
     }
 
-    Process {
-        id: poll
-        command: [
-            "sh", "-c",
-            "nmcli -t -f DEVICE,TYPE,STATE,CONNECTION device status 2>/dev/null; "
-            + "nmcli -t -f ACTIVE,SIGNAL,SSID device wifi 2>/dev/null | grep '^yes' | head -n1"
-        ]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const lines = text.trim().split("\n");
-                let best = null;
-                for (const line of lines) {
-                    const p = line.split(":");
-                    if (p.length >= 4 && p[2] === "connected" && p[1] !== "loopback") {
-                        best = { type: p[1], name: p[3] };
-                        break;
-                    }
-                }
-                root.connected = best !== null;
-                root.wifi = best !== null && best.type === "wifi";
-                root.name = best !== null ? best.name : "";
+    readonly property bool available: wifiDevice !== null || wiredDevice !== null
+    readonly property bool wifiEnabled: Networking.wifiEnabled
+    readonly property bool wifi: (wifiDevice !== null) && wifiDevice.connected
+    readonly property bool wired: (wiredDevice !== null) && wiredDevice.connected
+    readonly property bool connected: root.wifi || root.wired
 
-                const wifiLine = lines.find(l => l.startsWith("yes:"));
-                if (wifiLine) {
-                    const p = wifiLine.split(":");
-                    root.strength = parseInt(p[1] || "0", 10);
-                } else {
-                    root.strength = 0;
-                }
-            }
-        }
-        onExited: timer.restart()
+    readonly property var activeNetwork: {
+        if (!root.connected) return null;
+        const dev = root.wifi ? root.wifiDevice : root.wiredDevice;
+        if (!dev) return null;
+        for (const n of dev.networks.values) if (n.connected) return n;
+        return null;
     }
 
-    Timer {
-        id: timer
-        interval: 5000
-        repeat: false
-        onTriggered: poll.running = true
+    readonly property string name: root.activeNetwork ? root.activeNetwork.name : ""
+    readonly property int strength: {
+        if (!root.wifi || !root.activeNetwork) return 0;
+        const s = root.activeNetwork.signalStrength;
+        return s === undefined ? 0 : Math.round(s * 100);
     }
 
-    Component.onCompleted: poll.running = true
+    readonly property var wifiNetworks: {
+        if (!root.wifiDevice) return [];
+        const arr = root.wifiDevice.networks.values.slice();
+        arr.sort((a, b) => {
+            if (a.connected !== b.connected) return a.connected ? -1 : 1;
+            if (a.known !== b.known) return a.known ? -1 : 1;
+            const sa = a.signalStrength === undefined ? 0 : a.signalStrength;
+            const sb = b.signalStrength === undefined ? 0 : b.signalStrength;
+            return sb - sa;
+        });
+        return arr;
+    }
+
+    function setWifiEnabled(value) {
+        Networking.wifiEnabled = value;
+    }
+
+    function scan(value) {
+        if (root.wifiDevice) root.wifiDevice.scannerEnabled = value;
+    }
+
+    function connectNetwork(network, psk) {
+        if (!network) return;
+        if (psk && psk.length > 0) network.connectWithPsk(psk);
+        else network.connect();
+    }
+
+    function disconnectNetwork(network) {
+        if (network) network.disconnect();
+    }
+
+    function isSecure(network) {
+        return network && network.security !== WifiSecurityType.Open;
+    }
+
+    function securityLabel(network) {
+        if (!network) return "";
+        return WifiSecurityType.toString(network.security);
+    }
 }

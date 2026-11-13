@@ -1,42 +1,42 @@
 pragma Singleton
 import QtQuick
 import Quickshell
-import Quickshell.Io
+import Quickshell.Bluetooth
 
-// Bluetooth через BlueZ (bluetoothctl).
+// Bluetooth через нативный BlueZ-бэкенд Quickshell.
 Singleton {
     id: root
 
-    property bool powered: false
-    property int connectedCount: 0
+    readonly property var adapter: Bluetooth.defaultAdapter
+    readonly property bool available: !!adapter
+    readonly property bool powered: adapter ? adapter.enabled : false
+    readonly property bool discovering: adapter ? adapter.discovering : false
+    readonly property var devices: adapter ? adapter.devices.values : []
 
-    function refresh() {
-        if (!poll.running) poll.running = true;
+    readonly property var sortedDevices: {
+        const arr = root.devices.slice();
+        arr.sort((a, b) => {
+            if (a.connected !== b.connected) return a.connected ? -1 : 1;
+            if (a.paired !== b.paired) return a.paired ? -1 : 1;
+            return String(a.name).localeCompare(String(b.name));
+        });
+        return arr;
     }
 
-    Process {
-        id: poll
-        command: [
-            "sh", "-c",
-            "bluetoothctl show 2>/dev/null | grep -q 'Powered: yes' && echo powered || echo off; "
-            + "bluetoothctl devices Connected 2>/dev/null | wc -l"
-        ]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const lines = text.trim().split("\n");
-                root.powered = (lines[0] || "").indexOf("powered") >= 0;
-                root.connectedCount = parseInt(lines[1] || "0", 10);
-            }
-        }
-        onExited: timer.restart()
+    readonly property int connectedCount: root.devices.filter(d => d.connected).length
+
+    function setPowered(value) {
+        if (root.adapter) root.adapter.enabled = value;
     }
 
-    Timer {
-        id: timer
-        interval: 5000
-        repeat: false
-        onTriggered: poll.running = true
+    function setDiscovering(value) {
+        if (root.adapter) root.adapter.discovering = value;
     }
 
-    Component.onCompleted: poll.running = true
+    function toggleDevice(device) {
+        if (!device) return;
+        if (device.connected) device.disconnect();
+        else if (device.paired) device.connect();
+        else device.pair();
+    }
 }

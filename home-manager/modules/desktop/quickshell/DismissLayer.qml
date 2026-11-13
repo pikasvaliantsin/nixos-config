@@ -17,7 +17,7 @@ PanelWindow {
     }
     color: "transparent"
     exclusiveZone: 0
-    visible: Ui.notifOpen || Clip.open
+    visible: Ui.notifOpen || Clip.open || Ui.netOpen || Ui.btOpen
 
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "quickshell-dismiss"
@@ -28,6 +28,8 @@ PanelWindow {
         onClicked: {
             Ui.notifOpen = false;
             Clip.open = false;
+            Ui.netOpen = false;
+            Ui.btOpen = false;
         }
     }
 }

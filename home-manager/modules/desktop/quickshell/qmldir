@@ -14,3 +14,5 @@ Icon 1.0 Icon.qml
 NotificationPanel 1.0 NotificationPanel.qml
 ClipboardPanel 1.0 ClipboardPanel.qml
 DismissLayer 1.0 DismissLayer.qml
+NetworkPanel 1.0 NetworkPanel.qml
+BluetoothPanel 1.0 BluetoothPanel.qml
