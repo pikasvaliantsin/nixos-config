@@ -1,0 +1,102 @@
+#!/bin/bash
+# Minimal niri screen recorder. No OBS, no webcam, no portal picker.
+# Backends: wl-screenrec (VAAPI) first, wf-recorder as fallback.
+# Usage: omarchy-capture-screenrecording [--fullscreen|--region|--stop-recording|--status]
+
+set -euo pipefail
+
+runtime="${XDG_RUNTIME_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/omarchy}"
+mkdir -p "$runtime"
+pid_file="$runtime/omarchy-screenrecord.pid"
+file_file="$runtime/omarchy-screenrecord.file"
+
+status() {
+  [[ -f $pid_file ]] || return 1
+  local pid
+  pid=$(cat "$pid_file" 2>/dev/null || true)
+  [[ $pid =~ ^[0-9]+$ ]] || return 1
+  kill -0 "$pid" 2>/dev/null
+}
+
+stop_recording() {
+  status || return 1
+  local pid
+  pid=$(cat "$pid_file")
+  # SIGINT is required for both backends to finalize the MP4.
+  kill -INT "$pid" 2>/dev/null || true
+  for _ in $(seq 1 50); do
+    kill -0 "$pid" 2>/dev/null || break
+    sleep 0.1
+  done
+  kill -0 "$pid" 2>/dev/null && kill -KILL "$pid" 2>/dev/null || true
+  rm -f "$pid_file"
+  local file=""
+  [[ -f $file_file ]] && file=$(cat "$file_file")
+  rm -f "$file_file"
+  if [[ -n $file ]]; then
+    notify-send -a "Screen recording" "Recording saved" "$file" 2>/dev/null || true
+  fi
+}
+
+start_recording() {
+  local mode=${1:-fullscreen}
+  local dir="${OMARCHY_SCREENRECORD_DIR:-$HOME/Videos/Screencasts}"
+  mkdir -p "$dir"
+  local file="$dir/screenrecording-$(date +'%Y-%m-%d_%H-%M-%S').mp4"
+  local geom=""
+  if [[ $mode == "region" ]]; then
+    geom=$(slurp) || exit 0
+    [[ -n $geom ]] || exit 0
+  fi
+
+  local output=""
+  output=$(niri msg --json focused-output 2>/dev/null | jq -r '.name // empty' 2>/dev/null || true)
+
+  local -a args=(-f "$file")
+  if [[ -n $geom ]]; then
+    args+=(-g "$geom")
+  elif [[ -n $output ]]; then
+    args+=(-o "$output")
+  fi
+
+  local pid
+  if command -v wl-screenrec >/dev/null 2>&1; then
+    wl-screenrec "${args[@]}" >/dev/null 2>&1 &
+    pid=$!
+  elif command -v wf-recorder >/dev/null 2>&1; then
+    wf-recorder "${args[@]}" >/dev/null 2>&1 &
+    pid=$!
+  else
+    notify-send -u critical "Screen recording" "wl-screenrec/wf-recorder not found" 2>/dev/null || true
+    exit 1
+  fi
+
+  echo "$pid" >"$pid_file"
+  echo "$file" >"$file_file"
+  sleep 1
+  if ! kill -0 "$pid" 2>/dev/null; then
+    rm -f "$pid_file" "$file_file"
+    notify-send -u critical "Screen recording" "Recorder exited immediately" 2>/dev/null || true
+    exit 1
+  fi
+  notify-send -a "Screen recording" "Recording started" "$file" 2>/dev/null || true
+}
+
+case "${1:-}" in
+  --status)
+    status
+    ;;
+  --stop-recording)
+    stop_recording
+    ;;
+  --region)
+    if status; then stop_recording; else start_recording region; fi
+    ;;
+  --fullscreen | "")
+    if status; then stop_recording; else start_recording fullscreen; fi
+    ;;
+  *)
+    echo "Usage: omarchy-capture-screenrecording [--fullscreen|--region|--stop-recording|--status]" >&2
+    exit 2
+    ;;
+esac

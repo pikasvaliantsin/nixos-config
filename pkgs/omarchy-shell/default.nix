@@ -26,6 +26,8 @@
   grim,
   slurp,
   satty,
+  wl-screenrec,
+  wf-recorder,
   niri,
 }:
 
@@ -54,6 +56,8 @@ let
     grim
     slurp
     satty
+    wl-screenrec
+    wf-recorder
     niri
     quickshell
   ];
@@ -78,6 +82,11 @@ stdenvNoCC.mkDerivation {
     cp -a shell config default bin LICENSE $out/share/omarchy/
     chmod +x $out/share/omarchy/bin/*
     patchShebangs $out/share/omarchy/bin
+    # Niri keybindings run these from the session PATH, not from the shell's
+    # wrapped environment. Expose the compatible helpers in $out/bin too.
+    for helper in $out/share/omarchy/bin/*; do
+      ln -s "$helper" "$out/bin/$(basename "$helper")"
+    done
 
     cat > $out/bin/omarchy-launch-shell <<'EOF'
 #!/bin/sh

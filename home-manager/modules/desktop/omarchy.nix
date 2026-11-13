@@ -23,6 +23,12 @@ in
     jq
     iproute2
     iputils
+    wl-screenrec
+    wf-recorder
+    grim
+    slurp
+    wl-clipboard
+    libnotify
   ];
 
   # The shell reads ~/.config/omarchy/shell.json first; without it, the

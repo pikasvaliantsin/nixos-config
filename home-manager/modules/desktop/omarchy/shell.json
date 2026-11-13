@@ -8,7 +8,7 @@
         { "id": "omarchy.workspaces" }
       ],
       "centerBegin": [
-        { "id": "omarchy.indicators" }
+        { "id": "omarchy.indicators", "items": ["PasswordlessSudo", "ScreenRecording", "Reminder", "NightLight", "Dnd", "StayAwake"] }
       ],
       "center": [
         {

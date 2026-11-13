@@ -37,8 +37,16 @@ BarIndicator {
   }
 
   onPressed: function() {
-    if (root.bar) {
-      root.bar.run(root.recording ? "omarchy-capture-screenrecording --stop-recording" : "omarchy-menu toggle trigger.capture.screenrecord")
-    }
+    if (root.bar)
+      root.bar.run(root.recording ? "omarchy-capture-screenrecording --stop-recording" : "omarchy-capture-screenrecording --fullscreen")
+  }
+
+  // The recorder is started by a niri binding, so the indicator has to notice
+  // state changes on its own. The status probe is one short-lived process.
+  Timer {
+    interval: 2000
+    running: true
+    repeat: true
+    onTriggered: root.refresh()
   }
 }
