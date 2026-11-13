@@ -3,106 +3,70 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// История буфера через cliphist: текст и картинки.
+// История буфера в стиле omarchy: JSON-массив + файлы картинок.
 Singleton {
     id: root
 
     property var entries: []
-    property int rev: 0
     property bool open: false
 
     function toggle() {
         root.open = !root.open;
-        if (root.open) root.refresh();
     }
 
-    function refresh() {
-        if (!listProc.running) listProc.running = true;
+    function rebuild() {
+        const raw = file.text();
+        try {
+            const parsed = JSON.parse(raw || "[]");
+            root.entries = Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            root.entries = [];
+        }
     }
 
-    function shq(s) {
-        return "'" + String(s).replace(/'/g, "") + "'";
+    function commit(next) {
+        root.entries = next;
+        file.setText(JSON.stringify(next, null, 2) + "\n");
     }
 
     function copy(entry) {
-        let mime = "";
-        if (entry.isImage) {
-            mime = entry.preview.indexOf("jpeg") >= 0 ? "image/jpeg" : "image/png";
+        if (entry.type === "image") {
+            cmd.command = [
+                "sh", "-c", "wl-copy --type \"$1\" < \"$2\"", "sh",
+                entry.mime || "image/png", entry.path
+            ];
+        } else {
+            cmd.command = [
+                "sh", "-c", "printf %s \"$1\" | wl-copy", "sh",
+                entry.text || ""
+            ];
         }
-        const cmd = "cliphist decode " + root.shq(entry.id)
-            + " | wl-copy" + (mime ? " --type " + mime : "");
-        copyProc.command = ["sh", "-c", cmd];
-        copyProc.running = true;
+        cmd.running = true;
         root.open = false;
     }
 
-    function remove(entry) {
-        delProc.command = ["sh", "-c", "printf '%s\\n' " + root.shq(entry.id) + " | cliphist delete"];
-        delProc.running = true;
+    function removeAt(index) {
+        const arr = root.entries.slice();
+        if (index < 0 || index >= arr.length) return;
+        arr.splice(index, 1);
+        root.commit(arr);
     }
 
-    function wipe() {
-        wipeProc.running = true;
+    function clear() {
+        root.commit([]);
     }
 
-    function thumbPath(id) {
-        return "file://" + Quickshell.env("HOME") + "/.cache/quickshell/clip/" + id + ".png?v=" + root.rev;
-    }
-
-    Process {
-        id: listProc
-        command: ["cliphist", "list"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const out = [];
-                for (const line of text.split("\n")) {
-                    if (!line) continue;
-                    const tab = line.indexOf("\t");
-                    if (tab < 0) continue;
-                    const id = line.substring(0, tab);
-                    const preview = line.substring(tab + 1);
-                    out.push({
-                        id: id,
-                        preview: preview,
-                        isImage: preview.indexOf("binary data") >= 0
-                    });
-                }
-                root.entries = out.slice(0, 40);
-                if (root.entries.some(e => e.isImage) && !thumbsProc.running) {
-                    thumbsProc.running = true;
-                }
-            }
-        }
+    FileView {
+        id: file
+        path: Quickshell.env("HOME") + "/.local/state/quickshell/clipboard/history.json"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: root.rebuild()
+        onLoadFailed: root.entries = []
     }
 
     Process {
-        id: thumbsProc
-        command: [
-            "sh", "-c",
-            "cache=\"$HOME/.cache/quickshell/clip\"; mkdir -p \"$cache\"; "
-            + "cliphist list | head -n 40 | while IFS=$'\\t' read -r id prev; do "
-            + "case \"$prev\" in *\"binary data\"*) "
-            + "f=\"$cache/$id.png\"; "
-            + "[ -s \"$f\" ] || cliphist decode \"$id\" > \"$f\" 2>/dev/null || rm -f \"$f\" ;; "
-            + "esac; done; "
-            + "find \"$cache\" -type f -mtime +7 -delete 2>/dev/null || true"
-        ]
-        onExited: root.rev += 1
-    }
-
-    Process {
-        id: copyProc
-        onExited: root.refresh()
-    }
-
-    Process {
-        id: delProc
-        onExited: root.refresh()
-    }
-
-    Process {
-        id: wipeProc
-        command: ["cliphist", "wipe"]
-        onExited: root.refresh()
+        id: cmd
+        onExited: running = false
     }
 }

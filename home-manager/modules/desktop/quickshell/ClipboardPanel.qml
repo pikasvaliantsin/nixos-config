@@ -17,7 +17,7 @@ PanelWindow {
         right: 8
     }
     implicitWidth: 420
-    implicitHeight: Math.min(620, 92 + Math.max(1, Clip.entries.length) * 84)
+    implicitHeight: Math.min(620, 92 + Math.max(1, Clip.entries.length) * 96)
     color: "transparent"
     visible: Clip.open
     exclusiveZone: 0
@@ -28,10 +28,9 @@ PanelWindow {
     IpcHandler {
         target: "clipboard"
         function toggle(): void { Clip.toggle(); }
-        function open(): void { Clip.open = true; Clip.refresh(); }
+        function open(): void { Clip.open = true; }
         function close(): void { Clip.open = false; }
-        function clear(): void { Clip.wipe(); }
-        function refresh(): void { Clip.refresh(); }
+        function clear(): void { Clip.clear(); }
     }
 
     Rectangle {
@@ -74,7 +73,7 @@ PanelWindow {
                 MouseArea {
                     anchors.fill: parent
                     enabled: Clip.entries.length > 0
-                    onClicked: Clip.wipe()
+                    onClicked: Clip.clear()
                 }
             }
         }
@@ -98,8 +97,11 @@ PanelWindow {
             delegate: Rectangle {
                 id: card
                 required property var modelData
+                required property int index
                 width: ListView.view.width
-                height: card.modelData.isImage ? 92 : Math.min(64, textItem.implicitHeight + 16)
+                height: card.modelData.type === "image"
+                    ? 88
+                    : Math.min(72, textItem.implicitHeight + 18)
                 radius: 10
                 color: cardHover.hovered ? Theme.surface : Qt.rgba(1, 1, 1, 0.03)
                 border.width: 1
@@ -111,14 +113,15 @@ PanelWindow {
                     spacing: 10
 
                     Image {
-                        visible: card.modelData.isImage
+                        visible: card.modelData.type === "image"
                         Layout.preferredWidth: 132
-                        Layout.preferredHeight: 76
+                        Layout.preferredHeight: 72
                         Layout.alignment: Qt.AlignVCenter
                         fillMode: Image.PreserveAspectFit
                         asynchronous: true
-                        cache: false
-                        source: card.modelData.isImage ? Clip.thumbPath(card.modelData.id) : ""
+                        source: card.modelData.type === "image"
+                            ? "file://" + card.modelData.path
+                            : ""
                     }
 
                     Column {
@@ -129,20 +132,25 @@ PanelWindow {
                         Text {
                             id: textItem
                             width: parent.width
-                            text: card.modelData.preview
+                            text: card.modelData.type === "image"
+                                ? (card.modelData.mime || "image/png")
+                                : (card.modelData.text || "")
                             color: Theme.fg
                             font.family: Theme.font
                             font.pixelSize: 11
                             wrapMode: Text.Wrap
-                            maximumLineCount: card.modelData.isImage ? 2 : 3
+                            maximumLineCount: card.modelData.type === "image" ? 2 : 3
                             elide: Text.ElideRight
                         }
                         Text {
                             width: parent.width
-                            text: card.modelData.isImage ? "картинка · ЛКМ — копировать" : "текст · ЛКМ — копировать"
+                            text: (card.modelData.capturedAt ? card.modelData.capturedAt + " · " : "")
+                                + (card.modelData.type === "image" ? "картинка" : "текст")
+                                + " · ЛКМ — копировать, ПКМ — удалить"
                             color: Theme.fgMuted
                             font.family: Theme.font
                             font.pixelSize: 9
+                            elide: Text.ElideRight
                         }
                     }
                 }
@@ -153,7 +161,7 @@ PanelWindow {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onClicked: (mouse) => {
-                        if (mouse.button === Qt.RightButton) Clip.remove(card.modelData);
+                        if (mouse.button === Qt.RightButton) Clip.removeAt(card.index);
                         else Clip.copy(card.modelData);
                     }
                 }
@@ -170,6 +178,4 @@ PanelWindow {
             horizontalAlignment: Text.AlignHCenter
         }
     }
-
-    onVisibleChanged: if (visible) Clip.refresh()
 }

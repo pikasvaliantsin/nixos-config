@@ -4,6 +4,66 @@
 let
   home = config.home.homeDirectory;
 
+  # Сбор истории буфера в стиле omarchy: текст — инлайном, картинки — файлами,
+  # всё в JSON. Скрипт вызывается watcher'ами wl-paste.
+  clipCapture = pkgs.writeShellApplication {
+    name = "clip-capture";
+    runtimeInputs = [ pkgs.coreutils pkgs.jq pkgs.wl-clipboard pkgs.util-linux ];
+    text = ''
+      set -euo pipefail
+      mime="''${1:-}"
+      [ -n "$mime" ] || exit 1
+
+      state="$HOME/.local/state/quickshell/clipboard"
+      img="$state/images"
+      mkdir -p "$img"
+
+      if wl-paste --list-types 2>/dev/null | grep -qx 'x-kde-passwordManagerHint'; then
+        exit 0
+      fi
+
+      tmp=$(mktemp)
+      trap 'rm -f "$tmp"' EXIT
+      if ! timeout 2 cat > "$tmp"; then
+        exit 0
+      fi
+      [ -s "$tmp" ] || exit 0
+
+      hist="$state/history.json"
+      [ -f "$hist" ] || printf '[]\n' > "$hist"
+
+      entry=""
+      case "$mime" in
+        image/*)
+          hash=$(sha256sum "$tmp" | cut -d' ' -f1)
+          ext="''${mime#image/}"
+          [ "$ext" = "jpeg" ] && ext="jpg"
+          file="$img/$hash.$ext"
+          if [ ! -e "$file" ]; then mv "$tmp" "$file"; fi
+          entry=$(jq -cn --arg mime "$mime" --arg path "$file" --arg at "$(date +%H:%M)" \
+            '{type:"image", mime:$mime, path:$path, capturedAt:$at}')
+          ;;
+        text)
+          entry=$(jq -n --rawfile t "$tmp" --arg at "$(date +%H:%M)" \
+            '{type:"text", text:$t, capturedAt:$at}')
+          ;;
+        *) exit 0 ;;
+      esac
+
+      (
+        flock 9
+        jq --argjson e "$entry" '
+          [ $e ] + [ .[] | select(
+            if $e.type == "image" then (.type != "image" or .path != $e.path)
+            else (.type != "text" or .text != $e.text)
+            end
+          ) ] | .[0:200]
+        ' "$hist" > "$hist.tmp"
+        mv "$hist.tmp" "$hist"
+      ) 9>"$state/.lock"
+    '';
+  };
+
   lastShot = pkgs.writeShellApplication {
     name = "last-shot";
     runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.wl-clipboard pkgs.libnotify ];
@@ -38,7 +98,6 @@ in
   home.packages = with pkgs; [
     quickshell
     fuzzel
-    cliphist
     swayosd
     gtklock
     awww
@@ -58,11 +117,36 @@ in
     curl
     lastShot
     shotPath
+    clipCapture
   ];
 
-  services.cliphist = {
-    enable = true;
-    allowImages = true;
+  # Два watcher'а: текст и PNG. Пишут в ~/.local/state/quickshell/clipboard.
+  systemd.user.services.clipboard-text = {
+    Unit = {
+      Description = "Clipboard history: text";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.wl-clipboard}/bin/wl-paste --type text --watch ${clipCapture}/bin/clip-capture text";
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  systemd.user.services.clipboard-image = {
+    Unit = {
+      Description = "Clipboard history: images";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.wl-clipboard}/bin/wl-paste --type image/png --watch ${clipCapture}/bin/clip-capture image/png";
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 
   # Конфиг бара живёт в репозитории: правки видны без пересборки.
@@ -91,6 +175,6 @@ in
 
   home.activation.quickshellState = config.lib.dag.entryAfter [ "linkGeneration" ] ''
     run mkdir -p "${home}/.local/state/quickshell"
-    run mkdir -p "${home}/.cache/quickshell/clip"
+    run mkdir -p "${home}/.local/state/quickshell/clipboard/images"
   '';
 }
