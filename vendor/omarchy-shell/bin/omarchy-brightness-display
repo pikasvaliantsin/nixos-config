@@ -1,0 +1,60 @@
+#!/bin/bash
+# Brightness for the Display panel on niri. Internal panels use the kernel
+# backlight via brightnessctl; external DDC is intentionally not pulled in yet.
+
+set -euo pipefail
+
+no_osd=0
+monitor=""
+
+while (( $# > 0 )); do
+  case "$1" in
+    --no-osd) no_osd=1; shift ;;
+    --monitor) monitor=${2:-}; shift 2 ;;
+    *) break ;;
+  esac
+done
+
+[[ -n $monitor ]] || monitor=$(niri msg --json focused-output 2>/dev/null | jq -r '.name // ""')
+
+internal=0
+[[ $monitor =~ ^(eDP|LVDS|DSI)- ]] && internal=1
+
+device=""
+for candidate in /sys/class/backlight/*; do
+  [[ -e $candidate ]] || continue
+  device=${candidate##*/}
+  break
+done
+
+if (( ! internal )) || [[ -z $device ]] || ! command -v brightnessctl >/dev/null 2>&1; then
+  if (( $# == 0 )); then echo "unavailable"; exit 0; fi
+  exit 1
+fi
+
+current() {
+  brightnessctl -d "$device" -m 2>/dev/null | awk -F, '{ gsub("%", "", $4); print $4 }'
+}
+
+if (( $# == 0 )); then
+  current
+  exit 0
+fi
+
+step=$1
+case "$step" in
+  off)
+    niri msg action power-off-monitors >/dev/null 2>&1 || true
+    exit 0
+    ;;
+  on)
+    niri msg action power-on-monitors >/dev/null 2>&1 || true
+    exit 0
+    ;;
+esac
+
+brightnessctl -d "$device" set "$step" >/dev/null
+if (( ! no_osd )); then
+  command -v swayosd-client >/dev/null 2>&1 && swayosd-client --brightness 2>/dev/null || true
+fi
+current

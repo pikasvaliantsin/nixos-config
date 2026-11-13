@@ -1,0 +1,46 @@
+#!/bin/bash
+# State for the Display panel: brightness, monitor layout, scale, displays.
+# Niri equivalent of Omarchy's Hyprland monitor-state helper.
+
+set -euo pipefail
+
+outputs=$(niri msg --json outputs 2>/dev/null || echo '{}')
+focused=$(niri msg --json focused-output 2>/dev/null | jq -r '.name // ""')
+
+brightness=$(omarchy-brightness-display --monitor "$focused" 2>/dev/null || true)
+[[ -n $brightness ]] || brightness="unavailable"
+
+internal=$(printf '%s' "$outputs" | jq -r '
+  to_entries
+  | map(select(.key | test("^(eDP|LVDS|DSI)-")))
+  | .[0].key // ""')
+external=$(printf '%s' "$outputs" | jq -r '
+  to_entries
+  | map(select(.key | test("^(eDP|LVDS|DSI)-") | not))
+  | .[0].key // ""')
+
+internal_enabled=$(printf '%s' "$outputs" | jq -r --arg n "$internal" '
+  if $n != "" and .[$n].logical != null then $n else "" end')
+scale=$(printf '%s' "$outputs" | jq -r --arg n "$focused" '
+  if $n != "" then (.[$n].logical.scale // "" | tostring) else "" end')
+
+displays=$(printf '%s' "$outputs" | jq -c --arg focused "$focused" '
+  [to_entries[] |
+    .key as $name |
+    .value as $v |
+    {
+      name: $name,
+      enabled: ($v.logical != null),
+      focused: ($name == $focused),
+      width: (($v.modes[$v.current_mode].width) // 0),
+      height: (($v.modes[$v.current_mode].height) // 0)
+    }]')
+
+printf '%s\n' "$brightness"
+printf '%s\n' "$internal"
+printf '%s\n' "$external"
+printf '%s\n' "$internal_enabled"
+printf '\n'
+printf '%s\n' "$focused"
+printf '%s\n' "$scale"
+printf '%s\n' "$displays"

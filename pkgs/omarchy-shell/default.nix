@@ -31,6 +31,8 @@
   pipewire,
   wireplumber,
   pulseaudio,
+  glib,
+  brightnessctl,
   niri,
 }:
 
@@ -64,6 +66,8 @@ let
     pipewire
     wireplumber
     pulseaudio
+    glib
+    brightnessctl
     niri
     quickshell
   ];

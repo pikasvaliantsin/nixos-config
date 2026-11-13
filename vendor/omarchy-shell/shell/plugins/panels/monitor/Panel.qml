@@ -302,20 +302,15 @@ Panel {
     if (!name) return
     if (enabled && root.enabledDisplayCount <= 1) return
 
-    // hyprctl keyword is rejected under the Lua config ("non-legacy parsers"),
-    // so drive the monitor through the hl.monitor eval API instead.
-    var output = '"' + name.replace(/[\\"]/g, "\\$&") + '"'
-    // hl.monitor updates the existing rule. Keep its mode, position and scale
-    // when bringing the display back.
-    var expr = enabled
-      ? 'hl.monitor({ output = ' + output + ', disabled = true })'
-      : 'hl.monitor({ output = ' + output + ', disabled = false })'
-    actionProc.command = ["hyprctl", "eval", expr]
+    // Niri changes output state temporarily; the config file remains the
+    // declarative source for the next login.
+    actionProc.command = ["niri", "msg", "output", name, enabled ? "off" : "on"]
     if (!actionProc.running) actionProc.running = true
   }
 
   function setScale(scale) {
-    actionProc.command = ["bash", "-c", "omarchy-hyprland-monitor-scaling " + scale]
+    if (!root.focusedMonitor) return
+    actionProc.command = ["niri", "msg", "output", root.focusedMonitor, "scale", String(scale)]
     if (!actionProc.running) actionProc.running = true
   }
 

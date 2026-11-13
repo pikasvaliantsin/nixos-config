@@ -25,6 +25,7 @@
         { "id": "omarchy.bluetooth" },
         { "id": "omarchy.network" },
         { "id": "omarchy.audio" },
+        { "id": "omarchy.monitor" },
         { "id": "omarchy.power" }
       ]
     }
@@ -44,7 +45,6 @@
     "omarchy.lock",
     "omarchy.media",
     "omarchy.menu",
-    "omarchy.monitor",
     "omarchy.nightlight",
     "omarchy.notifications",
     "omarchy.osd",

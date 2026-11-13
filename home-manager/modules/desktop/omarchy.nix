@@ -35,6 +35,8 @@ in
     libnotify
     pulseaudio
     wireplumber
+    glib
+    brightnessctl
   ];
 
   # The shell reads ~/.config/omarchy/shell.json first; without it, the
