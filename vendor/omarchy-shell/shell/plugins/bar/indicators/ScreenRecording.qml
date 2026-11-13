@@ -1,12 +1,16 @@
 import QtQuick
 import Quickshell.Io
 import qs.Commons
+import qs.Custom
 import qs.Ui
 
 BarIndicator {
   id: root
 
   property bool recording: false
+  property bool menuOpen: false
+
+  function close() { root.menuOpen = false }
 
   active: recording
   activeText: "󰻂"
@@ -37,16 +41,24 @@ BarIndicator {
   }
 
   onPressed: function() {
-    if (root.bar)
-      root.bar.run(root.recording ? "omarchy-capture-screenrecording --stop-recording" : "omarchy-capture-screenrecording --fullscreen")
+    root.menuOpen = !root.menuOpen
   }
 
-  // The recorder is started by a niri binding, so the indicator has to notice
-  // state changes on its own. The status probe is one short-lived process.
+  // The recording control is a button, not a read-only indicator: clicking it
+  // opens the capture menu. The status probe still keeps the icon live.
   Timer {
     interval: 2000
     running: true
     repeat: true
     onTriggered: root.refresh()
+  }
+
+  CaptureMenu {
+    id: captureMenu
+    anchorItem: root
+    bar: root.bar
+    owner: root
+    recording: root.recording
+    open: root.menuOpen
   }
 }

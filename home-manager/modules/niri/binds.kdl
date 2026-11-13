@@ -37,7 +37,7 @@ binds {
     Mod+Y hotkey-overlay-title="Обои" { spawn "waypaper"; }
     Print { screenshot; }
     XF86Launch1 { screenshot; }
-    Super+Shift+S hotkey-overlay-title="Меню захвата" { spawn "omarchy-ipc" "call" "shell" "toggle" "local.capture" "{}"; }
+    Super+Shift+S hotkey-overlay-title="Скриншот: область" { screenshot; }
     Ctrl+Shift+S hotkey-overlay-title="Последний скриншот → буфер" { spawn "last-shot"; }
     Ctrl+Alt+S hotkey-overlay-title="Скриншот → путь в буфер" { spawn "shot-path"; }
     Ctrl+Print { screenshot-screen; }

@@ -18,9 +18,6 @@
           "verticalFormat": "HH\n—\nmm"
         }
       ],
-      "centerEnd": [
-        { "id": "local.capture" }
-      ],
       "right": [
         { "id": "omarchy.tray" },
         { "id": "local.notifications" },
