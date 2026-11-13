@@ -17,7 +17,7 @@ PanelWindow {
         right: 8
     }
     implicitWidth: 420
-    implicitHeight: Math.min(620, Math.max(160, column.implicitHeight + 24))
+    implicitHeight: Math.min(620, 92 + Math.max(1, Clip.entries.length) * 84)
     color: "transparent"
     visible: Clip.open
     exclusiveZone: 0
@@ -112,10 +112,10 @@ PanelWindow {
 
                     Image {
                         visible: card.modelData.isImage
-                        Layout.preferredWidth: 120
+                        Layout.preferredWidth: 132
                         Layout.preferredHeight: 76
                         Layout.alignment: Qt.AlignVCenter
-                        fillMode: Image.PreserveAspectCrop
+                        fillMode: Image.PreserveAspectFit
                         asynchronous: true
                         cache: false
                         source: card.modelData.isImage ? Clip.thumbPath(card.modelData.id) : ""
@@ -139,7 +139,7 @@ PanelWindow {
                         }
                         Text {
                             width: parent.width
-                            text: card.modelData.isImage ? "картинка · Enter — копировать" : "текст · Enter — копировать"
+                            text: card.modelData.isImage ? "картинка · ЛКМ — копировать" : "текст · ЛКМ — копировать"
                             color: Theme.fgMuted
                             font.family: Theme.font
                             font.pixelSize: 9
