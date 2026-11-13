@@ -80,6 +80,9 @@ layout {
 window-rule {
     geometry-corner-radius 16
     clip-to-geometry true
+    // Draw only the border outline, not a filled rect behind the window:
+    // otherwise the accent border tints translucent terminals when focused.
+    draw-border-with-background false
 }
 
 // Omarchy-style glass terminal: ghostty renders a translucent background,
