@@ -1,5 +1,5 @@
 # Ghostty — терминал по умолчанию.
-_:
+{ config, ... }:
 
 {
   programs.ghostty = {
@@ -10,6 +10,11 @@ _:
       font-family = "JetBrains Mono";
       font-size = 12;
       cursor-style = "bar";
+
+      # Тема приходит из ~/.local/state/theme/current/ghostty.conf.
+      # Файл может отсутствовать до первого theme-set — тогда ? игнорирует.
+      config-file = "?\"${config.home.homeDirectory}/.local/state/theme/current/ghostty.conf\"";
+
       keybind = [
         "super+space=ignore"
         "ctrl+c=copy_to_clipboard"

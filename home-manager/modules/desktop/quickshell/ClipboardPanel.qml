@@ -4,7 +4,7 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
 
-// История буфера: текст и картинки с превью.
+// История буфера: поиск, пины, фильтр по типу.
 PanelWindow {
     id: panel
 
@@ -16,14 +16,15 @@ PanelWindow {
         top: Theme.barHeight + 6
         right: 8
     }
-    implicitWidth: 420
-    implicitHeight: Math.min(620, 92 + Math.max(1, Clip.entries.length) * 96)
+    implicitWidth: 440
+    implicitHeight: Math.min(640, 150 + Math.max(1, Clip.visibleEntries.length) * 96)
     color: "transparent"
     visible: Clip.open
     exclusiveZone: 0
 
     WlrLayershell.layer: WlrLayer.Overlay
     WlrLayershell.namespace: "quickshell-clipboard"
+    WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     IpcHandler {
         target: "clipboard"
@@ -31,6 +32,14 @@ PanelWindow {
         function open(): void { Clip.open = true; }
         function close(): void { Clip.open = false; }
         function clear(): void { Clip.clear(); }
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            Clip.query = "";
+            search.text = "";
+            search.forceActiveFocus();
+        }
     }
 
     Rectangle {
@@ -42,7 +51,6 @@ PanelWindow {
     }
 
     ColumnLayout {
-        id: column
         anchors.fill: parent
         anchors.margins: 12
         spacing: 8
@@ -80,6 +88,84 @@ PanelWindow {
 
         Rectangle {
             Layout.fillWidth: true
+            height: 30
+            radius: 8
+            color: Theme.surface
+            border.width: 1
+            border.color: search.activeFocus ? Theme.primary : Theme.outline
+
+            Text {
+                anchors.fill: parent
+                anchors.leftMargin: 9
+                verticalAlignment: Text.AlignVCenter
+                visible: search.text.length === 0
+                text: "Поиск по истории…"
+                color: Theme.fgMuted
+                font.family: Theme.font
+                font.pixelSize: 12
+            }
+
+            TextInput {
+                id: search
+                anchors.fill: parent
+                anchors.leftMargin: 9
+                anchors.rightMargin: 9
+                verticalAlignment: TextInput.AlignVCenter
+                color: Theme.fg
+                selectionColor: Theme.primary
+                selectedTextColor: Theme.primaryText
+                font.family: Theme.font
+                font.pixelSize: 12
+                onTextChanged: Clip.query = text
+                Keys.onEscapePressed: Clip.open = false
+                Keys.onReturnPressed: {
+                    if (Clip.visibleEntries.length > 0) Clip.copy(Clip.visibleEntries[0]);
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 10
+
+            Repeater {
+                model: [
+                    { id: "all", label: "Все" },
+                    { id: "text", label: "Текст" },
+                    { id: "image", label: "Картинки" }
+                ]
+                delegate: Text {
+                    required property var modelData
+                    text: modelData.label
+                    color: Clip.typeFilter === modelData.id ? Theme.primary : Theme.fgMuted
+                    font.family: Theme.font
+                    font.pixelSize: 11
+                    font.bold: Clip.typeFilter === modelData.id
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -4
+                        onClicked: Clip.typeFilter = modelData.id
+                    }
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Text {
+                text: Clip.sortMode === "recent" ? "по времени" : "по типу"
+                color: Theme.fgMuted
+                font.family: Theme.font
+                font.pixelSize: 11
+                MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -4
+                    onClicked: Clip.sortMode = Clip.sortMode === "recent" ? "type" : "recent"
+                }
+            }
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
             height: 1
             color: Theme.outline
             opacity: 0.5
@@ -91,17 +177,16 @@ PanelWindow {
             Layout.fillHeight: true
             clip: true
             spacing: 6
-            model: Clip.entries
-            visible: Clip.entries.length > 0
+            model: Clip.visibleEntries
+            visible: Clip.visibleEntries.length > 0
 
             delegate: Rectangle {
                 id: card
                 required property var modelData
-                required property int index
                 width: ListView.view.width
                 height: card.modelData.type === "image"
-                    ? 88
-                    : Math.min(72, textItem.implicitHeight + 18)
+                    ? 92
+                    : Math.min(74, textColumn.implicitHeight + 18)
                 radius: 10
                 color: cardHover.hovered ? Theme.surface : Qt.rgba(1, 1, 1, 0.03)
                 border.width: 1
@@ -110,12 +195,13 @@ PanelWindow {
                 RowLayout {
                     anchors.fill: parent
                     anchors.margins: 8
+                    anchors.rightMargin: 30
                     spacing: 10
 
                     Image {
                         visible: card.modelData.type === "image"
                         Layout.preferredWidth: 132
-                        Layout.preferredHeight: 72
+                        Layout.preferredHeight: 74
                         Layout.alignment: Qt.AlignVCenter
                         fillMode: Image.PreserveAspectFit
                         asynchronous: true
@@ -125,12 +211,12 @@ PanelWindow {
                     }
 
                     Column {
+                        id: textColumn
                         Layout.fillWidth: true
                         Layout.alignment: Qt.AlignVCenter
                         spacing: 3
 
                         Text {
-                            id: textItem
                             width: parent.width
                             text: card.modelData.type === "image"
                                 ? (card.modelData.mime || "image/png")
@@ -146,11 +232,9 @@ PanelWindow {
                             width: parent.width
                             text: (card.modelData.capturedAt ? card.modelData.capturedAt + " · " : "")
                                 + (card.modelData.type === "image" ? "картинка" : "текст")
-                                + " · ЛКМ — копировать, ПКМ — удалить"
                             color: Theme.fgMuted
                             font.family: Theme.font
                             font.pixelSize: 9
-                            elide: Text.ElideRight
                         }
                     }
                 }
@@ -161,8 +245,28 @@ PanelWindow {
                     anchors.fill: parent
                     acceptedButtons: Qt.LeftButton | Qt.RightButton
                     onClicked: (mouse) => {
-                        if (mouse.button === Qt.RightButton) Clip.removeAt(card.index);
+                        if (mouse.button === Qt.RightButton) Clip.remove(card.modelData);
                         else Clip.copy(card.modelData);
+                    }
+                }
+
+                Item {
+                    width: 24
+                    height: 24
+                    anchors.right: parent.right
+                    anchors.rightMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+
+                    Icon {
+                        anchors.centerIn: parent
+                        glyph: "\uf08d"
+                        size: 12
+                        color: card.modelData.pinned ? Theme.primary : Theme.fgMuted
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: Clip.togglePin(card.modelData)
                     }
                 }
             }
@@ -170,8 +274,8 @@ PanelWindow {
 
         Text {
             Layout.fillWidth: true
-            visible: Clip.entries.length === 0
-            text: "Пусто"
+            visible: Clip.visibleEntries.length === 0
+            text: Clip.entries.length === 0 ? "Пусто" : "Ничего не найдено"
             color: Theme.fgMuted
             font.family: Theme.font
             font.pixelSize: 12

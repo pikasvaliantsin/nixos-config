@@ -53,11 +53,18 @@ let
       (
         flock 9
         jq --argjson e "$entry" '
-          [ $e ] + [ .[] | select(
-            if $e.type == "image" then (.type != "image" or .path != $e.path)
-            else (.type != "text" or .text != $e.text)
+          (first(.[] | select(
+            if $e.type == "image" then (.type == "image" and .path == $e.path)
+            else (.type == "text" and .text == $e.text)
             end
-          ) ] | .[0:200]
+          ) | .pinned) // false) as $pinned
+          | ([ ($e + (if $pinned then {pinned: true} else {} end)) ]
+             + [ .[] | select(
+                 if $e.type == "image" then (.type != "image" or .path != $e.path)
+                 else (.type != "text" or .text != $e.text)
+                 end
+               ) ]) as $merged
+          | ([ $merged[] | select(.pinned) ] + ([ $merged[] | select(.pinned | not) ][0:200]))
         ' "$hist" > "$hist.tmp"
         mv "$hist.tmp" "$hist"
       ) 9>"$state/.lock"
@@ -97,7 +104,8 @@ in
 {
   home.packages = with pkgs; [
     quickshell
-    fuzzel
+    walker
+    elephant
     swayosd
     gtklock
     awww
@@ -157,6 +165,78 @@ in
     [main]
     lock-command=gtklock
   '';
+
+  # Walker + Elephant: лаунчер и провайдеры (приложения, буфер, файлы, окна).
+  xdg.configFile."walker/config.toml".text = ''
+    theme = "default"
+    force_keyboard_focus = false
+    click_to_close = true
+
+    [providers]
+    default = ["desktopapplications", "calc", "clipboard", "files", "windows", "symbols", "websearch"]
+    empty = ["desktopapplications"]
+    max_results = 50
+
+    [[providers.prefixes]]
+    prefix = ";"
+    provider = "providerlist"
+
+    [[providers.prefixes]]
+    prefix = ">"
+    provider = "runner"
+
+    [[providers.prefixes]]
+    prefix = "/"
+    provider = "files"
+
+    [[providers.prefixes]]
+    prefix = "."
+    provider = "symbols"
+
+    [[providers.prefixes]]
+    prefix = "="
+    provider = "calc"
+
+    [[providers.prefixes]]
+    prefix = ":"
+    provider = "clipboard"
+
+    [[providers.prefixes]]
+    prefix = "$"
+    provider = "windows"
+  '';
+
+  systemd.user.services.elephant = {
+    Unit = {
+      Description = "Elephant provider service";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.elephant}/bin/elephant";
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  systemd.user.services.walker = {
+    Unit = {
+      Description = "Walker launcher service";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" "elephant.service" ];
+      Wants = [ "elephant.service" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.walker}/bin/walker --gapplication-service";
+      Restart = "on-failure";
+      RestartSec = 2;
+      Environment = [
+        "PATH=${config.home.profileDirectory}/bin:/run/current-system/sw/bin"
+      ];
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
 
   systemd.user.services.quickshell = {
     Unit = {

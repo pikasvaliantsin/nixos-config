@@ -3,12 +3,47 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// История буфера в стиле omarchy: JSON-массив + файлы картинок.
+// История буфера в стиле omarchy: JSON + файлы картинок.
 Singleton {
     id: root
 
     property var entries: []
     property bool open: false
+    property string query: ""
+    property string typeFilter: "all"   // all | text | image
+    property string sortMode: "recent"  // recent | type
+
+    readonly property var visibleEntries: {
+        const q = root.query.trim().toLowerCase();
+        const arr = root.entries.filter(e => {
+            if (root.typeFilter !== "all" && e.type !== root.typeFilter) return false;
+            if (!q) return true;
+            const hay = e.type === "image"
+                ? ("image " + (e.mime || "") + " " + (e.capturedAt || ""))
+                : ((e.text || "") + " " + (e.capturedAt || ""));
+            return hay.toLowerCase().indexOf(q) >= 0;
+        });
+
+        arr.sort((a, b) => {
+            const pa = a.pinned ? 1 : 0;
+            const pb = b.pinned ? 1 : 0;
+            if (pa !== pb) return pb - pa;
+            if (root.sortMode === "type") {
+                const ta = a.type === "image" ? 1 : 0;
+                const tb = b.type === "image" ? 1 : 0;
+                if (ta !== tb) return ta - tb;
+            }
+            return 0;
+        });
+        return arr;
+    }
+
+    function entryKey(entry) {
+        if (!entry) return "";
+        return entry.type === "image"
+            ? "image:" + (entry.path || "")
+            : "text:" + (entry.text || "");
+    }
 
     function toggle() {
         root.open = !root.open;
@@ -45,11 +80,17 @@ Singleton {
         root.open = false;
     }
 
-    function removeAt(index) {
-        const arr = root.entries.slice();
-        if (index < 0 || index >= arr.length) return;
-        arr.splice(index, 1);
-        root.commit(arr);
+    function togglePin(entry) {
+        const key = root.entryKey(entry);
+        root.commit(root.entries.map(e => {
+            if (root.entryKey(e) !== key) return e;
+            return Object.assign({}, e, { pinned: !e.pinned });
+        }));
+    }
+
+    function remove(entry) {
+        const key = root.entryKey(entry);
+        root.commit(root.entries.filter(e => root.entryKey(e) !== key));
     }
 
     function clear() {

@@ -1,10 +1,10 @@
 // Бинды Niri. Всё, что раньше шло через `dms ipc call`, теперь — обычные
-// команды: fuzzel/cliphist/swayosd/gtklock/niri msg/playerctl/wpctl/dfiles.
+// команды: walker/swayosd/gtklock/niri msg/playerctl/wpctl/dfiles.
 
 binds {
     // --- сессия, лаунчер, центр уведомлений -------------------------------
-    Alt+Space hotkey-overlay-title="Лаунчер" { spawn "fuzzel"; }
-    Mod+D hotkey-overlay-title="Лаунчер" { spawn "fuzzel"; }
+    Alt+Space hotkey-overlay-title="Лаунчер" { spawn "walker"; }
+    Mod+D hotkey-overlay-title="Лаунчер" { spawn "walker"; }
     Mod+N hotkey-overlay-title="Уведомления" { spawn "quickshell" "ipc" "call" "notifications" "toggle"; }
     Mod+V hotkey-overlay-title="Буфер обмена" { spawn "quickshell" "ipc" "call" "clipboard" "toggle"; }
     Mod+Alt+L hotkey-overlay-title="Блокировка" { spawn "gtklock"; }

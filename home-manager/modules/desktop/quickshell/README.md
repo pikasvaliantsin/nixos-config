@@ -29,8 +29,9 @@ qmldir                     регистрация синглтонов и ком
 - текст хранится инлайном, картинки — файлами в `.../clipboard/images/`
   (sha256, дедупликация);
 - панель читает JSON через `FileView`, обновляется сама;
-- `Mod+V` или иконка буфера в баре — история; ЛКМ копирует (`wl-copy --type`),
-  ПКМ удаляет, «Очистить» — всё.
+- `Mod+V` или иконка буфера в баре — история; есть поиск, фильтр
+  «Все/Текст/Картинки», сортировка «по времени/по типу», пины (кнопка-канцелярская
+  кнопка справа) и удаление по ПКМ. ЛКМ копирует (`wl-copy --type`).
 - `Ctrl+Shift+S` — последний скриншот в буфер как `image/png`.
 - `Ctrl+Alt+S` — выделить область, сохранить файл и **скопировать путь**.
 
@@ -56,7 +57,7 @@ quickshell -p ~/nixos-config/home-manager/modules/desktop/quickshell
 
 ## Зависимости
 
-`quickshell`, `fuzzel`, `cliphist`, `swayosd`, `gtklock`, `awww`, `waypaper`,
+`quickshell`, `walker`, `elephant`, `swayosd`, `gtklock`, `awww`, `waypaper`,
 `satty`, `playerctl`, `wlogout`, `impala`, `bluetui`, `wiremix`, `dgop`.
 
 ## Откат
