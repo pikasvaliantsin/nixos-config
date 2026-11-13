@@ -397,6 +397,8 @@ PanelWindow {
                     if (mouse.button === Qt.RightButton) {
                         if (Net.vpnPrimary) {
                             Net.toggleVpn(Net.vpnPrimary.name, Net.vpnPrimary.active);
+                        } else if (Net.vpn.length > 1) {
+                            Ui.netOpen = true;
                         } else {
                             bar.spawn(["ghostty", "-e", "impala"]);
                         }
