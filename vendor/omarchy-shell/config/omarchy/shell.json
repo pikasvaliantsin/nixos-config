@@ -21,7 +21,7 @@
       "right": [
         { "id": "omarchy.tray" },
         { "id": "local.notifications" },
-        { "id": "omarchy.agents" },
+        { "id": "local.opencode" },
         { "id": "omarchy.bluetooth" },
         { "id": "omarchy.network" },
         { "id": "omarchy.audio" },
@@ -31,6 +31,7 @@
     }
   },
   "disabledPlugins": [
+    "omarchy.agents",
     "omarchy.battery",
     "omarchy.background",
     "omarchy.clipboard",

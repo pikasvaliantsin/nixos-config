@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "local.opencode",
+  "name": "OpenCode",
+  "version": "1.0.0",
+  "author": "local",
+  "description": "OpenCode limits and local usage",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "OpenCode.qml"
+  },
+  "barWidget": {
+    "displayName": "OpenCode",
+    "description": "OpenCode plan limits, local usage, and launch",
+    "category": "AI",
+    "defaultSection": "right",
+    "allowMultiple": false
+  }
+}
