@@ -7,6 +7,7 @@ Singleton {
     id: root
 
     property bool trayOpen: false
+    property bool notifOpen: false
 
     function toggleTray() {
         root.trayOpen = !root.trayOpen;

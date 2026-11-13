@@ -19,7 +19,7 @@ PanelWindow {
     implicitWidth: 360
     implicitHeight: Math.min(560, Math.max(140, column.implicitHeight + 24))
     color: "transparent"
-    visible: false
+    visible: Ui.notifOpen
     exclusiveZone: 0
 
     WlrLayershell.layer: WlrLayer.Overlay
@@ -27,9 +27,9 @@ PanelWindow {
 
     IpcHandler {
         target: "notifications"
-        function toggle(): void { panel.visible = !panel.visible; }
-        function open(): void { panel.visible = true; }
-        function close(): void { panel.visible = false; }
+        function toggle(): void { Ui.notifOpen = !Ui.notifOpen; }
+        function open(): void { Ui.notifOpen = true; }
+        function close(): void { Ui.notifOpen = false; }
         function clear(): void { Notif.clearAll(); }
     }
 

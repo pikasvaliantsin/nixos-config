@@ -16,7 +16,7 @@ PanelWindow {
         top: Theme.barHeight + 6
         right: 8
     }
-    implicitWidth: content.implicitWidth + 24
+    implicitWidth: Math.max(220, content.implicitWidth + 24)
     implicitHeight: content.implicitHeight + 24
     color: "transparent"
     visible: Ui.trayOpen
@@ -83,6 +83,7 @@ PanelWindow {
                         id: menu
                         menu: cell.modelData.menu
                         anchor.item: cell
+                        onClosed: Ui.trayOpen = false
                     }
 
                     MouseArea {
