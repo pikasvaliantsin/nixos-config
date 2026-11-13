@@ -18,7 +18,9 @@ PanelWindow {
         right: 8
     }
     implicitWidth: 400
-    implicitHeight: Math.min(560, 150 + Math.max(1, Bt.devices.length) * 46)
+    implicitHeight: Bt.powered
+        ? Math.min(560, 118 + Math.max(1, Bt.devices.length) * 46)
+        : 84
     color: "transparent"
     required property var modelData
     screen: modelData
@@ -59,7 +61,7 @@ PanelWindow {
             }
             Text {
                 Layout.fillWidth: true
-                text: Bt.powered ? Bt.connectedCount + " подключено" : "выключен"
+                text: Bt.powered ? Bt.connectedCount + " подключено" : ""
                 color: Theme.fgMuted
                 font.family: Theme.font
                 font.pixelSize: 11
@@ -110,6 +112,7 @@ PanelWindow {
             height: 1
             color: Theme.outline
             opacity: 0.5
+            visible: Bt.powered && Bt.devices.length > 0
         }
 
         ListView {
