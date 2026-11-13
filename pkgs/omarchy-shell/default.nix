@@ -28,6 +28,9 @@
   satty,
   wl-screenrec,
   wf-recorder,
+  pipewire,
+  wireplumber,
+  pulseaudio,
   niri,
 }:
 
@@ -58,6 +61,9 @@ let
     satty
     wl-screenrec
     wf-recorder
+    pipewire
+    wireplumber
+    pulseaudio
     niri
     quickshell
   ];

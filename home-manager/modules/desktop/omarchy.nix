@@ -33,6 +33,8 @@ in
     slurp
     wl-clipboard
     libnotify
+    pulseaudio
+    wireplumber
   ];
 
   # The shell reads ~/.config/omarchy/shell.json first; without it, the

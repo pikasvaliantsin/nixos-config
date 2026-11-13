@@ -24,12 +24,12 @@
         { "id": "omarchy.agents" },
         { "id": "omarchy.bluetooth" },
         { "id": "omarchy.network" },
+        { "id": "omarchy.audio" },
         { "id": "omarchy.power" }
       ]
     }
   },
   "disabledPlugins": [
-    "omarchy.audio",
     "omarchy.battery",
     "omarchy.background",
     "omarchy.clipboard",
