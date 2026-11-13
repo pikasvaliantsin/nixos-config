@@ -253,7 +253,7 @@ PanelWindow {
 
             MouseArea {
                 anchors.fill: parent
-                onClicked: bar.spawn(["dcal"])
+                onClicked: bar.spawn(["ghostty", "--class=calcurse", "--title=calcurse", "-e", "calcurse"])
             }
         }
     }

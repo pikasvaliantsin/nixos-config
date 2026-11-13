@@ -22,6 +22,7 @@ in
     wlogout
     brightnessctl
     libnotify
+    calcurse
     curl
   ];
 

@@ -101,6 +101,14 @@ window-rule {
     open-floating true
 }
 
+// Маленький TUI-календарь из бара: плавающее окно фиксированного размера.
+window-rule {
+    match app-id="^calcurse$"
+    open-floating true
+    default-column-width { fixed 1000; }
+    default-window-height { fixed 640; }
+}
+
 environment {
     "GTK_USE_PORTAL" "1"
     "WLR_NO_HARDWARE_CURSORS" "1"
