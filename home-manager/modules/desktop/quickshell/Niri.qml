@@ -10,6 +10,7 @@ Singleton {
     property var workspaces: []
     property var windows: ({})
     property var focused: null
+    property var layoutNames: []
     property string layoutName: ""
     property string layoutShort: ""
 
@@ -27,6 +28,8 @@ Singleton {
         } catch (e) {
             return;
         }
+        const name = Object.keys(ev)[0];
+
         if (ev.WorkspacesChanged) {
             root.workspaces = ev.WorkspacesChanged.workspaces;
         } else if (ev.WindowsChanged) {
@@ -38,23 +41,30 @@ Singleton {
             }
             root.windows = map;
             root.focused = focus;
-        } else if (ev.WindowFocusChanged) {
-            const id = ev.WindowFocusChanged.id;
-            root.focused = id === null ? null : (root.windows[id] || root.focused);
-        } else if (ev.WindowOpenedOrChanged) {
-            const w = ev.WindowOpenedOrChanged.window;
-            const map = root.windows;
-            map[w.id] = w;
-            root.windows = map;
-            if (w.is_focused) root.focused = w;
-        } else if (ev.WindowClosed) {
-            const map = root.windows;
-            delete map[ev.WindowClosed.id];
-            root.windows = map;
         } else if (ev.KeyboardLayoutsChanged) {
             const kl = ev.KeyboardLayoutsChanged.keyboard_layouts;
+            root.layoutNames = kl.names;
             root.layoutName = kl.names[kl.current_idx] || "";
             root.layoutShort = root.shortLayout(root.layoutName);
+        } else if (ev.KeyboardLayoutSwitched) {
+            const idx = ev.KeyboardLayoutSwitched.idx;
+            root.layoutName = root.layoutNames[idx] || "";
+            root.layoutShort = root.shortLayout(root.layoutName);
+        }
+
+        // niri присылает точечные события (WorkspaceActivated, WindowFocusChanged
+        // и т.п.) без полного состояния — проще перечитать снимок.
+        switch (name) {
+        case "WorkspaceActivated":
+        case "WorkspaceActiveWindowChanged":
+        case "WorkspaceUrgencyChanged":
+        case "WindowFocusChanged":
+        case "WindowOpenedOrChanged":
+        case "WindowClosed":
+        case "WindowUrgencyChanged":
+        case "WindowLayoutsChanged":
+            refreshTimer.restart();
+            break;
         }
     }
 
@@ -63,8 +73,18 @@ Singleton {
         action.running = true;
     }
 
-    function focusWorkspace(idx) {
-        run(["niri", "msg", "action", "focus-workspace", String(idx)]);
+    function focusWorkspace(idx, output) {
+        if (output) {
+            // Сначала фокусируем нужный монитор: action focus-workspace
+            // действует на активном выходе.
+            run([
+                "sh", "-c",
+                "niri msg action focus-monitor " + JSON.stringify(output)
+                + " && niri msg action focus-workspace " + JSON.stringify(String(idx))
+            ]);
+        } else {
+            run(["niri", "msg", "action", "focus-workspace", String(idx)]);
+        }
     }
 
     function toggleOverview() {
@@ -92,6 +112,43 @@ Singleton {
         interval: 1000
         repeat: false
         onTriggered: stream.running = true
+    }
+
+    Timer {
+        id: refreshTimer
+        interval: 50
+        repeat: false
+        onTriggered: {
+            wsProc.running = true;
+            focusProc.running = true;
+        }
+    }
+
+    Process {
+        id: wsProc
+        command: ["niri", "msg", "--json", "workspaces"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    root.workspaces = JSON.parse(text);
+                } catch (e) { /* keep previous */ }
+            }
+        }
+    }
+
+    Process {
+        id: focusProc
+        command: ["niri", "msg", "--json", "focused-window"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                try {
+                    const w = JSON.parse(text);
+                    root.focused = (w && w.id !== undefined) ? w : null;
+                } catch (e) {
+                    root.focused = null;
+                }
+            }
+        }
     }
 
     Process {

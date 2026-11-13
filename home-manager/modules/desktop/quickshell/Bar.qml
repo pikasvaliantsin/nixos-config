@@ -159,7 +159,7 @@ PanelWindow {
                     HoverHandler { id: hover }
                     MouseArea {
                         anchors.fill: parent
-                        onClicked: Niri.focusWorkspace(modelData.idx)
+                        onClicked: Niri.focusWorkspace(modelData.idx, bar.screenData.name)
                     }
                 }
             }
@@ -406,19 +406,38 @@ PanelWindow {
             spacing: 6
             Repeater {
                 model: SystemTray.items
-                delegate: Image {
+                delegate: Item {
+                    id: trayItem
                     required property var modelData
                     width: 16
                     height: 16
-                    sourceSize.width: 16
-                    sourceSize.height: 16
-                    source: modelData.icon
+
+                    Image {
+                        anchors.fill: parent
+                        sourceSize.width: 16
+                        sourceSize.height: 16
+                        source: trayItem.modelData.icon
+                    }
+
+                    QsMenuAnchor {
+                        id: trayMenu
+                        menu: trayItem.modelData.menu
+                        anchor.item: trayItem
+                    }
+
                     MouseArea {
                         anchors.fill: parent
-                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                         onClicked: (mouse) => {
-                            if (mouse.button === Qt.MiddleButton) modelData.secondaryActivate();
-                            else modelData.activate();
+                            if (mouse.button === Qt.MiddleButton) {
+                                trayItem.modelData.secondaryActivate();
+                            } else if (trayItem.modelData.hasMenu) {
+                                trayMenu.open();
+                            } else if (mouse.button === Qt.LeftButton) {
+                                trayItem.modelData.activate();
+                            } else {
+                                trayItem.modelData.secondaryActivate();
+                            }
                         }
                     }
                 }
