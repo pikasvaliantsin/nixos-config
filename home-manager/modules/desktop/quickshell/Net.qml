@@ -110,7 +110,6 @@ Singleton {
                     if (type !== "wireguard" && type !== "vpn") continue;
                     out.push({ name: name, active: active });
                 }
-                console.log("DBG vpn", JSON.stringify(out));
                 root.vpn = out;
             }
         }
