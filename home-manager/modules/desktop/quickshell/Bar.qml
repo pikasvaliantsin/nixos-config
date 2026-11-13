@@ -340,6 +340,8 @@ PanelWindow {
                     size: 13
                 }
                 Text {
+                    width: 34
+                    horizontalAlignment: Text.AlignRight
                     text: Audio.muted ? "—" : Audio.volume + "%"
                     color: Audio.muted ? Theme.warning : Theme.fg
                     font.family: Theme.font
@@ -380,13 +382,6 @@ PanelWindow {
                     glyph: Net.connected ? (Net.wifi ? "\uf1eb" : "\uf796") : "\uf05e"
                     color: Net.vpnActive ? Theme.primary : (Net.connected ? Theme.fg : Theme.fgMuted)
                     size: 13
-                }
-                Text {
-                    visible: Net.connected && Net.wifi
-                    text: Net.strength + "%"
-                    color: Theme.fgMuted
-                    font.family: Theme.font
-                    font.pixelSize: 10
                 }
             }
 
@@ -431,6 +426,7 @@ PanelWindow {
                     size: 12
                 }
                 Text {
+                    width: 10
                     visible: Bt.connectedCount > 0
                     text: Bt.connectedCount
                     color: Theme.fgMuted
@@ -482,6 +478,8 @@ PanelWindow {
                     size: 13
                 }
                 Text {
+                    width: 38
+                    horizontalAlignment: Text.AlignRight
                     text: Sys.battery + "%"
                     color: Sys.battery < 15 && !Sys.charging ? Theme.error : Theme.fg
                     font.family: Theme.font
@@ -508,6 +506,8 @@ PanelWindow {
                     size: 12
                 }
                 Text {
+                    width: 72
+                    horizontalAlignment: Text.AlignRight
                     text: Sys.load.toFixed(1) + " · " + Sys.ramUsed + "%"
                     color: Theme.fgMuted
                     font.family: Theme.font
@@ -546,6 +546,8 @@ PanelWindow {
                     size: 13
                 }
                 Text {
+                    width: 36
+                    horizontalAlignment: Text.AlignRight
                     text: Weather.temp
                     color: Theme.fgMuted
                     font.family: Theme.font

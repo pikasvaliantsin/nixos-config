@@ -61,6 +61,7 @@ PanelWindow {
         // --- заголовок ---------------------------------------------------
         RowLayout {
             Layout.fillWidth: true
+            Layout.preferredHeight: 18
             spacing: 8
 
             Icon {
@@ -108,6 +109,7 @@ PanelWindow {
 
         RowLayout {
             Layout.fillWidth: true
+            Layout.preferredHeight: 14
             spacing: 6
 
             Text {
