@@ -36,7 +36,6 @@
   systemd,
   wlsunset,
   foot,
-  speedtest-cli,
   niri,
 }:
 
@@ -75,7 +74,6 @@ let
     systemd
     wlsunset
     foot
-    speedtest-cli
     niri
     quickshell
   ];

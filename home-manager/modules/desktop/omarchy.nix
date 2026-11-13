@@ -7,6 +7,7 @@ let
   inherit (config.mySystem) dotfilesRoot;
 
   omarchy = pkgs.callPackage ../../../pkgs/omarchy-shell { };
+  omarchySpeedtest = pkgs.callPackage ../../../pkgs/omarchy-speedtest { };
   omarchyIpc = pkgs.writeShellScriptBin "omarchy-ipc" ''
     exec ${pkgs.quickshell}/bin/quickshell ipc -p "${omarchy}/share/omarchy/shell" "$@"
   '';
@@ -39,7 +40,7 @@ in
     brightnessctl
     wlsunset
     foot
-    speedtest-cli
+    omarchySpeedtest
   ];
 
   # The shell reads ~/.config/omarchy/shell.json first; without it, the

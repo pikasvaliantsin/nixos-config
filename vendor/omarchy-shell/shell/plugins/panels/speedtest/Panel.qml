@@ -28,6 +28,7 @@ Item {
   property string stderrText: ""
   property string downloadMbps: ""
   property string uploadMbps: ""
+  property string lastLine: ""
   property string error: ""
 
   readonly property real downloadValue: toMbps(downloadMbps)
@@ -99,6 +100,7 @@ Item {
     expectedStop = false
     phase = nextPhase
     stderrText = ""
+    lastLine = ""
     speedTestProc.command = ["omarchy-network-speedtest", nextPhase]
     speedTestProc.running = true
     phaseTimer.restart()
@@ -130,7 +132,15 @@ Item {
 
   Process {
     id: speedTestProc
-    stdout: SplitParser { onRead: function(line) { root.updateSpeedTestLine(line) } }
+    // The client streams progress lines about four times a second. Keep the
+    // last one so onExited can apply it before advancing to the next phase,
+    // even when that line and the exit event race.
+    stdout: SplitParser {
+      onRead: function(line) {
+        root.lastLine = line
+        root.updateSpeedTestLine(line)
+      }
+    }
     // Exit and stream-finished have no guaranteed order: when a failed exit
     // beat the collector and published the generic message, replace it with
     // the specific one once it lands.
@@ -158,6 +168,7 @@ Item {
         return
       }
 
+      if (!root.expectedStop && root.lastLine !== "") root.updateSpeedTestLine(root.lastLine)
       root.expectedStop = false
       root.finishPhase()
     }
@@ -165,9 +176,9 @@ Item {
 
   Timer {
     id: phaseTimer
-    // The helper owns warm-up and the five-second measurement window.
-    // This timer is only a watchdog for a helper that never exits.
-    interval: 20000
+    // speedtest-cli performs a full measurement (both directions) before it
+    // prints the requested number. Keep this a watchdog, not a phase limit.
+    interval: 60000
     repeat: false
     onTriggered: root.stopPhase()
   }
