@@ -7,6 +7,9 @@
       "left": [
         { "id": "omarchy.workspaces" }
       ],
+      "centerBegin": [
+        { "id": "omarchy.indicators" }
+      ],
       "center": [
         {
           "id": "omarchy.clock",
