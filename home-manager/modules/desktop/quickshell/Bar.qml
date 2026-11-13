@@ -27,7 +27,6 @@ PanelWindow {
 
     readonly property var player: Mpris.players.values.length > 0 ? Mpris.players.values[0] : null
     readonly property var workspaces: Niri.workspacesFor(screenData.name)
-    readonly property int trayCount: Tray.visible.length
 
     function spawn(args) {
         proc.command = args;
