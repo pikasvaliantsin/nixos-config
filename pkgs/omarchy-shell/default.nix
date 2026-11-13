@@ -35,6 +35,7 @@
   brightnessctl,
   systemd,
   wlsunset,
+  foot,
   niri,
 }:
 
@@ -72,6 +73,7 @@ let
     brightnessctl
     systemd
     wlsunset
+    foot
     niri
     quickshell
   ];

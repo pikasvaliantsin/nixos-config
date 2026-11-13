@@ -1,0 +1,9 @@
+#!/bin/bash
+# Small, lightweight floating terminal for transient interactive commands
+# (sudo prompts, one-off setup). Niri opens it centered as a floating window.
+set -euo pipefail
+exec foot \
+  --app-id=org.omarchy.transient \
+  --title="Omarchy Transient" \
+  --window-size-pixels=720x420 \
+  "$@"

@@ -38,6 +38,7 @@ in
     glib
     brightnessctl
     wlsunset
+    foot
   ];
 
   # The shell reads ~/.config/omarchy/shell.json first; without it, the

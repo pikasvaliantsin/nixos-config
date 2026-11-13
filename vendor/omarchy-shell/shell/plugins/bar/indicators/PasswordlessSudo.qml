@@ -73,7 +73,7 @@ BarIndicator {
     } else {
       // Enabling needs one interactive sudo password. Run it in a terminal,
       // not through the shell process, so sudo has a TTY.
-      Util.execArgv(["ghostty", "-e", "sudo", "omarchy-sudo-passwordless", "15"])
+      Util.execArgv(["omarchy-launch-floating-terminal", "sudo", "omarchy-sudo-passwordless", "15"])
     }
   }
 }

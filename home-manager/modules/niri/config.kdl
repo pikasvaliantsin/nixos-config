@@ -109,6 +109,14 @@ window-rule {
     default-window-height { fixed 640; }
 }
 
+// Небольшой временный терминал для sudo-промптов и одноразовых действий.
+window-rule {
+    match app-id="^org.omarchy.transient$"
+    open-floating true
+    default-column-width { fixed 720; }
+    default-window-height { fixed 420; }
+}
+
 environment {
     "GTK_USE_PORTAL" "1"
     "WLR_NO_HARDWARE_CURSORS" "1"
