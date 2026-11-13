@@ -7,7 +7,7 @@ binds {
     Mod+D hotkey-overlay-title="Лаунчер" { spawn "walker"; }
     Mod+Shift+D hotkey-overlay-title="Поиск файлов" { spawn "walker" "-m" "files"; }
     // Notification center is a custom plugin on top of omarchy-shell.
-    Mod+N hotkey-overlay-title="Уведомления" { spawn "quickshell" "ipc" "call" "notifications" "toggle"; }
+    Mod+N hotkey-overlay-title="Уведомления" { spawn "omarchy-ipc" "call" "notifications" "toggle"; }
     // Clipboard UI from the legacy shell is intentionally not started.
     // Mod+V hotkey-overlay-title="Буфер обмена" { spawn "quickshell" "ipc" "call" "clipboard" "toggle"; }
     Mod+Alt+L hotkey-overlay-title="Блокировка" { spawn "gtklock"; }
@@ -37,7 +37,7 @@ binds {
     Mod+Y hotkey-overlay-title="Обои" { spawn "waypaper"; }
     Print { screenshot; }
     XF86Launch1 { screenshot; }
-    Super+Shift+S hotkey-overlay-title="Скриншот: область" { screenshot; }
+    Super+Shift+S hotkey-overlay-title="Меню захвата" { spawn "omarchy-ipc" "call" "shell" "toggle" "local.capture" "{}"; }
     Ctrl+Shift+S hotkey-overlay-title="Последний скриншот → буфер" { spawn "last-shot"; }
     Ctrl+Alt+S hotkey-overlay-title="Скриншот → путь в буфер" { spawn "shot-path"; }
     Ctrl+Print { screenshot-screen; }

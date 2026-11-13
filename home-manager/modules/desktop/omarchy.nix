@@ -7,6 +7,9 @@ let
   inherit (config.mySystem) dotfilesRoot;
 
   omarchy = pkgs.callPackage ../../../pkgs/omarchy-shell { };
+  omarchyIpc = pkgs.writeShellScriptBin "omarchy-ipc" ''
+    exec ${pkgs.quickshell}/bin/quickshell ipc -p "${omarchy}/share/omarchy/shell" "$@"
+  '';
 
   confDir = "${dotfilesRoot}/home-manager/modules/desktop/omarchy";
   stateDir = "${config.home.homeDirectory}/.local/state/omarchy";
@@ -14,6 +17,7 @@ in
 {
   home.packages = with pkgs; [
     omarchy
+    omarchyIpc
     quickshell
     networkmanager
     bluez
