@@ -599,9 +599,9 @@ PanelWindow {
 
             Icon {
                 anchors.centerIn: parent
-                glyph: Ui.trayOpen ? "\uf078" : "\uf054"
+                glyph: Tray.icon
                 color: Ui.trayOpen ? Theme.primary : Theme.fgMuted
-                size: 9
+                size: 12
             }
 
             MouseArea {

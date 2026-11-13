@@ -9,6 +9,7 @@ Singleton {
     id: root
 
     property var hidden: []
+    property string icon: "\uf054"
 
     readonly property var all: SystemTray.items.values
     readonly property var visible: all.filter(item => !root.isHidden(item.id))
@@ -35,6 +36,12 @@ Singleton {
             for (let i = 0; i < raw.length; i++) arr.push(String(raw[i]));
         }
         root.hidden = arr;
+        root.icon = store.icon && String(store.icon).length > 0 ? String(store.icon) : "\uf054";
+    }
+
+    function setIcon(glyph) {
+        root.icon = glyph;
+        store.icon = glyph;
     }
 
     FileView {
@@ -49,6 +56,7 @@ Singleton {
         JsonAdapter {
             id: store
             property list<string> hidden: []
+            property string icon: "\uf054"
         }
     }
 }

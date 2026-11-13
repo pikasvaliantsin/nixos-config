@@ -12,11 +12,14 @@ PanelWindow {
         left: true
         right: true
     }
+    margins {
+        top: Theme.barHeight
+    }
     color: "transparent"
     exclusiveZone: 0
     visible: Ui.trayOpen || Ui.notifOpen || Clip.open
 
-    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "quickshell-dismiss"
     WlrLayershell.keyboardFocus: WlrKeyboardFocus.None
 

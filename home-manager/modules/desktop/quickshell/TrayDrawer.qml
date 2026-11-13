@@ -127,6 +127,50 @@ PanelWindow {
             }
         }
 
+        Row {
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: 6
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: "Иконка:"
+                color: Theme.fgMuted
+                font.family: Theme.font
+                font.pixelSize: 9
+            }
+
+            Repeater {
+                model: ["\uf054", "\uf078", "\uf141", "\uf00a", "\uf466", "\uf0c9"]
+                delegate: Item {
+                    required property var modelData
+                    width: 20
+                    height: 20
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 5
+                        color: Tray.icon === modelData
+                            ? Theme.primary
+                            : (pickHover.hovered ? Theme.surface : "transparent")
+                    }
+
+                    Icon {
+                        anchors.centerIn: parent
+                        glyph: modelData
+                        size: 10
+                        color: Tray.icon === modelData ? Theme.primaryText : Theme.fgMuted
+                    }
+
+                    HoverHandler { id: pickHover }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: Tray.setIcon(modelData)
+                    }
+                }
+            }
+        }
+
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             text: "ЛКМ — открыть · ПКМ — скрыть/показать"
