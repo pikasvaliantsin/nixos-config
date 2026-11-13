@@ -1,0 +1,5 @@
+module qs.Custom
+singleton Notifications 1.0 Notifications.qml
+singleton NotificationUi 1.0 NotificationUi.qml
+NotificationCenter 1.0 NotificationCenter.qml
+NotificationDismiss 1.0 NotificationDismiss.qml

@@ -53,6 +53,7 @@
       packages.${system} = {
         openide = pkgs.callPackage ./pkgs/openide { };
         ayugram-ffmpeg6 = pkgs.callPackage ./pkgs/ayugram-ffmpeg6 { inherit inputs; };
+        omarchy-shell = pkgs.callPackage ./pkgs/omarchy-shell { };
 
         # Атрибуты для ночного билдера на VPS (nixos-servers/modules/nix-cache.nix):
         # он собирает их на сервере, Harmonia отдаёт ноуту уже готовое.

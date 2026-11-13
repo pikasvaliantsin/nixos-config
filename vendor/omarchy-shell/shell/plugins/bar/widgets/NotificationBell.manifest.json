@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "local.notifications",
+  "name": "Notifications",
+  "version": "1.0.0",
+  "author": "local",
+  "description": "Notification center",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "NotificationBell.qml"
+  },
+  "barWidget": {
+    "displayName": "Notifications",
+    "description": "Open the notification center",
+    "category": "System",
+    "defaultSection": "right",
+    "allowMultiple": false
+  }
+}

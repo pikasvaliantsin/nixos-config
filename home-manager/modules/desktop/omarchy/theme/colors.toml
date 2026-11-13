@@ -1,0 +1,5 @@
+foreground = "#E6E1F7"
+background = "#090415"
+accent     = "#C7B3F3"
+urgent     = "#E53935"
+muted      = "#B6B8C3"

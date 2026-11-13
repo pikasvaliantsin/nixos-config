@@ -17,7 +17,8 @@ in
     ./udiskie.nix
     ./webapps.nix
     ./webapps-tui.nix
-    ./quickshell.nix
+    ./desktop-tools.nix
+    ./omarchy.nix
     ./themes.nix
     inputs.dux-files.homeModules.dux-files
     inputs.dux-calendar.homeModules.dank-calendar

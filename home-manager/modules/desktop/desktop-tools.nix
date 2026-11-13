@@ -1,4 +1,5 @@
-# Quickshell-бар + сопутствующие утилиты.
+# Рабочие утилиты десктопа: буфер обмена, launcher, lock, звук.
+# Сам бар живёт в omarchy.nix; старый конфиг Quickshell убран в legacy/.
 { config, pkgs, ... }:
 
 let
@@ -157,10 +158,6 @@ in
     Install.WantedBy = [ "graphical-session.target" ];
   };
 
-  # Конфиг бара живёт в репозитории: правки видны без пересборки.
-  xdg.configFile."quickshell".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.mySystem.dotfilesRoot}/home-manager/modules/desktop/quickshell";
-
   xdg.configFile."gtklock/config.ini".text = ''
     [main]
     lock-command=gtklock
@@ -199,21 +196,6 @@ in
       Environment = [
         "PATH=${config.home.profileDirectory}/bin:/run/current-system/sw/bin"
       ];
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
-
-  systemd.user.services.quickshell = {
-    Unit = {
-      Description = "Quickshell desktop shell";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
-    };
-    Service = {
-      ExecStart = "${pkgs.quickshell}/bin/quickshell";
-      Restart = "on-failure";
-      RestartSec = 2;
-      Environment = [ "QT_QPA_PLATFORM=wayland" ];
     };
     Install.WantedBy = [ "graphical-session.target" ];
   };

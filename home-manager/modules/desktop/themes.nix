@@ -62,7 +62,7 @@ let
         awww img "$bg" --transition-type random --transition-duration 0.8 >/dev/null 2>&1 || true
       fi
 
-      quickshell ipc call theme reload >/dev/null 2>&1 || true
+      quickshell ipc call shell reloadConfig >/dev/null 2>&1 || true
       echo "theme: $theme"
     '';
   };
