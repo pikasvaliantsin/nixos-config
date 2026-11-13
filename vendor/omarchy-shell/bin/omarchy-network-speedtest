@@ -1,0 +1,33 @@
+#!/bin/bash
+# One direction of the network speed test for the Omarchy panel.
+# speedtest-cli measures both directions per run; cache the JSON briefly so
+# the panel's down/up phases share one measurement.
+set -euo pipefail
+
+direction=${1:?usage: omarchy-network-speedtest [down|up]}
+case "$direction" in down|up) ;; *) echo "usage: omarchy-network-speedtest [down|up]" >&2; exit 2 ;; esac
+
+cache_dir="${XDG_RUNTIME_DIR:-/tmp}/omarchy-speedtest"
+cache="$cache_dir/result.json"
+mkdir -p "$cache_dir"
+
+fresh=0
+if [[ -s $cache ]]; then
+  age=$(( $(date +%s) - $(stat -c %Y "$cache" 2>/dev/null || echo 0) ))
+  (( age < 90 )) && fresh=1
+fi
+
+if (( ! fresh )); then
+  tmp=$(mktemp "$cache.XXXXXX")
+  if ! speedtest-cli --json >"$tmp" 2>/dev/null; then
+    rm -f "$tmp"
+    exit 1
+  fi
+  mv -f "$tmp" "$cache"
+fi
+
+if [[ $direction == "down" ]]; then
+  jq -r '(.download // 0) / 1000000' "$cache"
+else
+  jq -r '(.upload // 0) / 1000000' "$cache"
+fi

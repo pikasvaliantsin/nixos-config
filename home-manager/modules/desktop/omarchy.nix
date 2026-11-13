@@ -39,6 +39,7 @@ in
     brightnessctl
     wlsunset
     foot
+    speedtest-cli
   ];
 
   # The shell reads ~/.config/omarchy/shell.json first; without it, the

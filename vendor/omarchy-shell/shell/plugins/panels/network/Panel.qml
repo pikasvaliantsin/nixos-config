@@ -74,8 +74,10 @@ Panel {
   property var wifiNetworks: []
   property bool scanning: false
   property bool wifiStationAvailable: false
-  property string dnsProvider: ""
-  property string pendingDnsProvider: ""
+  property var vpnProfiles: []
+  property string vpnName: ""
+  property bool vpnActive: false
+  property bool vpnBusy: false
   // Wi-Fi band state from `omarchy-network-band`. `bandCurrent` is the band
   // the radio is actually on; `bandSelected` is the pinned choice ("auto" when
   // nothing is pinned), and the two differ whenever Auto is in effect.
@@ -120,9 +122,8 @@ Panel {
   property bool cursorActive: false
 
   // Keyboard focus zone for the panel. j/k crosses row boundaries:
-  // header actions ⇄ portal ⇄ band ⇄ DNS row ⇄ Wi-Fi networks. h/l move
-  // within header actions, band pills, or DNS providers.
-  property string focusSection: "dns"  // "header" | "portal" | "band" | "dns" | "wifi"
+  // header actions ⇄ portal ⇄ band ⇄ VPN ⇄ Wi-Fi networks.
+  property string focusSection: "vpn"  // "header" | "portal" | "band" | "vpn" | "wifi"
   property int headerIndex: 0
   readonly property bool canDisconnect: !!connectedWifiNetwork
   readonly property bool headerHasDisconnect: false
@@ -139,8 +140,7 @@ Panel {
   readonly property bool speedHeaderHasCursor: cursorActive && focusSection === "header" && headerIndex === speedHeaderIndex
   readonly property bool toggleHeaderHasCursor: cursorActive && focusSection === "header" && headerIndex === toggleHeaderIndex
   readonly property string toggleHint: Networking.wifiEnabled ? Commons.I18n.t("network.turnWifiOff") : Commons.I18n.t("network.turnWifiOn")
-  readonly property var dnsProviders: ["DHCP", "Cloudflare", "Google", "Custom"]
-  property int dnsIndex: 0
+
   // ["2.4", "5", ...], or empty when there is nothing to choose between.
   // Wi-Fi only: on Ethernet the band of a secondary radio is not what the
   // panel is describing.
@@ -162,8 +162,6 @@ Panel {
   readonly property bool bandPillsVisible: canSelectBand && bandPinned
   readonly property string bandSectionTitle: Model.bandSectionTitle(bandEffective, bandCurrent, Commons.I18n.t, Commons.I18n.formatNumber)
   readonly property bool bandBusy: pendingBand !== ""
-  // The DNS pills show a choice the moment it's made, and fall back if it fails.
-  readonly property string dnsEffective: pendingDnsProvider !== "" ? pendingDnsProvider : dnsProvider
   // The speed test needs an interface to test, so its hero action only
   // appears once there is one.
   readonly property bool canRunSpeedTest: !!info.iface
@@ -183,7 +181,7 @@ Panel {
 
   onCanSelectBandChanged: {
     if (!canSelectBand && focusSection === "band") {
-      focusSection = "dns"
+      focusSection = "vpn"
       bandAutoFocused = true
     }
   }
@@ -239,15 +237,6 @@ Panel {
     headerIndex = index
   }
 
-  function selectDnsByDelta(delta) {
-    dnsIndex = Math.max(0, Math.min(dnsProviders.length - 1, dnsIndex + delta))
-  }
-
-  function activateDns() {
-    if (dnsIndex < 0 || dnsIndex >= dnsProviders.length) return
-    setDns(dnsProviders[dnsIndex])
-  }
-
   function selectBandByDelta(delta) {
     bandIndex = Math.max(0, Math.min(bandAvailable.length - 1, bandIndex + delta))
   }
@@ -290,8 +279,8 @@ Panel {
   }
 
   // Single cursor model: exactly one highlighted spot across the whole
-  // panel, located via `focusSection` + (`headerIndex` | `dnsIndex` |
-  // `selectedIndex`). Mouse hover and keyboard nav both mutate this state
+  // panel, located via `focusSection` + (`headerIndex` | `selectedIndex`).
+  // Mouse hover and keyboard nav both mutate this state
   // at the root; items never read containsMouse for visuals. See
   // CursorSurface for the shared chrome shared by rows and pills.
   readonly property color hoverFill: bar ? Style.hoverFillFor(bar.foreground, Commons.Color.accent) : "transparent"
@@ -327,9 +316,8 @@ Panel {
       refresh(true)
       selectedIndex = wifiNetworks.length > 0 ? 0 : -1
       wifiActionFocused = false
-      focusSection = hasCaptivePortal ? "portal" : (wifiNetworks.length > 0 ? "wifi" : "dns")
-      var idx = dnsProviders.indexOf(dnsProvider)
-      dnsIndex = idx >= 0 ? idx : 0
+      focusSection = hasCaptivePortal ? "portal" : (wifiNetworks.length > 0 ? "wifi" : "vpn")
+      refreshVpn()
       syncBandIndex()
       cursorActive = hasCaptivePortal
     } else {
@@ -370,7 +358,7 @@ Panel {
     if (wifiNetworks.length === 0) {
       selectedIndex = -1
       wifiActionFocused = false
-      if (focusSection === "wifi") focusSection = "dns"
+      if (focusSection === "wifi") focusSection = "vpn"
     } else if (passwordSsid !== "") {
       var passwordIndex = wifiIndexForSsid(passwordSsid)
       if (passwordIndex >= 0) {
@@ -523,7 +511,7 @@ Panel {
       focusSection = "portal"
       cursorActive = true
     } else if (!hasCaptivePortal && focusSection === "portal") {
-      focusSection = headerActionCount > 0 ? "header" : "dns"
+      focusSection = headerActionCount > 0 ? "header" : "vpn"
       headerIndex = 0
     }
   }
@@ -576,10 +564,7 @@ Panel {
     checkConnectivity()
     if (scanWifi === undefined) scanWifi = false
     if (!detailsProc.running) detailsProc.running = true
-    if (!dnsProc.running) {
-      dnsProc.command = ["bash", "-c", root.dnsCommand("")]
-      dnsProc.running = true
-    }
+    refreshVpn()
     if (!bandProc.running) {
       bandProc.command = ["omarchy-network-band"]
       bandProc.running = true
@@ -721,9 +706,36 @@ Panel {
     return Model.wifiIconFor(strength)
   }
 
-  function updateDns(raw) {
-    var value = String(raw || "").trim()
-    dnsProvider = value || "DHCP"
+  function refreshVpn() {
+    if (!vpnListProc.running) vpnListProc.running = true
+  }
+
+  function updateVpn(raw) {
+    var list = []
+    var activeName = ""
+    var lines = String(raw || "").split("\n")
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i]
+      if (line === "") continue
+      var parts = line.split(":")
+      if (parts.length < 3) continue
+      var active = parts.pop() === "yes"
+      var type = parts.pop()
+      var name = parts.join(":").replace(/\\:/g, ":")
+      if (type !== "wireguard" && type !== "vpn") continue
+      list.push({ name: name, active: active })
+      if (active) activeName = name
+    }
+    root.vpnProfiles = list
+    root.vpnName = activeName !== "" ? activeName : (list.length > 0 ? list[0].name : "")
+    root.vpnActive = activeName !== ""
+  }
+
+  function toggleVpn() {
+    if (!root.vpnName || root.vpnBusy || vpnAction.running) return
+    root.vpnBusy = true
+    vpnAction.command = ["nmcli", "connection", root.vpnActive ? "down" : "up", root.vpnName]
+    vpnAction.running = true
   }
 
   function updateBand(raw) {
@@ -761,29 +773,6 @@ Panel {
     if (info.type === "wifi") connection = info.ssid || "Wi-Fi"
     else if (info.type === "ethernet") connection = Commons.I18n.t("network.ethernet")
     bar.shell.summon("omarchy.speedtest", connection ? JSON.stringify({ connection: connection }) : "{}")
-  }
-
-  function dnsCommand(provider) {
-    var command = "omarchy-dns"
-    if (provider) command += " " + Util.shellQuote(provider)
-    return command
-  }
-
-  function setDns(provider) {
-    if (!root.bar || !provider || actionProc.running) return
-
-    if (provider === "Custom") {
-      var launcher = "omarchy-launch-floating-terminal-with-presentation"
-      root.bar.run(launcher + " " + Util.shellQuote(root.dnsCommand(provider)))
-      root.close()
-      return
-    }
-
-    // The panel stays open, so the choice can be seen taking hold and another
-    // tried without reopening it.
-    root.pendingDnsProvider = provider
-    actionProc.command = ["bash", "-c", root.dnsCommand(provider)]
-    actionProc.running = true
   }
 
   function requiresCredentials(security) {
@@ -962,11 +951,30 @@ Panel {
   }
 
   Process {
-    id: dnsProc
+    id: vpnListProc
+    command: ["nmcli", "-t", "-f", "NAME,TYPE,ACTIVE", "connection", "show"]
     stdout: StdioCollector {
       waitForEnd: true
-      onStreamFinished: root.updateDns(text)
+      onStreamFinished: root.updateVpn(text)
     }
+  }
+
+  Process {
+    id: vpnAction
+    stdout: StdioCollector { waitForEnd: true }
+    stderr: StdioCollector { waitForEnd: true }
+    onExited: function(exitCode) {
+      root.vpnBusy = false
+      root.refreshVpn()
+      root.refresh(false)
+    }
+  }
+
+  Timer {
+    interval: 5000
+    running: root.opened
+    repeat: true
+    onTriggered: root.refreshVpn()
   }
 
   Process {
@@ -991,17 +999,13 @@ Panel {
     }
   }
 
-  // Action runner for DNS provider changes. Wi-Fi actions use the
-  // Quickshell.Networking NetworkManager backend directly.
+  // Action runner for band changes. Wi-Fi actions use the Quickshell.Networking
+  // NetworkManager backend directly.
   Process {
     id: actionProc
     stdout: StdioCollector { id: actionStdout; waitForEnd: true }
     stderr: StdioCollector { id: actionStderr; waitForEnd: true }
     onExited: function(exitCode) {
-      if (root.pendingDnsProvider !== "") {
-        if (exitCode === 0) root.dnsProvider = root.pendingDnsProvider
-        root.pendingDnsProvider = ""
-      }
       if (root.pendingBand !== "") {
         // A refused or reverted pin leaves bandSelected alone, so the pills
         // keep showing what is actually in force rather than what was asked.
@@ -1141,7 +1145,7 @@ Panel {
                 root.focusSection = "band"
                 root.bandAutoFocused = true
               } else {
-                root.focusSection = "dns"
+                root.focusSection = "vpn"
               }
             }
           } else if (root.focusSection === "portal") {
@@ -1149,7 +1153,7 @@ Panel {
               root.focusSection = "header"
               root.headerIndex = 0
             } else if (dy > 0) {
-              root.focusSection = root.canSelectBand ? "band" : "dns"
+              root.focusSection = root.canSelectBand ? "band" : "vpn"
               root.bandAutoFocused = true
             }
           } else if (root.focusSection === "band") {
@@ -1167,9 +1171,9 @@ Panel {
             } else if (root.bandAutoFocused && root.bandPillsVisible) {
               root.bandAutoFocused = false
             } else {
-              root.focusSection = "dns"
+              root.focusSection = "vpn"
             }
-          } else if (root.focusSection === "dns") {
+          } else if (root.focusSection === "vpn") {
             // k from DNS moves up into the band section when it's on screen,
             // then the disconnect button; otherwise stays put. j drops into the
             // wifi list if there's anywhere to land.
@@ -1191,7 +1195,7 @@ Panel {
             // k from the top row escapes back up to the DNS row rather than
             // wrapping around to the bottom of the list.
             if (dy < 0 && root.selectedIndex <= 0) {
-              root.focusSection = "dns"
+              root.focusSection = "vpn"
               root.wifiActionFocused = false
             }
             else root.selectByDelta(dy)
@@ -1200,7 +1204,6 @@ Panel {
         if (dx !== 0) {
           if (root.focusSection === "header") root.selectHeaderByDelta(dx)
           else if (root.focusSection === "band") { if (!root.bandAutoFocused) root.selectBandByDelta(dx) }
-          else if (root.focusSection === "dns") root.selectDnsByDelta(dx)
           else if (root.focusSection === "wifi") root.selectWifiActionByDelta(dx)
         }
       }
@@ -1209,7 +1212,7 @@ Panel {
           if (root.focusSection === "header") root.activateHeader()
           else if (root.focusSection === "portal") root.openCaptivePortal()
           else if (root.focusSection === "band") root.activateBand()
-          else if (root.focusSection === "dns") root.activateDns()
+          else if (root.focusSection === "vpn") root.toggleVpn()
           else root.activateSelected()
         }
       }
@@ -1566,63 +1569,30 @@ Panel {
 
       }
 
-      // DNS provider selection.
+      // VPN on/off. DNS is deliberately not a panel concern here; it is
+      // configured declaratively or per NetworkManager profile.
       PanelSeparator {
         foreground: root.bar.foreground
       }
 
-      Column {
+      Toggle {
         width: parent.width
-        spacing: Style.space(10)
-
-        PanelSectionHeader {
-          text: Commons.I18n.t("network.dnsProvider")
-          foreground: root.bar.foreground
-          fontFamily: root.bar.fontFamily
-        }
-
-        Row {
-          id: dnsRow
-          width: parent.width
-          spacing: Style.space(6)
-
-          readonly property int count: 4
-          readonly property real cellWidth: (width - spacing * (count - 1)) / count
-
-          DnsProviderPill {
-            provider: "DHCP"
-            index: 0
-            tooltipText: Commons.I18n.t("network.dnsFromDhcp")
-            width: dnsRow.cellWidth
-            onClicked: root.setDns(provider)
-          }
-
-          DnsProviderPill {
-            provider: "Cloudflare"
-            index: 1
-            tooltipText: Commons.I18n.t("network.setDnsTo").arg("Cloudflare")
-            width: dnsRow.cellWidth
-            onClicked: root.setDns(provider)
-          }
-
-          DnsProviderPill {
-            provider: "Google"
-            index: 2
-            tooltipText: Commons.I18n.t("network.setDnsTo").arg("Google")
-            width: dnsRow.cellWidth
-            onClicked: root.setDns(provider)
-          }
-
-          DnsProviderPill {
-            provider: "Custom"
-            index: 3
-            tooltipText: Commons.I18n.t("network.setCustomDns")
-            width: dnsRow.cellWidth
-            onClicked: root.setDns(provider)
-          }
+        label: "VPN"
+        description: root.vpnName !== ""
+          ? root.vpnName + (root.vpnActive ? " · connected" : " · disconnected")
+          : "No VPN profiles"
+        checked: root.vpnActive
+        enabled: root.vpnName !== "" && !root.vpnBusy
+        foreground: root.bar.foreground
+        fontFamily: root.bar.fontFamily
+        hasCursor: root.cursorActive && root.focusSection === "vpn"
+        onClicked: root.toggleVpn()
+        onHovered: function(isHovered) {
+          if (!isHovered) return
+          root.cursorActive = true
+          root.focusSection = "vpn"
         }
       }
-
 
       // Wi-Fi networks (only if a Wi-Fi station is available).
       PanelSeparator {
@@ -1724,36 +1694,6 @@ Panel {
       root.cursorActive = true
       root.focusSection = "band"
       root.bandIndex = pill.slot
-    }
-  }
-
-  // One DNS provider pill. The cursor + current visuals come entirely from
-  // CursorSurface; this component just binds them to the panel's cursor
-  // state and renders the label/tooltip/click target.
-  component DnsProviderPill: Button {
-    id: pill
-    required property string provider
-    required property int index
-
-    text: provider === "Custom" ? Commons.I18n.t("network.dnsCustom") : provider
-    fontSize: Style.font.bodySmall
-    foreground: root.bar.foreground
-    fontFamily: root.bar.fontFamily
-    horizontalPadding: Style.spacing.controlPaddingX
-    verticalPadding: Style.spacing.controlPaddingY + Style.space(2)
-    bordered: true
-
-    // Map the panel's domain semantics onto Button's structural props:
-    // `current DNS` is the pill's `active` fill; the keyboard cursor lights
-    // up `hasCursor`.
-    active: root.dnsEffective === provider
-    hasCursor: root.cursorActive && root.focusSection === "dns" && root.dnsIndex === index
-
-    onHovered: function(isHovered) {
-      if (!isHovered) return
-      root.cursorActive = true
-      root.focusSection = "dns"
-      root.dnsIndex = pill.index
     }
   }
 
