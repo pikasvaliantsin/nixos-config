@@ -9,12 +9,13 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    dms.url = "github:duxlabs-dev/dux-shell";
-    dux-gop.url = "github:duxlabs-dev/dux-gop";
-    dank-greeter.url = "github:duxlabs-dev/dux-greeter";
-    dux-calendar.url = "github:duxlabs-dev/dux-calendar";
-    dux-search.url = "github:duxlabs-dev/dux-search";
-    dux-files.url = "github:duxlabs-dev/dux-files";
+    # DMS/DUX — только стабильный канал: master у апстрима нестабилен.
+    dms.url = "github:duxlabs-dev/dux-shell/stable";
+    dux-gop.url = "github:duxlabs-dev/dux-gop/stable-2.1";
+    dank-greeter.url = "github:duxlabs-dev/dux-greeter/stable-2.1";
+    dux-calendar.url = "github:duxlabs-dev/dux-calendar/stable-2.1";
+    dux-search.url = "github:duxlabs-dev/dux-search/stable-2.1";
+    dux-files.url = "github:duxlabs-dev/dux-files/stable-2.1";
 
     zen-browser = {
       url = "github:youwen5/zen-browser-flake/pull/23/head";
