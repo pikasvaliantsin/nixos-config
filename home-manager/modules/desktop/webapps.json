@@ -6,5 +6,9 @@
   "discord": {
     "name": "Discord",
     "url": "https://discord.com/"
+  },
+  "google-gemini": {
+    "name": "Google Gemini",
+    "url": "https://gemini.google.com"
   }
 }

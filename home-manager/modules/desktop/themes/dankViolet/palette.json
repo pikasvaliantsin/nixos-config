@@ -1,0 +1,16 @@
+{
+  "name": "dankViolet",
+  "bg": "#090415",
+  "surface": "#1F1F28",
+  "surfaceContainer": "#020007",
+  "surfaceContainerHigh": "#15102C",
+  "fg": "#E6E1F7",
+  "fgMuted": "#B6B8C3",
+  "primary": "#C7B3F3",
+  "primaryText": "#020007",
+  "secondary": "#C7B3F3",
+  "outline": "#4E4570",
+  "error": "#E53935",
+  "warning": "#F57C00",
+  "info": "#C7B3F3"
+}

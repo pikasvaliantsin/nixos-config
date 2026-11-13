@@ -7,7 +7,6 @@
 
 {
   imports = [
-    inputs.dms.nixosModules.dank-material-shell
     inputs.dank-greeter.nixosModules.default
   ];
 
@@ -18,18 +17,6 @@
     niri = {
       enable = true;
       package = pkgs.niri;
-    };
-
-    dank-material-shell = {
-      enable = true;
-      # Запускаем шелл через systemd-юнит: тогда `dms restart` идёт через
-      # `systemctl --user restart dms.service`, логи попадают в journal,
-      # а не в /dev/null, и нет зомби-процессов после падения.
-      systemd = {
-        enable = true;
-        # Не дёргать шелл при каждом nixos-rebuild switch.
-        restartIfChanged = false;
-      };
     };
 
     dms-greeter = {
@@ -102,8 +89,11 @@
 
   systemd.services.greetd.restartIfChanged = false;
 
-  # Небольшая пауза перед перезапуском упавшего шелла.
-  systemd.user.services.dms.serviceConfig.RestartSec = "5s";
+  # PAM для gtklock: обычный логин + отпечаток.
+  security.pam.services.gtklock = {
+    fprintAuth = true;
+    enableGnomeKeyring = true;
+  };
 
   services = {
     dbus.packages = with pkgs; [
@@ -111,7 +101,7 @@
     ];
 
     # Раскладка XKB для X11 / Xwayland / Gamescope.
-    # Сам Niri input (layout/options) настраивает DMS и пишет в dms/input.kdl.
+    # Niri input (layout/options) задан в modules/niri/config.kdl.
     xserver.xkb = {
       layout = "us,ru";
       options = "grp:win_space_toggle,compose:ralt,ctrl:nocaps";

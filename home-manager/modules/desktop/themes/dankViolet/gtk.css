@@ -1,0 +1,18 @@
+/* GTK override для темы dankViolet */
+@define-color theme_bg_color #090415;
+@define-color theme_fg_color #E6E1F7;
+@define-color theme_base_color #1F1F28;
+@define-color theme_text_color #E6E1F7;
+@define-color theme_selected_bg_color #C7B3F3;
+@define-color theme_selected_fg_color #020007;
+@define-color accent_color #C7B3F3;
+@define-color accent_bg_color #C7B3F3;
+@define-color accent_fg_color #020007;
+@define-color window_bg_color #090415;
+@define-color window_fg_color #E6E1F7;
+@define-color view_bg_color #1F1F28;
+@define-color view_fg_color #E6E1F7;
+@define-color headerbar_bg_color #15102C;
+@define-color headerbar_fg_color #E6E1F7;
+@define-color card_bg_color #1F1F28;
+@define-color border_color #4E4570;

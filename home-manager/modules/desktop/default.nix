@@ -1,4 +1,4 @@
-# Desktop-окружение: композитор, порталы, темы, шрифты и монтирование.
+# Desktop-окружение: композитор, бары, порталы, темы, шрифты и монтирование.
 {
   config,
   inputs,
@@ -17,20 +17,32 @@ in
     ./udiskie.nix
     ./webapps.nix
     ./webapps-tui.nix
-    ../dms/dms.nix
+    ./quickshell.nix
+    ./themes.nix
     inputs.dux-files.homeModules.dux-files
+    inputs.dux-calendar.homeModules.dank-calendar
+    inputs.dux-search.homeModules.dsearch
   ];
 
   programs.dux-files.enable = true;
 
-  # Подключаем основной config.kdl через symlink
-  xdg.configFile = {
-    "niri/config.kdl".source = mkLink "config.kdl";
-    "niri/hm.kdl".source = mkLink "hm.kdl";
+  programs.dank-calendar = {
+    enable = true;
+    systemd.enable = true;
+    settings = {
+      use24HourClock = true;
+      remindersEnabled = true;
+    };
   };
 
-  # XDG user dirs: без ~/.config/user-dirs.dirs DMS не находит ~/Pictures
-  # и складывает скриншоты (dms screenshot) прямо в $HOME.
+  programs.dsearch.enable = true;
+
+  # Конфиг niri: основной файл и бинды. theme.kdl линкуется в themes.nix.
+  xdg.configFile = {
+    "niri/config.kdl".source = mkLink "config.kdl";
+    "niri/binds.kdl".source = mkLink "binds.kdl";
+  };
+
   xdg.userDirs = {
     enable = true;
     createDirectories = true;

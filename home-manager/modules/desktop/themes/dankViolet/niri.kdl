@@ -1,0 +1,37 @@
+// Цвета Niri для темы dankViolet.
+layout {
+    background-color "transparent"
+
+    focus-ring {
+        active-color   "#C7B3F3"
+        inactive-color "#4E4570"
+        urgent-color   "#E53935"
+    }
+
+    border {
+        active-color   "#C7B3F3"
+        inactive-color "#4E4570"
+        urgent-color   "#E53935"
+    }
+
+    shadow {
+        color "#00000070"
+    }
+
+    tab-indicator {
+        active-color   "#C7B3F3"
+        inactive-color "#4E4570"
+        urgent-color   "#E53935"
+    }
+
+    insert-hint {
+        color "#C7B3F380"
+    }
+}
+
+recent-windows {
+    highlight {
+        active-color "#94A3C9"
+        urgent-color "#E53935"
+    }
+}

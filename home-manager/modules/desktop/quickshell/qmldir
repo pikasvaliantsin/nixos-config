@@ -1,0 +1,10 @@
+singleton Theme 1.0 Theme.qml
+singleton Niri 1.0 Niri.qml
+singleton Audio 1.0 Audio.qml
+singleton Net 1.0 Net.qml
+singleton Bt 1.0 Bt.qml
+singleton Weather 1.0 Weather.qml
+singleton Sys 1.0 Sys.qml
+singleton Notif 1.0 Notif.qml
+Bar 1.0 Bar.qml
+NotificationPanel 1.0 NotificationPanel.qml

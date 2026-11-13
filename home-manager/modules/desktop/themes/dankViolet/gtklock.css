@@ -1,0 +1,29 @@
+window {
+  background-color: rgba(9, 4, 21, 0.72);
+}
+
+#input-field {
+  background-color: #1f1f28;
+  color: #e6e1f7;
+  border: 1px solid #4e4570;
+  border-radius: 10px;
+  padding: 10px 14px;
+  caret-color: #c7b3f3;
+}
+
+#input-field:focus {
+  border-color: #c7b3f3;
+}
+
+button {
+  background-color: #2a243f;
+  color: #e6e1f7;
+  border: 1px solid #4e4570;
+  border-radius: 10px;
+  padding: 8px 16px;
+}
+
+button:hover {
+  background-color: #c7b3f3;
+  color: #020007;
+}

@@ -9,8 +9,7 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # DMS/DUX — только стабильный канал: master у апстрима нестабилен.
-    dms.url = "github:duxlabs-dev/dux-shell/stable";
+    # DUX — только стабильный канал: master у апстрима нестабилен.
     dux-gop.url = "github:duxlabs-dev/dux-gop/stable-2.1";
     dank-greeter.url = "github:duxlabs-dev/dux-greeter/stable-2.1";
     dux-calendar.url = "github:duxlabs-dev/dux-calendar/stable-2.1";
@@ -59,7 +58,6 @@
         # он собирает их на сервере, Harmonia отдаёт ноуту уже готовое.
         # zen-browser и openide сюда не входят: первый слишком тяжёл для 8 ГБ,
         # второй обновляется вручную.
-        cache-dms = inputs.dms.packages.${system}.default;
         cache-dux-files = inputs.dux-files.packages.${system}.default;
         cache-dux-gop = inputs.dux-gop.packages.${system}.default;
         cache-dux-search = inputs.dux-search.packages.${system}.default;

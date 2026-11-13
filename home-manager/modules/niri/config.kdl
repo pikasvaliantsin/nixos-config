@@ -1,11 +1,119 @@
-include optional=true "hm.kdl"
-include optional=true "dms/alttab.kdl"
-include optional=true "dms/binds-next.kdl"
-include optional=true "dms/binds.kdl"
-include optional=true "dms/colors.kdl"
-include optional=true "dms/cursor.kdl"
-include optional=true "dms/layout.kdl"
-include optional=true "dms/outputs.kdl"
-include optional=true "dms/windowrules.kdl"
-include optional=true "dms/wpblur.kdl"
-include optional=true "dms/input.kdl"
+// Niri: основной конфиг. Больше не зависит от dux-shell/DMS.
+// Тема (цвета) вынесена в theme.kdl, который переключает `theme-set`.
+
+include optional=false "binds.kdl"
+include optional=true "theme.kdl"
+
+screenshot-path "~/Pictures/Screenshots/%Y-%m-%d_%H-%M-%S.png"
+
+input {
+    mouse {
+        accel-speed 0.0
+    }
+    touchpad {
+        tap
+        accel-speed 0.0
+        natural-scroll
+        dwt
+    }
+    keyboard {
+        xkb {
+            layout "us,ru"
+            options "grp:win_space_toggle,compose:ralt,ctrl:nocaps"
+        }
+        track-layout "global"
+    }
+}
+
+cursor {
+    xcursor-theme "Adwaita"
+    xcursor-size 24
+}
+
+output "HDMI-A-1" {
+    mode "2240x960@119.898"
+    scale 1
+    position x=0 y=0
+    variable-refresh-rate
+}
+
+output "eDP-1" {
+    mode "1920x1080@60.164"
+    scale 1
+    position x=2240 y=0
+    layout {
+        always-center-single-column
+    }
+}
+
+layout {
+    gaps 12
+
+    struts {
+        left 0
+        right 0
+        top 0
+        bottom 0
+    }
+
+    border {
+        width 0
+    }
+
+    focus-ring {
+        width 0
+    }
+
+    tab-indicator {
+        gap 5
+        width 4
+        length total-proportion=0.5
+        position "left"
+        gaps-between-tabs 0
+        corner-radius 0
+    }
+
+    default-column-width { proportion 0.5; }
+    center-focused-column "never"
+}
+
+window-rule {
+    geometry-corner-radius 16
+    clip-to-geometry true
+}
+
+window-rule {
+    match app-id="^org.gnome.Calculator$"
+    match app-id="^org.keepassxc.KeePassXC$"
+    open-floating true
+}
+
+window-rule {
+    match app-id="xdg-desktop-portal-gtk"
+    default-column-width { fixed 900; }
+    default-window-height { fixed 600; }
+    open-on-output "focused"
+    geometry-corner-radius 12
+}
+
+window-rule {
+    match app-id="^zen" title="^Picture-in-Picture$"
+    open-floating true
+}
+
+environment {
+    "GTK_USE_PORTAL" "1"
+    "WLR_NO_HARDWARE_CURSORS" "1"
+}
+
+spawn-at-startup "dbus-update-activation-environment" "--systemd" "WAYLAND_DISPLAY" "XDG_CURRENT_DESKTOP=Niri:GNOME" "DISPLAY"
+
+hotkey-overlay {
+    skip-at-startup
+}
+
+gestures {
+    hot-corners {
+        off
+    }
+}
