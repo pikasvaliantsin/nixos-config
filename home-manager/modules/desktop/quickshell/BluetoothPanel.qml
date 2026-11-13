@@ -19,8 +19,8 @@ PanelWindow {
     }
     implicitWidth: 400
     implicitHeight: Bt.powered
-        ? Math.min(560, 118 + Math.max(1, Bt.devices.length) * 46)
-        : 84
+        ? Math.min(560, 84 + Math.max(1, Bt.devices.length) * 46)
+        : 72
     color: "transparent"
     required property var modelData
     screen: modelData
@@ -117,7 +117,7 @@ PanelWindow {
 
         ListView {
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.preferredHeight: Bt.powered ? Bt.devices.length * 46 : 0
             clip: true
             spacing: 2
             model: Bt.sortedDevices
