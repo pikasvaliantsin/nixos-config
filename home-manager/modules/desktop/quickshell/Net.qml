@@ -1,9 +1,10 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Networking
 
-// Сеть через нативный NetworkManager-бэкенд Quickshell.
+// Сеть через нативный NetworkManager-бэкенд Quickshell + VPN через nmcli.
 Singleton {
     id: root
 
@@ -51,6 +52,11 @@ Singleton {
         return arr;
     }
 
+    // --- VPN: NetworkManager-профили типа wireguard/vpn -------------------
+    property var vpn: []
+    readonly property bool vpnActive: root.vpn.some(v => v.active)
+    readonly property var vpnPrimary: root.vpn.length === 1 ? root.vpn[0] : null
+
     function setWifiEnabled(value) {
         Networking.wifiEnabled = value;
     }
@@ -77,4 +83,54 @@ Singleton {
         if (!network) return "";
         return WifiSecurityType.toString(network.security);
     }
+
+    function toggleVpn(name, active) {
+        if (!name) return;
+        vpnAction.command = ["nmcli", "connection", active ? "down" : "up", name];
+        vpnAction.running = true;
+    }
+
+    function refreshVpn() {
+        if (!vpnProc.running) vpnProc.running = true;
+    }
+
+    Process {
+        id: vpnProc
+        command: ["nmcli", "-t", "-f", "NAME,TYPE,ACTIVE", "connection", "show"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const out = [];
+                for (const line of text.split("\n")) {
+                    if (!line) continue;
+                    const p = line.split(":");
+                    if (p.length < 3) continue;
+                    const type = p[p.length - 2];
+                    const active = p[p.length - 1] === "yes";
+                    const name = p.slice(0, p.length - 2).join(":");
+                    if (type !== "wireguard" && type !== "vpn") continue;
+                    out.push({ name: name, active: active });
+                }
+                console.log("DBG vpn", JSON.stringify(out));
+                root.vpn = out;
+            }
+        }
+        onExited: vpnTimer.restart()
+    }
+
+    Timer {
+        id: vpnTimer
+        interval: 5000
+        repeat: false
+        onTriggered: vpnProc.running = true
+    }
+
+    Process {
+        id: vpnAction
+        onExited: {
+            running = false;
+            root.refreshVpn();
+        }
+    }
+
+    Component.onCompleted: vpnProc.running = true
 }

@@ -5,7 +5,7 @@ import Quickshell.Io
 import Quickshell.Wayland
 import Quickshell.Networking
 
-// Сеть: Wi-Fi сети, подключение, радио-переключатель.
+// Сеть: Wi-Fi, Ethernet и VPN.
 PanelWindow {
     id: panel
 
@@ -18,7 +18,10 @@ PanelWindow {
         right: 8
     }
     implicitWidth: 400
-    implicitHeight: Math.min(560, 150 + Math.max(1, Net.wifiNetworks.length) * 46)
+    implicitHeight: Math.min(600, 126
+        + (Net.wifiEnabled ? Net.wifiNetworks.length * 42 : 0)
+        + Net.vpn.length * 34
+        + (panel.selectedNetwork !== null ? 38 : 0))
     color: "transparent"
     visible: Ui.netOpen
     exclusiveZone: 0
@@ -28,7 +31,6 @@ PanelWindow {
     WlrLayershell.keyboardFocus: visible ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.None
 
     property var selectedNetwork: null
-    property var pendingNetwork: null
 
     IpcHandler {
         target: "network"
@@ -45,7 +47,8 @@ PanelWindow {
     onVisibleChanged: {
         if (visible) {
             panel.selectedNetwork = null;
-            Net.scan(true);
+            Net.refreshVpn();
+            if (Net.wifiEnabled) Net.scan(true);
         } else {
             Net.scan(false);
         }
@@ -62,17 +65,23 @@ PanelWindow {
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 12
-        spacing: 8
+        spacing: 6
 
+        // --- заголовок ---------------------------------------------------
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
 
+            Icon {
+                glyph: "\uf1eb"
+                size: 13
+                color: Net.connected ? Theme.primary : Theme.fgMuted
+            }
             Text {
                 text: "Сеть"
                 color: Theme.fg
                 font.family: Theme.font
-                font.pixelSize: 14
+                font.pixelSize: 13
                 font.bold: true
             }
             Text {
@@ -80,20 +89,20 @@ PanelWindow {
                 text: Net.connected ? Net.name : "не подключено"
                 color: Theme.fgMuted
                 font.family: Theme.font
-                font.pixelSize: 11
+                font.pixelSize: 10
                 elide: Text.ElideRight
             }
 
             Rectangle {
-                width: 34
-                height: 18
-                radius: 9
+                width: 32
+                height: 16
+                radius: 8
                 color: Net.wifiEnabled ? Theme.primary : Theme.outline
                 Behavior on color { ColorAnimation { duration: 120 } }
                 Rectangle {
-                    width: 14
-                    height: 14
-                    radius: 7
+                    width: 12
+                    height: 12
+                    radius: 6
                     y: 2
                     x: Net.wifiEnabled ? 18 : 2
                     color: Theme.primaryText
@@ -108,23 +117,27 @@ PanelWindow {
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: 8
+            spacing: 6
 
             Text {
-                text: Net.wired ? "Ethernet подключён" : "Wi-Fi"
+                text: Net.wired
+                    ? "Ethernet · " + (Net.activeNetwork ? Net.activeNetwork.name : "подключён")
+                    : (Net.wifiEnabled ? "Wi-Fi" : "Wi-Fi выключен")
                 color: Theme.fgMuted
                 font.family: Theme.font
-                font.pixelSize: 10
+                font.pixelSize: 9
+                elide: Text.ElideRight
             }
             Item { Layout.fillWidth: true }
             Text {
-                text: Net.wifiDevice && Net.wifiDevice.scannerEnabled ? "идёт поиск…" : "обновить"
+                visible: Net.wifiEnabled
+                text: Net.wifiDevice && Net.wifiDevice.scannerEnabled ? "сканирование…" : "обновить"
                 color: Theme.primary
                 font.family: Theme.font
-                font.pixelSize: 10
+                font.pixelSize: 9
                 MouseArea {
                     anchors.fill: parent
-                    anchors.margins: -4
+                    anchors.margins: -3
                     onClicked: {
                         Net.scan(false);
                         Net.scan(true);
@@ -137,17 +150,17 @@ PanelWindow {
             Layout.fillWidth: true
             height: 1
             color: Theme.outline
-            opacity: 0.5
+            opacity: 0.4
         }
 
+        // --- Wi-Fi сети --------------------------------------------------
         ListView {
-            id: list
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            Layout.preferredHeight: Net.wifiEnabled ? Net.wifiNetworks.length * 42 : 0
             clip: true
-            spacing: 2
-            model: Net.wifiNetworks
-            visible: Net.wifiNetworks.length > 0 && Net.wifiEnabled
+            spacing: 0
+            model: Net.wifiEnabled ? Net.wifiNetworks : []
+            visible: Net.wifiEnabled && Net.wifiNetworks.length > 0
 
             delegate: Item {
                 id: row
@@ -163,25 +176,25 @@ PanelWindow {
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 8
-                    anchors.rightMargin: 8
+                    anchors.leftMargin: 6
+                    anchors.rightMargin: 6
                     spacing: 8
 
                     Icon {
                         glyph: "\uf1eb"
-                        size: 13
+                        size: 12
                         color: row.modelData.connected ? Theme.primary : Theme.fgMuted
                     }
 
                     Column {
                         Layout.fillWidth: true
-                        spacing: 1
+                        spacing: 0
 
                         Text {
                             text: row.modelData.name
                             color: Theme.fg
                             font.family: Theme.font
-                            font.pixelSize: 12
+                            font.pixelSize: 11
                             elide: Text.ElideRight
                             width: parent.width
                         }
@@ -203,12 +216,12 @@ PanelWindow {
                         text: "подключено"
                         color: Theme.primary
                         font.family: Theme.font
-                        font.pixelSize: 10
+                        font.pixelSize: 9
                     }
                     Icon {
                         visible: Net.isSecure(row.modelData) && !row.modelData.connected
                         glyph: "\uf023"
-                        size: 9
+                        size: 8
                         color: Theme.fgMuted
                     }
                 }
@@ -231,6 +244,88 @@ PanelWindow {
             }
         }
 
+        Text {
+            Layout.fillWidth: true
+            visible: Net.wifiEnabled && Net.wifiNetworks.length === 0
+            text: "Сети не найдены"
+            color: Theme.fgMuted
+            font.family: Theme.font
+            font.pixelSize: 10
+            horizontalAlignment: Text.AlignHCenter
+        }
+
+        // --- VPN ----------------------------------------------------------
+        Rectangle {
+            Layout.fillWidth: true
+            height: 1
+            color: Theme.outline
+            opacity: 0.4
+            visible: Net.vpn.length > 0
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            visible: Net.vpn.length > 0
+
+            Text {
+                text: "VPN"
+                color: Theme.fgMuted
+                font.family: Theme.font
+                font.pixelSize: 9
+                font.bold: true
+            }
+            Item { Layout.fillWidth: true }
+            Text {
+                text: Net.vpnActive ? "активен" : "выключен"
+                color: Net.vpnActive ? Theme.primary : Theme.fgMuted
+                font.family: Theme.font
+                font.pixelSize: 9
+            }
+        }
+
+        Repeater {
+            model: Net.vpn
+
+            delegate: RowLayout {
+                required property var modelData
+                Layout.fillWidth: true
+                spacing: 8
+
+                Icon {
+                    glyph: "\uf023"
+                    size: 11
+                    color: modelData.active ? Theme.primary : Theme.fgMuted
+                }
+                Text {
+                    Layout.fillWidth: true
+                    text: modelData.name
+                    color: Theme.fg
+                    font.family: Theme.font
+                    font.pixelSize: 11
+                    elide: Text.ElideRight
+                }
+                Rectangle {
+                    width: 32
+                    height: 16
+                    radius: 8
+                    color: modelData.active ? Theme.primary : Theme.outline
+                    Rectangle {
+                        width: 12
+                        height: 12
+                        radius: 6
+                        y: 2
+                        x: modelData.active ? 18 : 2
+                        color: Theme.primaryText
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: Net.toggleVpn(modelData.name, modelData.active)
+                    }
+                }
+            }
+        }
+
+        // --- пароль -------------------------------------------------------
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
@@ -238,8 +333,8 @@ PanelWindow {
 
             Rectangle {
                 Layout.fillWidth: true
-                height: 30
-                radius: 8
+                height: 28
+                radius: 7
                 color: Theme.surface
                 border.width: 1
                 border.color: password.activeFocus ? Theme.primary : Theme.outline
@@ -252,7 +347,7 @@ PanelWindow {
                     text: "пароль для " + (panel.selectedNetwork ? panel.selectedNetwork.name : "")
                     color: Theme.fgMuted
                     font.family: Theme.font
-                    font.pixelSize: 11
+                    font.pixelSize: 10
                 }
 
                 TextInput {
@@ -266,7 +361,7 @@ PanelWindow {
                     selectionColor: Theme.primary
                     selectedTextColor: Theme.primaryText
                     font.family: Theme.font
-                    font.pixelSize: 12
+                    font.pixelSize: 11
                     Keys.onReturnPressed: {
                         Net.connectNetwork(panel.selectedNetwork, password.text);
                         panel.selectedNetwork = null;
@@ -280,13 +375,13 @@ PanelWindow {
             }
 
             Text {
-                text: "Подключить"
+                text: "OK"
                 color: Theme.primary
                 font.family: Theme.font
                 font.pixelSize: 11
                 MouseArea {
                     anchors.fill: parent
-                    anchors.margins: -4
+                    anchors.margins: -3
                     onClicked: {
                         Net.connectNetwork(panel.selectedNetwork, password.text);
                         panel.selectedNetwork = null;
@@ -294,16 +389,6 @@ PanelWindow {
                     }
                 }
             }
-        }
-
-        Text {
-            Layout.fillWidth: true
-            visible: !Net.wifiEnabled
-            text: "Wi-Fi выключен"
-            color: Theme.fgMuted
-            font.family: Theme.font
-            font.pixelSize: 12
-            horizontalAlignment: Text.AlignHCenter
         }
     }
 }

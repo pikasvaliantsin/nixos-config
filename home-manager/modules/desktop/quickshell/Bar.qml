@@ -378,7 +378,7 @@ PanelWindow {
 
                 Icon {
                     glyph: Net.connected ? (Net.wifi ? "\uf1eb" : "\uf796") : "\uf05e"
-                    color: Net.connected ? Theme.fg : Theme.fgMuted
+                    color: Net.vpnActive ? Theme.primary : (Net.connected ? Theme.fg : Theme.fgMuted)
                     size: 13
                 }
                 Text {
@@ -395,7 +395,11 @@ PanelWindow {
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
                 onClicked: (mouse) => {
                     if (mouse.button === Qt.RightButton) {
-                        bar.spawn(["ghostty", "-e", "impala"]);
+                        if (Net.vpnPrimary) {
+                            Net.toggleVpn(Net.vpnPrimary.name, Net.vpnPrimary.active);
+                        } else {
+                            bar.spawn(["ghostty", "-e", "impala"]);
+                        }
                     } else {
                         const open = !Ui.netOpen;
                         Ui.btOpen = false;
