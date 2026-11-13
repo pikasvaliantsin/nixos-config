@@ -5,10 +5,22 @@
     "background": "opaque",
     "layout": {
       "left": [
-        { "id": "omarchy.workspaces" }
+        {
+          "id": "omarchy.workspaces"
+        }
       ],
       "centerBegin": [
-        { "id": "omarchy.indicators", "items": ["PasswordlessSudo", "ScreenRecording", "Reminder", "NightLight", "Dnd", "StayAwake"] }
+        {
+          "id": "omarchy.indicators",
+          "items": [
+            "PasswordlessSudo",
+            "ScreenRecording",
+            "Reminder",
+            "NightLight",
+            "Dnd",
+            "StayAwake"
+          ]
+        }
       ],
       "center": [
         {
@@ -19,14 +31,36 @@
         }
       ],
       "right": [
-        { "id": "omarchy.tray" },
-        { "id": "local.notifications" },
-        { "id": "local.opencode" },
-        { "id": "omarchy.bluetooth" },
-        { "id": "omarchy.network" },
-        { "id": "omarchy.audio" },
-        { "id": "omarchy.monitor" },
-        { "id": "omarchy.power" }
+        {
+          "id": "omarchy.tray",
+          "pinned": [],
+          "hidden": [
+            "dank-calendar",
+            "Sunshine",
+            "udiskie"
+          ]
+        },
+        {
+          "id": "local.notifications"
+        },
+        {
+          "id": "local.opencode"
+        },
+        {
+          "id": "omarchy.bluetooth"
+        },
+        {
+          "id": "omarchy.network"
+        },
+        {
+          "id": "omarchy.audio"
+        },
+        {
+          "id": "omarchy.monitor"
+        },
+        {
+          "id": "omarchy.power"
+        }
       ]
     }
   },

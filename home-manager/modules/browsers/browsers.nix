@@ -83,7 +83,7 @@ in
         name = "youtube-stream-chromium";
         desktopName = "YouTube Stream (Chromium)";
         exec = "${pkgs.chromium}/bin/chromium ${lib.concatStringsSep " " youtubeArgs}";
-        icon = "youtube-vision";
+        icon = "youtube";
         categories = [
           "AudioVideo"
           "Network"
