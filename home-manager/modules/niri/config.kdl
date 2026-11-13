@@ -78,7 +78,7 @@ layout {
 }
 
 window-rule {
-    geometry-corner-radius 16
+    geometry-corner-radius 0
     clip-to-geometry true
     // Draw only the border outline, not a filled rect behind the window:
     // otherwise the accent border tints translucent terminals when focused.
@@ -107,7 +107,7 @@ window-rule {
     default-column-width { fixed 900; }
     default-window-height { fixed 600; }
     open-on-output "focused"
-    geometry-corner-radius 12
+    geometry-corner-radius 0
 }
 
 window-rule {
