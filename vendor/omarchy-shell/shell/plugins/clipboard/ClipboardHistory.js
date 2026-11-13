@@ -7,7 +7,12 @@ function normalizeEntry(value) {
   var type = String(value.type || value.kind || "")
   if (type === "text") {
     var text = String(value.text || "")
-    return text.trim().length > 0 ? { type: "text", text: text } : null
+    if (text.trim().length === 0) return null
+    var textEntry = { type: "text", text: text }
+    if (value.capturedAt !== undefined && value.capturedAt !== null)
+      textEntry.capturedAt = String(value.capturedAt)
+    if (value.pinned === true) textEntry.pinned = true
+    return textEntry
   }
 
   if (type === "image") {
@@ -20,6 +25,7 @@ function normalizeEntry(value) {
     }
     if (value.capturedAt !== undefined && value.capturedAt !== null)
       entry.capturedAt = String(value.capturedAt)
+    if (value.pinned === true) entry.pinned = true
     return entry
   }
 
@@ -207,10 +213,13 @@ function displayRows(history, query, limit, tr, trn, fmt) {
     rows.push({
       entryType: isFile ? "file" : entry.type,
       fullText: isImage ? "" : fullText(entry),
-      previewText: previewText(entry, tr, trn, fmt),
+      previewText: (entry.pinned ? "★ " : "") + previewText(entry, tr, trn, fmt),
       previewImage: previewPath,
       path: isImage ? String(entry.path || "") : (isFile && paths.length === 1 ? paths[0] : ""),
       mime: isImage ? String(entry.mime || "image/png") : "text/plain",
+      pinned: entry.pinned === true,
+      entryKey: entryKey(entry),
+      capturedAt: String(entry.capturedAt || ""),
       index: i
     })
     if (rows.length >= max) break

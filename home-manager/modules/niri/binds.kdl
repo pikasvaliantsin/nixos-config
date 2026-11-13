@@ -8,8 +8,8 @@ binds {
     Mod+Shift+D hotkey-overlay-title="Поиск файлов" { spawn "walker" "-m" "files"; }
     // Notification center is a custom plugin on top of omarchy-shell.
     Mod+N hotkey-overlay-title="Уведомления" { spawn "omarchy-ipc" "call" "notifications" "toggle"; }
-    // Clipboard UI from the legacy shell is intentionally not started.
-    // Mod+V hotkey-overlay-title="Буфер обмена" { spawn "quickshell" "ipc" "call" "clipboard" "toggle"; }
+    // Clipboard history overlay (QML, Omarchy clipboard plugin).
+    Mod+V hotkey-overlay-title="Буфер обмена" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.clipboard" "{}"; }
     Mod+Alt+L hotkey-overlay-title="Блокировка" { spawn "gtklock"; }
     Super+X hotkey-overlay-title="Питание" { spawn "wlogout"; }
     Mod+M hotkey-overlay-title="Монитор процессов" { spawn "ghostty" "-e" "dgop" "top"; }

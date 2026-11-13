@@ -18,8 +18,7 @@ Item {
   property bool clearConfirmOpen: false
   property var history: []
 
-  property string historyPath: Quickshell.env("HOME") + "/.local/state/omarchy/clipboard-history.json"
-  property string captureScript: root.omarchyPath + "/shell/plugins/clipboard/capture.sh"
+  property string historyPath: Quickshell.env("HOME") + "/.local/state/quickshell/clipboard/history.json"
   // Shares the [menu] surface tokens — themes that style the menu also
   // style the clipboard. Selected-row colors composed in the
   // singleton so consumers drop them straight into Rectangle bindings.
@@ -144,6 +143,9 @@ Item {
         previewImage: row.previewImage ? Util.fileUrl(row.previewImage) : "",
         path: row.path,
         mime: row.mime,
+        pinned: row.pinned,
+        entryKey: row.entryKey,
+        capturedAt: row.capturedAt,
         historyIndex: row.index
       })
     }
@@ -220,33 +222,58 @@ Item {
     root.openSelected(row)
   }
 
-  function applySelected(row) {
+  function copyRow(row) {
     if (!row) return
     root.opened = false
-    if (row.entryType === "image") {
-      Quickshell.execDetached([root.omarchyPath + "/bin/omarchy-clipboard-paste-file", row.mime, row.path])
-    } else if (row.fullText) {
-      Quickshell.execDetached([root.omarchyPath + "/bin/omarchy-clipboard-paste-text", "--shift-insert", "--history-index", String(row.historyIndex)])
-    }
+    // The history index keeps long entries intact: row.fullText is capped
+    // for rendering, while clipboard-copy reads the full value from JSON.
+    Quickshell.execDetached(["clipboard-copy", String(row.historyIndex)])
+  }
+
+  function applySelected(row) {
+    root.copyRow(row)
   }
 
   function copySelected(row) {
-    if (!row) return
-    root.opened = false
-    if (row.entryType === "image") {
-      Quickshell.execDetached([root.omarchyPath + "/bin/omarchy-clipboard-paste-file", "--copy-only", row.mime, row.path])
-    } else if (row.fullText) {
-      Quickshell.execDetached([root.omarchyPath + "/bin/omarchy-clipboard-paste-text", "--copy-only", "--history-index", String(row.historyIndex)])
-    }
+    root.copyRow(row)
   }
 
   function openSelected(row) {
-    if (!row) return
-    root.opened = false
-    Quickshell.execDetached([root.omarchyPath + "/bin/omarchy-clipboard-open", "--history-index", String(row.historyIndex)])
+    root.copyRow(row)
   }
 
-  Component.onCompleted: initProc.running = true
+  function selectByKey(key) {
+    for (var i = 0; i < displayModel.count; i++) {
+      var row = displayModel.get(i)
+      if (row && row.entryKey === key) {
+        root.selectedIndex = i
+        resultList.positionViewAtIndex(i, ListView.Contain)
+        return
+      }
+    }
+  }
+
+  function togglePin(index) {
+    if (index < 0 || index >= displayModel.count) return
+    var row = displayModel.get(index)
+    var entry = root.history[row.historyIndex]
+    if (!entry) return
+
+    var key = root.entryKey(root.normalizeEntry(entry))
+    entry.pinned = entry.pinned !== true
+    var pinned = []
+    var rest = []
+    for (var i = 0; i < root.history.length; i++) {
+      var value = root.history[i]
+      if (value && value.pinned === true) pinned.push(value)
+      else rest.push(value)
+    }
+    root.history = pinned.concat(rest)
+    root.saveHistory()
+    root.rebuildDisplay()
+    root.selectByKey(key)
+    root.cursorActive = true
+  }
 
   ListModel { id: displayModel }
 
@@ -255,6 +282,8 @@ Item {
     referenceItem: card
   }
 
+  // Capture stays in the systemd wl-paste watchers (clipboard-text and
+  // clipboard-image), which own the history file; the panel only renders it.
   FileView {
     id: historyFile
     path: root.historyPath
@@ -266,62 +295,10 @@ Item {
     onFileChanged: reload()
   }
 
-  // Reap watchers left behind by a previous shell instance, then start our
-  // own. The pdeathsig on the watchers makes the kernel kill them whenever
-  // the shell exits, however it exits, so no further lifecycle management.
-  Process {
-    id: initProc
-    command: ["pkill", "-f", "wl-paste .*--watch .*/shell/plugins/clipboard/capture\\.sh"]
-    onExited: {
-      currentProc.running = true
-      textWatchProc.running = true
-      imageWatchProc.running = true
-    }
-  }
-
-  Process {
-    id: currentProc
-    command: [root.captureScript]
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: root.addClipboardJson(text)
-    }
-  }
-
-  Process {
-    id: textWatchProc
-    command: ["setpriv", "--pdeathsig", "TERM", "wl-paste", "--type", "text", "--watch", root.captureScript, "text"]
-    onExited: watchRestartTimer.restart()
-    stdout: SplitParser {
-      onRead: function(data) { root.addClipboardJson(data) }
-    }
-  }
-
-  Process {
-    id: imageWatchProc
-    command: ["setpriv", "--pdeathsig", "TERM", "wl-paste", "--type", "image/png", "--watch", root.captureScript, "image/png"]
-    onExited: watchRestartTimer.restart()
-    stdout: SplitParser {
-      onRead: function(data) { root.addClipboardJson(data) }
-    }
-  }
-
-  // A watcher that dies takes clipboard history with it, silently: copying still
-  // works, the picker still opens, and the old entries are all still there, so
-  // nothing recorded until the next shell reload. Bring it back instead.
-  Timer {
-    id: watchRestartTimer
-    interval: 1000
-    repeat: false
-    onTriggered: {
-      if (!textWatchProc.running) textWatchProc.running = true
-      if (!imageWatchProc.running) imageWatchProc.running = true
-    }
-  }
-
   OverlayWindow {
     id: panel
     shown: root.opened
+    shownKeyboardFocus: WlrKeyboardFocus.OnDemand
     WlrLayershell.namespace: "omarchy-clipboard"
 
     Rectangle {
@@ -369,6 +346,9 @@ Item {
           } else if (event.key === Qt.Key_Delete) {
             if (event.modifiers & Qt.ShiftModifier) root.requestClearHistory()
             else root.removeDisplayIndex(root.selectedIndex)
+            event.accepted = true
+          } else if (event.key === Qt.Key_P && (event.modifiers & Qt.ControlModifier)) {
+            root.togglePin(root.selectedIndex)
             event.accepted = true
           } else if (event.key === Qt.Key_Up) {
             root.select(-1)
@@ -435,9 +415,21 @@ Item {
           color: "transparent"
 
           Text {
+            id: hints
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            text: "↑↓ move · Enter copy · Ctrl+P pin · Del delete · Esc close"
+            color: root.foreground
+            opacity: 0.42
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+          }
+
+          Text {
             textFormat: Text.PlainText
             anchors.left: parent.left
-            anchors.right: parent.right
+            anchors.right: hints.left
+            anchors.rightMargin: Style.space(12)
             anchors.verticalCenter: parent.verticalCenter
             text: root.filterText || Commons.I18n.t("clipboard.search")
             color: root.foreground

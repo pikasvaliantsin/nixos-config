@@ -72,6 +72,38 @@ let
     '';
   };
 
+  # Copy one history entry back to the Wayland clipboard. The QML panel passes
+  # the history index so long text is read from JSON, not from its capped
+  # row preview.
+  clipCopy = pkgs.writeShellApplication {
+    name = "clipboard-copy";
+    runtimeInputs = [ pkgs.coreutils pkgs.jq pkgs.wl-clipboard ];
+    text = ''
+      set -euo pipefail
+      idx="''${1:-}"
+      [[ $idx =~ ^[0-9]+$ ]] || {
+        echo "usage: clipboard-copy <history-index>" >&2
+        exit 2
+      }
+      hist="$HOME/.local/state/quickshell/clipboard/history.json"
+      [ -f "$hist" ] || exit 1
+
+      kind=$(jq -r --argjson i "$idx" '.[$i].type // empty' "$hist")
+      case "$kind" in
+        text)
+          jq -j --argjson i "$idx" '.[$i].text // ""' "$hist" | wl-copy
+          ;;
+        image)
+          mime=$(jq -r --argjson i "$idx" '.[$i].mime // "image/png"' "$hist")
+          path=$(jq -r --argjson i "$idx" '.[$i].path // empty' "$hist")
+          [ -n "$path" ] && [ -f "$path" ] || exit 1
+          wl-copy --type "$mime" < "$path"
+          ;;
+        *) exit 1 ;;
+      esac
+    '';
+  };
+
   lastShot = pkgs.writeShellApplication {
     name = "last-shot";
     runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.wl-clipboard pkgs.libnotify ];
@@ -127,6 +159,7 @@ in
     lastShot
     shotPath
     clipCapture
+    clipCopy
   ];
 
   # Два watcher'а: текст и PNG. Пишут в ~/.local/state/quickshell/clipboard.

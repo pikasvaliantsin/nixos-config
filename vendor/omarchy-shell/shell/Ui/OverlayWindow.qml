@@ -16,7 +16,13 @@ PanelWindow {
   property int shownKeyboardFocus: WlrKeyboardFocus.Exclusive
 
   property var targetScreen: null
+  // The omarchy shell normally runs on Hyprland; on niri there is no
+  // Hyprland monitor model, so the overlay must pick a Quickshell screen and
+  // skip the Hyprland scale check instead of staying invisible.
+  readonly property bool niriActive: Commons.Niri.active
+  readonly property bool hyprlandActive: !niriActive && Quickshell.env("HYPRLAND_INSTANCE_SIGNATURE") !== ""
   readonly property var targetMonitor: {
+    if (!hyprlandActive) return null
     var monitors = Hyprland.monitors.values
     for (var i = 0; i < monitors.length; i++) {
       if (targetScreen && monitors[i].name === targetScreen.name) return monitors[i]
@@ -29,7 +35,8 @@ PanelWindow {
   // compare in those units to tolerate floating point rounding.
   readonly property bool contentReady: shown && backingWindowVisible && !!targetScreen
     && width === targetScreen.width && height === targetScreen.height
-    && !!targetMonitor && Math.round(devicePixelRatio * 120) === Math.round(targetMonitor.scale * 120)
+    && (!hyprlandActive || (!!targetMonitor
+      && Math.round(devicePixelRatio * 120) === Math.round(targetMonitor.scale * 120)))
   property bool contentRevealed: false
 
   onContentReadyChanged: {
@@ -42,10 +49,16 @@ PanelWindow {
   }
 
   function focusedScreen() {
-    var monitor = Hyprland.focusedMonitor
-    var name = monitor ? String(monitor.name || "") : ""
-    for (var i = 0; i < Quickshell.screens.length; i++) {
-      if (Quickshell.screens[i].name === name) return Quickshell.screens[i]
+    if (hyprlandActive) {
+      var monitor = Hyprland.focusedMonitor
+      var name = monitor ? String(monitor.name || "") : ""
+      for (var i = 0; i < Quickshell.screens.length; i++) {
+        if (Quickshell.screens[i].name === name) return Quickshell.screens[i]
+      }
+    } else if (Commons.Niri.focusedOutput) {
+      for (var j = 0; j < Quickshell.screens.length; j++) {
+        if (Quickshell.screens[j].name === Commons.Niri.focusedOutput) return Quickshell.screens[j]
+      }
     }
     return Quickshell.screens.length > 0 ? Quickshell.screens[0] : null
   }
@@ -54,9 +67,9 @@ PanelWindow {
   // scale can lag behind Qt. Refresh on opening and on scale changes while open.
   onShownChanged: {
     targetScreen = shown ? focusedScreen() : null
-    if (shown) Hyprland.refreshMonitors()
+    if (shown && hyprlandActive) Hyprland.refreshMonitors()
   }
-  onDevicePixelRatioChanged: if (shown) Hyprland.refreshMonitors()
+  onDevicePixelRatioChanged: if (shown && hyprlandActive) Hyprland.refreshMonitors()
 
   Connections {
     target: Quickshell
@@ -72,7 +85,7 @@ PanelWindow {
     }
   }
 
-  visible: shown && !!targetScreen && !!targetMonitor
+  visible: shown && !!targetScreen && (!hyprlandActive || !!targetMonitor)
   screen: targetScreen
   anchors { top: true; left: true; bottom: true; right: true }
   color: "transparent"

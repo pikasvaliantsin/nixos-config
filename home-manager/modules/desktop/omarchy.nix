@@ -8,9 +8,24 @@ let
 
   omarchy = pkgs.callPackage ../../../pkgs/omarchy-shell { };
   omarchySpeedtest = pkgs.callPackage ../../../pkgs/omarchy-speedtest { };
-  omarchyIpc = pkgs.writeShellScriptBin "omarchy-ipc" ''
-    exec ${pkgs.quickshell}/bin/quickshell ipc -p "${omarchy}/share/omarchy/shell" "$@"
-  '';
+  omarchyIpc = pkgs.writeShellApplication {
+    name = "omarchy-ipc";
+    runtimeInputs = [ pkgs.quickshell pkgs.procps pkgs.coreutils pkgs.gawk ];
+    text = ''
+      # Prefer the config path of the actually running shell: a manual/preview
+      # instance and the deployed generation can point at different stores.
+      shell_cfg=""
+      while IFS= read -r pid; do
+        cfg=$(tr '\0' '\n' <"/proc/$pid/cmdline" 2>/dev/null | awk 'prev=="-p" { print; exit } { prev=$0 }')
+        if [ -n "$cfg" ] && quickshell ipc -p "$cfg" call shell ping >/dev/null 2>&1; then
+          shell_cfg="$cfg"
+          break
+        fi
+      done < <(pgrep -f 'quickshell -p .*omarchy/shell' 2>/dev/null || true)
+      [ -n "$shell_cfg" ] || shell_cfg=${pkgs.lib.escapeShellArg "${omarchy}/share/omarchy/shell"}
+      exec quickshell ipc -p "$shell_cfg" "$@"
+    '';
+  };
 
   confDir = "${dotfilesRoot}/home-manager/modules/desktop/omarchy";
   stateDir = "${config.home.homeDirectory}/.local/state/omarchy";
