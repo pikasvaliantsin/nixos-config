@@ -5,7 +5,9 @@
   programs.ghostty = {
     enable = true;
     settings = {
-      background-opacity = 0.7;
+      # Solid background: 0.7 over a colorful wallpaper washed out text and
+      # made focused/unfocused windows hard to tell apart.
+      background-opacity = 1.0;
       window-decoration = true;
       font-family = "JetBrains Mono";
       font-size = 12;

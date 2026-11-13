@@ -57,7 +57,7 @@ layout {
     }
 
     border {
-        width 0
+        width 2
     }
 
     focus-ring {

@@ -204,29 +204,39 @@ let
       fi
 
       if [ ! -f "$out/niri.kdl" ]; then
+        # Inactive borders stay visible but recede, like Omarchy's
+        # rgba(595959aa) on Hyprland.
+        inactive_color="''${muted}aa"
         cat >"$out/niri.kdl" <<EOF
       layout {
           background-color "transparent"
           focus-ring {
               active-color "$accent"
-              inactive-color "$muted"
+              inactive-color "$inactive_color"
               urgent-color "$red"
           }
           border {
               active-color "$accent"
-              inactive-color "$muted"
+              inactive-color "$inactive_color"
               urgent-color "$red"
           }
-          shadow { color "#00000070" }
+          shadow {
+              color "#00000070"
+          }
           tab-indicator {
               active-color "$accent"
               inactive-color "$muted"
               urgent-color "$red"
           }
-          insert-hint { color "''${accent}80" }
+          insert-hint {
+              color "''${accent}80"
+          }
       }
       recent-windows {
-          highlight { active-color "$blue"; urgent-color "$red" }
+          highlight {
+              active-color "$blue"
+              urgent-color "$red"
+          }
       }
       EOF
       fi
@@ -317,6 +327,7 @@ let
       if [ ! -f "$out/ghostty.conf" ]; then
         cat >"$out/ghostty.conf" <<EOF
       background = $bg
+      background-opacity = 1.0
       foreground = $fg
       cursor-color = $accent
       cursor-text = $bg
