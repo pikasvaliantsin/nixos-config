@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 
-// Прозрачный слой на весь экран: клик мимо панели закрывает её.
+// Прозрачный слой: клик мимо панели закрывает её.
 PanelWindow {
     id: root
 
@@ -17,7 +17,7 @@ PanelWindow {
     }
     color: "transparent"
     exclusiveZone: 0
-    visible: Ui.trayOpen || Ui.notifOpen || Clip.open
+    visible: Ui.notifOpen || Clip.open
 
     WlrLayershell.layer: WlrLayer.Top
     WlrLayershell.namespace: "quickshell-dismiss"
@@ -26,7 +26,6 @@ PanelWindow {
     MouseArea {
         anchors.fill: parent
         onClicked: {
-            Ui.trayOpen = false;
             Ui.notifOpen = false;
             Clip.open = false;
         }

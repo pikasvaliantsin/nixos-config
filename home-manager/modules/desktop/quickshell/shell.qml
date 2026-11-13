@@ -1,4 +1,3 @@
-//@ pragma UseQApplication
 import QtQuick
 import Quickshell
 
@@ -13,5 +12,4 @@ ShellRoot {
     DismissLayer {}
     NotificationPanel {}
     ClipboardPanel {}
-    TrayDrawer {}
 }

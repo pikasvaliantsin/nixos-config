@@ -592,21 +592,68 @@ PanelWindow {
 
     Component {
         id: trayComp
-        Item {
-            visible: Tray.all.length > 0
-            width: 18
-            height: bar.height
+        Row {
+            spacing: 7
 
-            Icon {
-                anchors.centerIn: parent
-                glyph: Tray.icon
-                color: Ui.trayOpen ? Theme.primary : Theme.fgMuted
-                size: 12
+            Repeater {
+                model: Ui.trayExpanded ? Tray.all : []
+                delegate: Item {
+                    id: trayItem
+                    required property var modelData
+                    width: 16
+                    height: 16
+
+                    Image {
+                        anchors.fill: parent
+                        sourceSize.width: 16
+                        sourceSize.height: 16
+                        source: trayItem.modelData.icon
+                    }
+
+                    QsMenuAnchor {
+                        id: trayMenu
+                        menu: trayItem.modelData.menu
+                        anchor.item: trayItem
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
+                        onClicked: (mouse) => {
+                            if (mouse.button === Qt.MiddleButton) {
+                                trayItem.modelData.secondaryActivate();
+                            } else if (trayItem.modelData.hasMenu) {
+                                trayMenu.open();
+                            } else if (mouse.button === Qt.LeftButton) {
+                                trayItem.modelData.activate();
+                            } else {
+                                trayItem.modelData.secondaryActivate();
+                            }
+                        }
+                    }
+                }
             }
 
-            MouseArea {
-                anchors.fill: parent
-                onClicked: Ui.toggleTray()
+            Item {
+                visible: Tray.all.length > 0
+                width: 18
+                height: bar.height
+
+                Icon {
+                    anchors.centerIn: parent
+                    glyph: Ui.trayExpanded ? "\uf053" : Tray.icon
+                    color: Ui.trayExpanded ? Theme.primary : Theme.fgMuted
+                    size: 11
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.LeftButton | Qt.RightButton
+                    onClicked: (mouse) => {
+                        if (mouse.button === Qt.RightButton) Tray.cycleIcon();
+                        else Ui.trayExpanded = !Ui.trayExpanded;
+                    }
+                }
             }
         }
     }

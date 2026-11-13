@@ -4,44 +4,26 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.SystemTray
 
-// Состояние трея: какие приложения скрыты.
+// Трей: иконки показываются прямо в баре, состояние разворота — в Ui.
 Singleton {
     id: root
 
-    property var hidden: []
+    readonly property var all: SystemTray.items.values
+    readonly property var icons: ["\uf054", "\uf078", "\uf141", "\uf00a", "\uf466", "\uf0c9"]
+
     property string icon: "\uf054"
 
-    readonly property var all: SystemTray.items.values
-    readonly property var visible: all.filter(item => !root.isHidden(item.id))
-    readonly property var ignored: all.filter(item => root.isHidden(item.id))
-
-    function isHidden(id) {
-        return root.hidden.indexOf(String(id)) >= 0;
-    }
-
-    function toggleHidden(id) {
-        const key = String(id);
-        const next = root.hidden.slice();
-        const at = next.indexOf(key);
-        if (at >= 0) next.splice(at, 1);
-        else next.push(key);
-        root.hidden = next;
-        store.hidden = next;
+    function cycleIcon() {
+        const at = root.icons.indexOf(root.icon);
+        const next = root.icons[(at + 1) % root.icons.length];
+        root.icon = next;
+        store.icon = next;
     }
 
     function rebuild() {
-        const raw = store.hidden;
-        const arr = [];
-        if (raw) {
-            for (let i = 0; i < raw.length; i++) arr.push(String(raw[i]));
-        }
-        root.hidden = arr;
-        root.icon = store.icon && String(store.icon).length > 0 ? String(store.icon) : "\uf054";
-    }
-
-    function setIcon(glyph) {
-        root.icon = glyph;
-        store.icon = glyph;
+        root.icon = store.icon && String(store.icon).length > 0
+            ? String(store.icon)
+            : "\uf054";
     }
 
     FileView {
@@ -50,12 +32,10 @@ Singleton {
         watchChanges: true
         onFileChanged: reload()
         onLoaded: root.rebuild()
-        onLoadFailed: root.hidden = []
-        onAdapterUpdated: writeAdapter()
+        onLoadFailed: root.icon = "\uf054"
 
         JsonAdapter {
             id: store
-            property list<string> hidden: []
             property string icon: "\uf054"
         }
     }

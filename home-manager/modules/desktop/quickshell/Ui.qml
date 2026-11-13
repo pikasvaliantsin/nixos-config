@@ -1,15 +1,19 @@
 pragma Singleton
 import QtQuick
 import Quickshell
+import Quickshell.Io
 
-// Общий UI-стейт бара: свёрнутый трей и т.п.
+// Общий UI-стейт бара.
 Singleton {
     id: root
 
-    property bool trayOpen: false
+    property bool trayExpanded: false
     property bool notifOpen: false
 
-    function toggleTray() {
-        root.trayOpen = !root.trayOpen;
+    IpcHandler {
+        target: "tray"
+        function toggle(): void { root.trayExpanded = !root.trayExpanded; }
+        function expand(): void { root.trayExpanded = true; }
+        function collapse(): void { root.trayExpanded = false; }
     }
 }

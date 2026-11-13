@@ -14,4 +14,3 @@ Icon 1.0 Icon.qml
 NotificationPanel 1.0 NotificationPanel.qml
 ClipboardPanel 1.0 ClipboardPanel.qml
 DismissLayer 1.0 DismissLayer.qml
-TrayDrawer 1.0 TrayDrawer.qml
