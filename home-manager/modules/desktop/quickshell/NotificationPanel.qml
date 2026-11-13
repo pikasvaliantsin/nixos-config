@@ -13,7 +13,7 @@ PanelWindow {
         right: true
     }
     margins {
-        top: Theme.barHeight + 6
+        top: Theme.barHeight + 2
         right: 8
     }
     implicitWidth: 360

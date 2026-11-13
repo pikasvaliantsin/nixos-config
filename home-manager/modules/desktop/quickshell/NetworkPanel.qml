@@ -14,7 +14,7 @@ PanelWindow {
         right: true
     }
     margins {
-        top: Theme.barHeight + 6
+        top: Theme.barHeight + 2
         right: 8
     }
     implicitWidth: 400
@@ -146,13 +146,6 @@ PanelWindow {
             }
         }
 
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: Theme.outline
-            opacity: 0.4
-        }
-
         // --- Wi-Fi сети --------------------------------------------------
         ListView {
             Layout.fillWidth: true
@@ -260,7 +253,7 @@ PanelWindow {
             height: 1
             color: Theme.outline
             opacity: 0.4
-            visible: Net.vpn.length > 0
+            visible: Net.vpn.length > 0 && Net.wifiEnabled && Net.wifiNetworks.length > 0
         }
 
         RowLayout {
