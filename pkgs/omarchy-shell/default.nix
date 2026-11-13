@@ -34,6 +34,7 @@
   glib,
   brightnessctl,
   systemd,
+  wlsunset,
   niri,
 }:
 
@@ -70,6 +71,7 @@ let
     glib
     brightnessctl
     systemd
+    wlsunset
     niri
     quickshell
   ];

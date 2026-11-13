@@ -19,6 +19,7 @@ _:
     ./system/gaming.nix
     ./system/nix.nix
     ./system/nix-cache.nix
+    ./system/omarchy-sudo.nix
     ./system/users.nix
     ./system/packages.nix
 

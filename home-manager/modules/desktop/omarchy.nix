@@ -37,6 +37,7 @@ in
     wireplumber
     glib
     brightnessctl
+    wlsunset
   ];
 
   # The shell reads ~/.config/omarchy/shell.json first; without it, the

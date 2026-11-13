@@ -5,3 +5,6 @@ NotificationCenter 1.0 NotificationCenter.qml
 NotificationDismiss 1.0 NotificationDismiss.qml
 CaptureMenu 1.0 CaptureMenu.qml
 singleton Idle 1.0 Idle.qml
+singleton NightLight 1.0 NightLight.qml
+ReminderMenu 1.0 ReminderMenu.qml
+singleton Reminders 1.0 Reminders.qml

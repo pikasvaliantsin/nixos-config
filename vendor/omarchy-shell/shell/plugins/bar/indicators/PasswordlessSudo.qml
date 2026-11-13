@@ -31,9 +31,15 @@ BarIndicator {
   onBarChanged: refresh()
   Component.onCompleted: refresh()
 
-  // No polling: each probe is a hardened script plus sudo calls that can log.
-  // omarchy-sudo-passwordless refreshes omarchy.indicators on enable, disable
-  // and expiry instead.
+  // The state marker is a plain file under /run/user, so polling it is cheap.
+  // It lets the button notice a grant started from the terminal.
+  Timer {
+    interval: 2000
+    running: true
+    repeat: true
+    onTriggered: root.refresh()
+  }
+
   Connections {
     target: root.indicatorHost
     ignoreUnknownSignals: true
@@ -62,7 +68,12 @@ BarIndicator {
 
   onPressed: function() {
     if (!root.bar || disableProc.running) return
-    if (root.granted) disableProc.running = true
-    else root.bar.run("omarchy-launch-floating-terminal-with-presentation omarchy-sudo-passwordless")
+    if (root.granted) {
+      disableProc.running = true
+    } else {
+      // Enabling needs one interactive sudo password. Run it in a terminal,
+      // not through the shell process, so sudo has a TTY.
+      Util.execArgv(["ghostty", "-e", "sudo", "omarchy-sudo-passwordless", "15"])
+    }
   }
 }
