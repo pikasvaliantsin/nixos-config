@@ -1,0 +1,10 @@
+{
+  "twitch": {
+    "name": "Twitch",
+    "url": "https://twitch.tv"
+  },
+  "discord": {
+    "name": "Discord",
+    "url": "https://discord.com/"
+  }
+}

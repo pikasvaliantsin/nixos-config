@@ -15,6 +15,8 @@ in
     ./gtk.nix
     ./portals.nix
     ./udiskie.nix
+    ./webapps.nix
+    ./webapps-tui.nix
     ../dms/dms.nix
     inputs.dux-files.homeModules.dux-files
   ];

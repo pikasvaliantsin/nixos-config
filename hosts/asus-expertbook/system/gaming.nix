@@ -146,6 +146,8 @@ in
       # как "Sunshine (libvirtualhid) X-Box Series Controller" — от этого имени
       # зависит preset input-remapper.
       gamepad = "xseries";
+      csrf_allowed_origins = "https://169.58.98.9:47990";
+      origin_web_ui_allowed = "wan";
     };
 
     applications = {
