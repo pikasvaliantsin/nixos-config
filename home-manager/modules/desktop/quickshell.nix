@@ -11,7 +11,7 @@ in
     cliphist
     swayosd
     gtklock
-    swww
+    awww
     waypaper
     satty
     btop

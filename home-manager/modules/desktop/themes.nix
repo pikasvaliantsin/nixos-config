@@ -18,6 +18,9 @@ let
   themesDir = "${dotfilesRoot}/home-manager/modules/desktop/themes";
   stateDir = "${config.home.homeDirectory}/.local/state/theme";
   current = "${stateDir}/current";
+  # Niri резолвит include относительно каталога конфига. Конфиг — симлинк
+  # в репозиторий, поэтому theme.kdl нужен в обоих местах.
+  repoThemeLink = "${dotfilesRoot}/home-manager/modules/niri/theme.kdl";
 
   # Список тем берём из flake-дерева (доступно в pure eval), а пути для
   # рантайма остаются строками в репозитории, чтобы theme-set мог
@@ -30,7 +33,7 @@ let
 
   themeSet = pkgs.writeShellApplication {
     name = "theme-set";
-    runtimeInputs = [ pkgs.coreutils pkgs.swww pkgs.quickshell ];
+    runtimeInputs = [ pkgs.coreutils pkgs.awww pkgs.quickshell pkgs.procps pkgs.findutils ];
     text = ''
       set -eu
       themes_dir=${lib.escapeShellArg themesDir}
@@ -48,14 +51,15 @@ let
 
       mkdir -p "$state_dir"
       ln -sfn "$themes_dir/$theme" "$state_dir/current"
+      ln -sfn "$state_dir/current/niri.kdl" ${lib.escapeShellArg repoThemeLink}
 
       bg=$(find "$themes_dir/$theme/wallpapers" -maxdepth 1 -type f 2>/dev/null | sort | head -n1 || true)
       if [ -n "''${bg:-}" ]; then
-        if ! pgrep -x swww-daemon >/dev/null 2>&1; then
-          swww-daemon --format xrgb >/dev/null 2>&1 &
+        if ! pgrep -x awww-daemon >/dev/null 2>&1; then
+          awww-daemon --format xrgb >/dev/null 2>&1 &
           sleep 0.5
         fi
-        swww img "$bg" --transition-type random --transition-duration 0.8 >/dev/null 2>&1 || true
+        awww img "$bg" --transition-type random --transition-duration 0.8 >/dev/null 2>&1 || true
       fi
 
       quickshell ipc call theme reload >/dev/null 2>&1 || true
@@ -65,7 +69,7 @@ let
 
   bgCycle = pkgs.writeShellApplication {
     name = "bg-cycle";
-    runtimeInputs = [ pkgs.coreutils pkgs.swww pkgs.findutils ];
+    runtimeInputs = [ pkgs.coreutils pkgs.awww pkgs.findutils ];
     text = ''
       set -eu
       step="''${1:-next}"
@@ -81,11 +85,11 @@ let
       if [ "$step" = "prev" ]; then idx=$(( (idx - 1 + ''${#files[@]}) % ''${#files[@]} )); else idx=$(( (idx + 1) % ''${#files[@]} )); fi
       echo "$idx" > "$idx_file"
 
-      if ! pgrep -x swww-daemon >/dev/null 2>&1; then
-        swww-daemon --format xrgb >/dev/null 2>&1 &
+      if ! pgrep -x awww-daemon >/dev/null 2>&1; then
+        awww-daemon --format xrgb >/dev/null 2>&1 &
         sleep 0.5
       fi
-      swww img "''${files[$idx]}" --transition-type random --transition-duration 0.8
+      awww img "''${files[$idx]}" --transition-type random --transition-duration 0.8
     '';
   };
 
@@ -121,7 +125,7 @@ in
       bgCycle
       bgNext
       bgPrev
-      pkgs.swww
+      pkgs.awww
       pkgs.waypaper
     ];
 
@@ -143,6 +147,7 @@ in
       if [ ! -e ${lib.escapeShellArg current} ]; then
         run ln -sfn ${lib.escapeShellArg "${themesDir}/${cfg.name}"} ${lib.escapeShellArg current}
       fi
+      run ln -sfn ${lib.escapeShellArg "${current}/niri.kdl"} ${lib.escapeShellArg repoThemeLink}
     '';
 
     xdg.configFile."btop/btop.conf".text = ''
@@ -159,7 +164,7 @@ in
       [Settings]
       language = en
       folder = ${config.home.homeDirectory}/Pictures/Wallpapers
-      backend = swww
+      backend = awww
       monitors = All
       fill = fill
       sort = name
@@ -178,7 +183,7 @@ in
         After = [ "graphical-session.target" ];
       };
       Service = {
-        ExecStart = "${pkgs.swww}/bin/swww-daemon --format xrgb";
+        ExecStart = "${pkgs.awww}/bin/awww-daemon --format xrgb";
         Restart = "on-failure";
         RestartSec = 2;
       };

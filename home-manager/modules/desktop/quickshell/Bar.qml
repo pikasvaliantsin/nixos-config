@@ -220,28 +220,40 @@ PanelWindow {
     // --- компоненты модулей ----------------------------------------------
     Component {
         id: clockComp
-        Row {
-            spacing: 6
-            property string now: Qt.formatDateTime(new Date(), "HH:mm")
-            Text {
-                text: parent.now
-                color: Theme.fg
-                font.family: Theme.font
-                font.pixelSize: 12
-                font.bold: true
+        Item {
+            implicitWidth: clockRow.implicitWidth
+            implicitHeight: clockRow.implicitHeight
+
+            Row {
+                id: clockRow
+                anchors.centerIn: parent
+                spacing: 6
+                property string now: Qt.formatDateTime(new Date(), "HH:mm")
+                Text {
+                    text: clockRow.now
+                    color: Theme.fg
+                    font.family: Theme.font
+                    font.pixelSize: 12
+                    font.bold: true
+                }
+                Text {
+                    text: Niri.layoutShort
+                    color: Theme.fgMuted
+                    font.family: Theme.font
+                    font.pixelSize: 11
+                    visible: Niri.layoutShort.length > 0
+                }
+                Timer {
+                    interval: 1000
+                    repeat: true
+                    running: true
+                    onTriggered: clockRow.now = Qt.formatDateTime(new Date(), "HH:mm")
+                }
             }
-            Text {
-                text: Niri.layoutShort
-                color: Theme.fgMuted
-                font.family: Theme.font
-                font.pixelSize: 11
-                visible: Niri.layoutShort.length > 0
-            }
-            Timer {
-                interval: 1000
-                repeat: true
-                running: true
-                onTriggered: parent.now = Qt.formatDateTime(new Date(), "HH:mm")
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: bar.spawn(["dcal"])
             }
         }
     }
