@@ -386,6 +386,9 @@ let
       # Keep app fragments on the stable current path.
       ln -sfn "$out" "$state_dir/current"
       ln -sfn "$state_dir/current/niri.kdl" ${lib.escapeShellArg repoThemeLink}
+      # Niri reloads when a watched file changes; replacing the theme symlink
+      # alone does not fire an inotify event, so bump the resolved target.
+      touch "$HOME/.config/niri/theme.kdl" 2>/dev/null || true
 
       if [ -d "$theme_path/backgrounds" ]; then
         rm -rf "$out/wallpapers"
