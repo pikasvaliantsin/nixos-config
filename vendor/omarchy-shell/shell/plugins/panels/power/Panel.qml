@@ -464,11 +464,16 @@ Panel {
         }
 
         // ---------- Power profile picker ----------
+        // Only power-profiles-daemon exposes profiles. This machine runs the
+        // static schedutil/platform_profile policy from services.nix, so the
+        // picker must disappear instead of showing an empty dead section.
         PanelSeparator {
+          visible: root.profiles.length > 0
           foreground: root.bar.foreground
         }
 
         Column {
+          visible: root.profiles.length > 0
           width: parent.width
           spacing: Style.space(10)
 

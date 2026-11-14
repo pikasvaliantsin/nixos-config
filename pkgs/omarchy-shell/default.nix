@@ -18,7 +18,6 @@
   iw,
   networkmanager,
   bluez,
-  power-profiles-daemon,
   upower,
   libnotify,
   curl,
@@ -56,7 +55,6 @@ let
     iw
     networkmanager
     bluez
-    power-profiles-daemon
     upower
     libnotify
     curl

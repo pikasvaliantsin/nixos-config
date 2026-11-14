@@ -38,7 +38,6 @@ in
     networkmanager
     bluez
     upower
-    power-profiles-daemon
     iw
     jq
     iproute2
