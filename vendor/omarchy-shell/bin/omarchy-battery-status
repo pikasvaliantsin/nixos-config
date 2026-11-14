@@ -26,12 +26,21 @@ format_duration() {
   local minutes=$1
   if [[ -z $minutes ]] || (( minutes <= 0 )); then
     return
+  fi
+  if command -v omarchy-i18n >/dev/null 2>&1; then
+    if (( minutes < 60 )); then
+      omarchy-i18n battery.durationMinutes "$minutes"
+    elif (( minutes % 60 == 0 )); then
+      omarchy-i18n battery.durationHours "$(( minutes / 60 ))"
+    else
+      omarchy-i18n battery.durationHoursMinutes "$(( minutes / 60 ))" "$(( minutes % 60 ))"
+    fi
   elif (( minutes < 60 )); then
-    omarchy-i18n battery.durationMinutes "$minutes"
+    printf '%dm' "$minutes"
   elif (( minutes % 60 == 0 )); then
-    omarchy-i18n battery.durationHours "$(( minutes / 60 ))"
+    printf '%dh' "$(( minutes / 60 ))"
   else
-    omarchy-i18n battery.durationHoursMinutes "$(( minutes / 60 ))" "$(( minutes % 60 ))"
+    printf '%dh %02dm' "$(( minutes / 60 ))" "$(( minutes % 60 ))"
   fi
 }
 
@@ -88,14 +97,32 @@ power_rate=$(awk -v rate="${power_rate_raw:-0}" 'BEGIN {
   sub(/\.0$/, "", rounded)
   print rounded
 }')
+
+# Real health is the current full charge against the design charge. UPower's
+# "capacity" is the same ratio, but prefer the battery's own sysfs numbers when
+# they exist so a stale UPower cache cannot report the old value.
+health=""
+if full=$(read_sysfs_number "$battery_path/charge_full") \
+   && design=$(read_sysfs_number "$battery_path/charge_full_design") \
+   && (( design > 0 )); then
+  health=$(awk -v full="$full" -v design="$design" 'BEGIN { printf "%.0f%%", full * 100 / design }')
+elif full=$(read_sysfs_number "$battery_path/energy_full") \
+     && design=$(read_sysfs_number "$battery_path/energy_full_design") \
+     && (( design > 0 )); then
+  health=$(awk -v full="$full" -v design="$design" 'BEGIN { printf "%.0f%%", full * 100 / design }')
+else
+  health=$(awk '/^ *capacity:/ { gsub(/%/, "", $2); if ($2 ~ /^[0-9.]+$/) printf "%.0f%%", $2; exit }' <<<"$battery_info")
+fi
+
 state=$(awk '/state/ { print $2; exit }' <<<"$battery_info")
 threshold_start=$(awk '/charge-start-threshold:/ { gsub(/%/, "", $2); print int($2); exit }' <<<"$battery_info")
 threshold_end=$(awk '/charge-end-threshold:/ { gsub(/%/, "", $2); print int($2); exit }' <<<"$battery_info")
 
-# Read the thresholds from the battery UPower resolved rather than a BAT* glob,
-# which misses every battery with another name.
-[[ -n $threshold_end || ! -r $battery_path/charge_control_end_threshold ]] || threshold_end=$(<"$battery_path/charge_control_end_threshold")
-[[ -n $threshold_start || ! -r $battery_path/charge_control_start_threshold ]] || threshold_start=$(<"$battery_path/charge_control_start_threshold")
+# The sysfs value is the kernel's live setting; UPower can keep an old threshold
+# cached after a udev/ACPI change. Read sysfs first and use UPower only as a
+# fallback, then check other BAT* entries for kernels that expose it elsewhere.
+[[ ! -r $battery_path/charge_control_end_threshold ]] || threshold_end=$(<"$battery_path/charge_control_end_threshold")
+[[ ! -r $battery_path/charge_control_start_threshold ]] || threshold_start=$(<"$battery_path/charge_control_start_threshold")
 # The time to full counts to this battery's own limit, never another one's.
 charge_limit=${threshold_end:-100}
 [[ -n $threshold_end ]] || threshold_end=$(cat "$power_supply_path"/BAT*/charge_control_end_threshold 2>/dev/null | head -1)
@@ -155,16 +182,12 @@ if [[ $shell_output == "true" ]]; then
   fi
   printf 'rate\t%s\n' "${power_rate}W"
   printf 'size\t%s\n' "${capacity}Wh"
-  printf 'time\t%s\n' "$time_remaining"
-
-  cycles=""
-  [[ ! -r $battery_path/cycle_count ]] || cycles=$(<"$battery_path/cycle_count")
-  [[ -n $cycles ]] || cycles=$(cat "$power_supply_path"/BAT*/cycle_count 2>/dev/null | head -1)
-
-  [[ -n $cycles ]] && printf 'cycles\t%s\n' "$cycles"
+  [[ -n $health ]] && printf 'health\t%s\n' "$health"
+  [[ -n $minutes_remaining ]] && printf 'minutes\t%s\n' "$minutes_remaining"
+  [[ -n $time_remaining ]] && printf 'time\t%s\n' "$time_remaining"
 
   if [[ -n $threshold_end ]]; then
-    if [[ -n $threshold_start && $threshold_start != $threshold_end ]]; then
+    if [[ -n $threshold_start ]] && (( threshold_start < threshold_end )); then
       printf 'threshold\t%s-%s%%\n' "$threshold_start" "$threshold_end"
     else
       printf 'threshold\t%s%%\n' "$threshold_end"
@@ -189,7 +212,7 @@ fi
 parts=("$(omarchy-i18n battery.statusLabel "$percentage")")
 
 if [[ $charge_holding == "true" ]]; then
-  if [[ -n $threshold_start && $threshold_start != $threshold_end ]]; then
+  if [[ -n $threshold_start ]] && (( threshold_start < threshold_end )); then
     threshold_label="$(omarchy-i18n --number "$threshold_start")-$(omarchy-i18n --number "$threshold_end")%"
   else
     threshold_label="$(omarchy-i18n --number "$threshold_end")%"

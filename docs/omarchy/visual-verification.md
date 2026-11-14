@@ -122,6 +122,10 @@ components may be separate. Check the process list first.
 - The OSD is the upstream `omarchy.osd` panel, enabled in `shell.json`; the
   audio bar widget consumes the wheel so the bar's workspace scroller does not
   also fire.
+- Power panel: open `omarchy.power` and check the battery size, real health,
+  charge limit, time left/to full, state and power draw. Cycle count is not
+  shown: this battery reports `0` in sysfs and `N/A` in UPower, so there is no
+  real value to display.
 
 ## Themes and wallpapers
 
