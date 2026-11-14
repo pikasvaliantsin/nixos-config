@@ -45,11 +45,15 @@ Item {
 
   function evaluate() {
     var text = String(root.expression || "").replace(/^=/, "").trim()
-    root.result = ""
-    root.error = ""
     root.copied = false
     root.pendingOutput = ""
-    if (text.length === 0) return
+    if (text.length === 0) {
+      root.result = ""
+      root.error = ""
+      return
+    }
+    // Keep the previous result visible while qalc runs, so the card does not
+    // flicker back to the placeholder between keystrokes.
     calcProc.command = ["/etc/profiles/per-user/" + Quickshell.env("USER") + "/bin/qalc", "-t", text]
     calcProc.running = true
   }
@@ -88,6 +92,7 @@ Item {
         root.result = ""
       } else {
         root.result = value
+        root.error = ""
       }
     }
   }
@@ -154,11 +159,23 @@ Item {
           }
         }
 
+        FontMetrics {
+          id: resultMetrics
+          font.family: Style.font.family
+          font.pixelSize: Style.font.display
+        }
+
         Text {
           width: parent.width
-          visible: root.result.length > 0 || root.error.length > 0
-          text: root.error.length > 0 ? root.error : (root.result + (root.copied ? "  ✓" : ""))
+          // Always reserve two result lines: the card keeps one height from
+          // the moment it opens, whether the result is 0, 22 or a long number.
+          height: resultMetrics.height * 2
+          verticalAlignment: Text.AlignVCenter
+          text: root.error.length > 0
+            ? root.error
+            : (root.result.length > 0 ? root.result + (root.copied ? "  ✓" : "") : "0")
           color: root.error.length > 0 ? Commons.Color.urgent : Commons.Color.menu.text
+          opacity: root.error.length > 0 || root.result.length > 0 ? 1 : 0.45
           font.family: Style.font.family
           font.pixelSize: Style.font.display
           wrapMode: Text.Wrap
