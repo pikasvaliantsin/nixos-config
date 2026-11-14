@@ -48,6 +48,31 @@ Opening a submenu records the current cursor row. Going back with
 `Escape`/Left/Backspace returns to that row instead of resetting the
 selection to the first entry.
 
+### Pinning and hiding apps
+
+The Apps submenu keeps its own state under `~/.config/omarchy/`:
+
+- `launcher.pins` — pinned desktop IDs, one per line; line order is display
+  order;
+- `launcher.hides` — hidden desktop IDs, one per line.
+
+Pinned apps sit above the alphabetical list and carry a pin glyph.
+
+| Keys | Action |
+|---|---|
+| `Ctrl+P` | pin/unpin the selected app |
+| `Ctrl+Up` / `Ctrl+Down` | move a pinned app up/down (empty filter only) |
+| `Ctrl+H` | hide the selected app |
+
+Hiding a pinned app also removes its pin. Hidden apps disappear from Apps and
+from search. Restore them through `Mod+Escape` → System → **Hidden apps**;
+Enter puts the app back. Only apps hidden by the user appear there —
+`NoDisplay`/`Hidden` entries and the shipped `launcher.hides` are not
+restorable this way.
+
+Files are rewritten atomically and watched, so edits from an editor apply
+without restarting the shell. Pins for uninstalled apps are ignored.
+
 ## dsearch
 
 `programs.dsearch` is enabled in

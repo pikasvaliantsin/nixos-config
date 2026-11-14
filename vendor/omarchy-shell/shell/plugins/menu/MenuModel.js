@@ -398,6 +398,8 @@ function displayRow(items, itemOrder, checkedResults, disabledResults, entry, de
     iconFont: entry.iconFont || "",
     appIcon: entry.appIcon || "",
     appId: entry.appId || "",
+    pinned: entry.pinned === true,
+    pinOrder: Number(entry.pinOrder || 0),
     label: labelFor(entry, checkedResults, disabledResults),
     target: target,
     detail: detail || "",

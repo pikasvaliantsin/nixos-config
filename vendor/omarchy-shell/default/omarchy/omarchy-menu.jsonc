@@ -69,5 +69,11 @@
     "icon": "󰐥",
     "label": "Shutdown",
     "action": "systemctl poweroff"
+  },
+  "system.hidden-apps": {
+    "icon": "\udb80\ude09",
+    "label": "Hidden apps",
+    "aliases": ["hidden", "restore apps"],
+    "provider": "hidden-apps"
   }
 }

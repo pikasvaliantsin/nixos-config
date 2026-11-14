@@ -327,6 +327,11 @@ Item {
       volatile: true,
       actionFor: function(value) { return "omarchy-font-set " + Util.shellQuote(value) }
     },
+    "hidden-apps": {
+      icon: "\udb80\ude09",
+      volatile: true,
+      actionFor: function(value) { return "" }
+    },
     "power-profiles": {
       script: "current=$(powerprofilesctl get 2>/dev/null); omarchy-powerprofiles-list 2>/dev/null | while read -r p; do [[ -z $p ]] && continue; printf '%s\\t%s\\t%s\\n' \"$p\" \"$p\" \"$current\"; done",
       icon: "\udb81\udc0b",
@@ -375,6 +380,7 @@ Item {
       var appId = String(entry.id || "")
       if (!appId) continue
       var subtext = root.appLibrary.entrySubtext(entry)
+      var pinnedRank = root.appLibrary.pinnedRankOf(entry)
       var aliases = subtext ? [subtext] : []
       try {
         if (entry.keywords && typeof entry.keywords.join === "function") aliases = aliases.concat(entry.keywords)
@@ -386,6 +392,8 @@ Item {
         icon: "",
         appIcon: String(entry.icon || ""),
         appId: appId,
+        pinned: pinnedRank >= 0,
+        pinOrder: pinnedRank >= 0 ? pinnedRank : 0,
         label: root.appLibrary.entryName(entry),
         title: "",
         target: "",
@@ -407,12 +415,107 @@ Item {
     if (root.opened) root.rebuildDisplay()
   }
 
+  // Hidden apps is a native provider like apps: rows come straight from
+  // AppLibrary so restoring one does not wait for a shell process.
+  function mergeHiddenRows(menuId) {
+    if (!root.appLibrary) return
+
+    var entries = root.appLibrary.hiddenEntries()
+    var providerRows = []
+    var takenIds = ({})
+    for (var i = 0; i < entries.length; i++) {
+      var entry = entries[i]
+      var appId = String(entry.id || "")
+      if (!appId) continue
+      var rowId = menuId + "." + root.slugify(appId)
+      while (takenIds[rowId]) rowId += "-"
+      takenIds[rowId] = true
+      var subtext = root.appLibrary.entrySubtext(entry)
+      providerRows.push({
+        id: rowId,
+        parent: menuId,
+        kind: "hidden-app",
+        icon: "",
+        appIcon: String(entry.icon || ""),
+        appId: appId,
+        label: root.appLibrary.entryName(entry),
+        title: "",
+        target: "",
+        description: "",
+        action: "",
+        provider: "",
+        aliases: subtext ? [subtext] : [],
+        searchTerms: [],
+        when: "",
+        checked: "",
+        disabled: "",
+        order: 0
+      })
+    }
+    var merged = MenuModel.swapProviderRows(root.items, root.itemOrder, menuId, providerRows)
+    root.items = merged.items
+    root.itemOrder = merged.itemOrder
+    if (root.opened) root.rebuildDisplay()
+  }
+
+  function selectedAppRow() {
+    if (!root.cursorActive || root.selectedIndex < 0 || root.selectedIndex >= displayModel.count) return null
+    var row = displayModel.get(root.selectedIndex)
+    return row && row.kind === "app" ? row : null
+  }
+
+  function focusRowById(itemId) {
+    for (var i = 0; i < displayModel.count; i++) {
+      if (String(displayModel.get(i).itemId) === String(itemId)) {
+        root.selectedIndex = i
+        root.cursorActive = true
+        root.revealCursor()
+        return
+      }
+    }
+    root.settleCursor()
+  }
+
+  function togglePinSelected() {
+    if (root.dmenuActive || root.activeMenu !== "apps" || !root.appLibrary) return
+    var row = root.selectedAppRow()
+    if (!row) return
+    var itemId = String(row.itemId)
+    root.appLibrary.togglePin(row.appId)
+    root.focusRowById(itemId)
+  }
+
+  function movePinSelected(delta) {
+    if (root.dmenuActive || root.activeMenu !== "apps" || !root.appLibrary) return
+    if (root.filterText.trim().length > 0) return
+    var row = root.selectedAppRow()
+    if (!row || !row.pinned) return
+    var itemId = String(row.itemId)
+    root.appLibrary.movePin(row.appId, delta)
+    root.focusRowById(itemId)
+  }
+
+  function hideSelected() {
+    if (root.dmenuActive || root.activeMenu !== "apps" || !root.appLibrary) return
+    var row = root.selectedAppRow()
+    if (!row) return
+    var index = root.selectedIndex
+    root.appLibrary.hideEntry(row.appId)
+    root.selectedIndex = Math.min(index, Math.max(0, displayModel.count - 1))
+    root.settleCursor()
+  }
+
   function startProviderForMenu(id) {
     var entry = root.item(id)
     if (!entry || !entry.provider || root.providersLoaded[id]) return
     if (entry.provider === "apps") {
       root.providersLoaded[id] = true
       root.mergeAppRows()
+      return
+    }
+    if (entry.provider === "hidden-apps") {
+      root.providersLoaded[id] = true
+      root.mergeHiddenRows(id)
       return
     }
     var spec = root.providers[entry.provider]
@@ -501,7 +604,7 @@ Item {
     if (!entry || !entry.provider || root.providersLoaded[id]) return
 
     // Native providers don't touch providerProc, so they never need to queue.
-    if (entry.provider === "apps") {
+    if (entry.provider === "apps" || entry.provider === "hidden-apps") {
       root.startProviderForMenu(id)
       return
     }
@@ -643,7 +746,7 @@ Item {
     if (root.dmenuMultiple && root.dmenuOnChange.length === 0) {
       displayModel.append({
         itemId: "dmenu.apply", disabled: false, kind: "dmenu", icon: "", iconFont: "",
-        appIcon: "", appId: "", label: Commons.I18n.t("common.apply"), target: "",
+        appIcon: "", appId: "", pinned: false, label: Commons.I18n.t("common.apply"), target: "",
         detail: Commons.I18n.tn("menu.selectedCount", root.dmenuSelected.length).arg(Commons.I18n.formatNumber(root.dmenuSelected.length)), path: "", childCount: 0,
         action: "", provider: "", score: -1, section: ""
       })
@@ -668,6 +771,7 @@ Item {
         iconFont: "",
         appIcon: "",
         appId: "",
+        pinned: false,
         label: label,
         target: "",
         detail: detail,
@@ -756,9 +860,15 @@ Item {
       }
 
       // DesktopEntries can reorder its values when an application starts.
-      // Keep the Apps menu alphabetical independently of provider refreshes.
+      // Keep pinned rows first, then the Apps menu alphabetical independently
+      // of provider refreshes.
       if (active === "apps") {
         rows.sort(function(a, b) {
+          var aPinned = a.pinned === true ? 0 : 1
+          var bPinned = b.pinned === true ? 0 : 1
+          if (aPinned !== bPinned) return aPinned - bPinned
+          if (aPinned === 0 && Number(a.pinOrder) !== Number(b.pinOrder))
+            return Number(a.pinOrder) - Number(b.pinOrder)
           var aLabel = String(a.label || "").toLowerCase()
           var bLabel = String(b.label || "").toLowerCase()
           if (aLabel < bLabel) return -1
@@ -900,6 +1010,12 @@ Item {
     var row = displayModel.get(index)
     if (row.kind === "menu" || row.kind === "link") {
       root.setActiveMenu(row.target || row.itemId, true, fromPointer)
+    } else if (row.kind === "hidden-app") {
+      if (root.appLibrary) {
+        root.appLibrary.unhideEntry(row.appId)
+        root.mergeHiddenRows(root.activeMenu)
+        root.settleCursor()
+      }
     } else if (row.kind === "app") {
       var appId = row.appId
       var label = row.label
@@ -1341,6 +1457,21 @@ Item {
             return
           }
 
+          if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_P) {
+            root.togglePinSelected()
+            event.accepted = true
+            return
+          } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_H) {
+            root.hideSelected()
+            event.accepted = true
+            return
+          } else if ((event.modifiers & Qt.ControlModifier)
+                     && (event.key === Qt.Key_Up || event.key === Qt.Key_Down)) {
+            root.movePinSelected(event.key === Qt.Key_Up ? -1 : 1)
+            event.accepted = true
+            return
+          }
+
           if (event.key === Qt.Key_Delete) {
             root.requestDeleteSelected()
             event.accepted = true
@@ -1497,6 +1628,7 @@ Item {
               required property string action
               required property int childCount
               required property bool disabled
+              required property bool pinned
 
               readonly property bool hasCursor: root.cursorActive && row.index === root.selectedIndex
               readonly property bool isApp: row.kind === "app"
@@ -1592,11 +1724,22 @@ Item {
 
               Row {
                 id: trail
-                width: Style.space(14)
+                width: row.pinned === true ? Style.space(32) : Style.space(14)
                 anchors.right: parent.right
                 anchors.rightMargin: root.rowReservedBorderRight + Style.space(8)
                 y: contentColumn.y + labelText.y + (labelText.height - height) / 2
                 spacing: 0
+
+                Text {
+                  textFormat: Text.PlainText
+                  visible: row.pinned === true
+                  text: "\udb81\udc03"
+                  color: row.hasCursor ? root.selectedText : root.foreground
+                  opacity: 0.65
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.bodySmall
+                  anchors.verticalCenter: parent.verticalCenter
+                }
 
                 Text {
                   textFormat: Text.PlainText

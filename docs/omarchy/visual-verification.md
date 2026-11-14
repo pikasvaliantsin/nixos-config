@@ -126,6 +126,12 @@ components may be separate. Check the process list first.
   the root menu, `Mod+Shift+D` opens the dsearch file finder and `Mod+Shift+C`
   opens the calculator. In the menu, walk the cursor into a submenu and go
   back: the row must stay selected. Check Walker/Elephant are inactive.
+- Apps state: pin two apps with `Ctrl+P`, reorder them with `Ctrl+Up/Down`,
+  restart the shell and confirm the order survives. Hide one with `Ctrl+H`,
+  then restore it from `System → Hidden apps`. A hidden pinned app must lose
+  its pin.
+- Calculator: the card shows `0` and keeps the same height from opening until
+  a result arrives.
 - Power panel: open `omarchy.power` and check the battery size, real health,
   charge limit, time left/to full, state and power draw. Cycle count is not
   shown: this battery reports `0` in sysfs and `N/A` in UPower, so there is no

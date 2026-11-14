@@ -16,6 +16,15 @@ Item {
   property var configuredHiddenEntryIds: ({})
   property var desktopHiddenEntryIds: ({})
 
+  // User-owned launcher state. The shipped launcher.hides in the package is
+  // read-only, so runtime hide/pin choices live under the user's config.
+  readonly property string configDir: Quickshell.env("XDG_CONFIG_HOME") || (Quickshell.env("HOME") + "/.config")
+  readonly property string userHidesPath: root.configDir + "/omarchy/launcher.hides"
+  readonly property string pinsPath: root.configDir + "/omarchy/launcher.pins"
+  property var userHiddenEntryIds: ({})
+  property var pinnedEntryIds: []
+  property var pinnedRank: ({})
+
   // Maps an icon name to a file on disk (e.g. "omacut" -> ".../apps/omacut.svg").
   // Used as a fallback for icons that Qt's themed lookup misses because they were
   // installed after this process started (its icon cache never re-scans). Refreshed
@@ -45,8 +54,151 @@ Item {
   }
 
   function isHiddenEntry(entry) {
-    var id = String((entry && entry.id) || "")
-    return root.configuredHiddenEntryIds[id] === true || root.desktopHiddenEntryIds[id] === true
+    var id = root.normalizeDesktopId(entry && entry.id)
+    return root.configuredHiddenEntryIds[id] === true
+      || root.userHiddenEntryIds[id] === true
+      || root.desktopHiddenEntryIds[id] === true
+  }
+
+  function isPinnedEntry(entry) {
+    return root.pinnedRank[root.normalizeDesktopId(entry && entry.id)] !== undefined
+  }
+
+  function pinnedRankOf(entry) {
+    var rank = root.pinnedRank[root.normalizeDesktopId(entry && entry.id)]
+    return rank === undefined ? -1 : rank
+  }
+
+  // The shipped hides file is a config file, not a data file: blank lines and
+  // comments are ignored, and order only matters for pins.
+  function parseIdLines(rawText) {
+    var ids = []
+    var seen = ({})
+    var lines = String(rawText || "").split(/\n/)
+    for (var i = 0; i < lines.length; i++) {
+      var line = String(lines[i] || "").trim()
+      if (!line || line.charAt(0) === "#") continue
+      var id = root.normalizeDesktopId(line)
+      if (!id || seen[id]) continue
+      seen[id] = true
+      ids.push(id)
+    }
+    return ids
+  }
+
+  function idLines(ids) {
+    return ids.length > 0 ? ids.join("\n") + "\n" : ""
+  }
+
+  function loadUserHides(rawText) {
+    var ids = root.parseIdLines(rawText)
+    var next = ({})
+    for (var i = 0; i < ids.length; i++) next[ids[i]] = true
+    root.userHiddenEntryIds = next
+    root.appsChanged()
+  }
+
+  function loadPins(rawText) {
+    root.setPinned(root.parseIdLines(rawText), false)
+    root.appsChanged()
+  }
+
+  function setPinned(ids, emit) {
+    var next = []
+    var seen = ({})
+    for (var i = 0; i < ids.length; i++) {
+      var id = root.normalizeDesktopId(ids[i])
+      if (!id || seen[id]) continue
+      seen[id] = true
+      next.push(id)
+    }
+    var ranks = ({})
+    for (var j = 0; j < next.length; j++) ranks[next[j]] = j
+    root.pinnedEntryIds = next
+    root.pinnedRank = ranks
+    if (emit !== false) root.appsChanged()
+  }
+
+  function savePins() {
+    pinsFile.setText(root.idLines(root.pinnedEntryIds))
+  }
+
+  function saveUserHides() {
+    userHidesFile.setText(root.idLines(Object.keys(root.userHiddenEntryIds).sort()))
+  }
+
+  function togglePin(desktopId) {
+    var id = root.normalizeDesktopId(desktopId)
+    if (!id) return
+    var ids = root.pinnedEntryIds.slice()
+    var index = ids.indexOf(id)
+    if (index >= 0) ids.splice(index, 1)
+    else ids.push(id)
+    root.setPinned(ids, true)
+    root.savePins()
+  }
+
+  function movePin(desktopId, delta) {
+    var id = root.normalizeDesktopId(desktopId)
+    var ids = root.pinnedEntryIds.slice()
+    var from = ids.indexOf(id)
+    if (from < 0) return
+    var to = Math.max(0, Math.min(ids.length - 1, from + delta))
+    if (to === from) return
+    ids.splice(from, 1)
+    ids.splice(to, 0, id)
+    root.setPinned(ids, true)
+    root.savePins()
+  }
+
+  function hideEntry(desktopId) {
+    var id = root.normalizeDesktopId(desktopId)
+    if (!id) return
+    var next = ({})
+    var ids = Object.keys(root.userHiddenEntryIds)
+    if (ids.indexOf(id) < 0) ids.push(id)
+    for (var i = 0; i < ids.length; i++) next[ids[i]] = true
+    root.userHiddenEntryIds = next
+    root.saveUserHides()
+    if (root.pinnedRank[id] !== undefined) {
+      root.setPinned(root.pinnedEntryIds.filter(function(value) { return value !== id }), false)
+      root.savePins()
+    }
+    root.appsChanged()
+  }
+
+  function unhideEntry(desktopId) {
+    var id = root.normalizeDesktopId(desktopId)
+    if (root.userHiddenEntryIds[id] !== true) return
+    var next = ({})
+    var ids = Object.keys(root.userHiddenEntryIds)
+    for (var i = 0; i < ids.length; i++) if (ids[i] !== id) next[ids[i]] = true
+    root.userHiddenEntryIds = next
+    root.saveUserHides()
+    root.appsChanged()
+  }
+
+  // Only entries hidden by the user can be restored here. NoDisplay entries
+  // and the shipped launcher.hides are intentionally absent: writing to the
+  // user file would not override them.
+  function hiddenEntries() {
+    var values = DesktopEntries.applications.values || []
+    var rows = []
+    for (var i = 0; i < values.length; i++) {
+      var entry = values[i]
+      if (!entry || entry.noDisplay) continue
+      var id = root.normalizeDesktopId(entry.id)
+      if (!id || root.userHiddenEntryIds[id] !== true) continue
+      rows.push(entry)
+    }
+    rows.sort(function(a, b) {
+      var aName = root.entryName(a).toLowerCase()
+      var bName = root.entryName(b).toLowerCase()
+      if (aName < bName) return -1
+      if (aName > bName) return 1
+      return 0
+    })
+    return rows
   }
 
   function sortedEntries(query) {
@@ -239,6 +391,30 @@ Item {
     onLoaded: root.loadConfiguredHides(text())
     onFileChanged: root.loadConfiguredHides(text())
     onLoadFailed: root.loadConfiguredHides("")
+  }
+
+  FileView {
+    id: userHidesFile
+    path: root.userHidesPath
+    watchChanges: true
+    atomicWrites: true
+    blockLoading: true
+    printErrors: false
+    onLoaded: root.loadUserHides(text())
+    onLoadFailed: root.loadUserHides("")
+    onFileChanged: reload()
+  }
+
+  FileView {
+    id: pinsFile
+    path: root.pinsPath
+    watchChanges: true
+    atomicWrites: true
+    blockLoading: true
+    printErrors: false
+    onLoaded: root.loadPins(text())
+    onLoadFailed: root.loadPins("")
+    onFileChanged: reload()
   }
 
   Connections {
