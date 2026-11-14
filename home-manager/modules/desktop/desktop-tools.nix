@@ -228,14 +228,13 @@ in
 {
   home.packages = with pkgs; [
     quickshell
-    walker
-    elephant
     swayosd
     gtklock
     awww
     waypaper
     satty
     btop
+    libqalculate
     impala
     bluetui
     wiremix
@@ -311,43 +310,6 @@ in
     [main]
     lock-command=gtklock
   '';
-
-  # Walker + Elephant: лаунчер и провайдеры (приложения, буфер, файлы, окна).
-  # Конфиг лежит в репозитории, правки подхватываются без пересборки.
-  xdg.configFile."walker/config.toml".source =
-    config.lib.file.mkOutOfStoreSymlink "${config.mySystem.dotfilesRoot}/home-manager/modules/desktop/walker/config.toml";
-
-  systemd.user.services.elephant = {
-    Unit = {
-      Description = "Elephant provider service";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" ];
-    };
-    Service = {
-      ExecStart = "${pkgs.elephant}/bin/elephant";
-      Restart = "on-failure";
-      RestartSec = 2;
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
-
-  systemd.user.services.walker = {
-    Unit = {
-      Description = "Walker launcher service";
-      PartOf = [ "graphical-session.target" ];
-      After = [ "graphical-session.target" "elephant.service" ];
-      Wants = [ "elephant.service" ];
-    };
-    Service = {
-      ExecStart = "${pkgs.walker}/bin/walker --gapplication-service";
-      Restart = "on-failure";
-      RestartSec = 2;
-      Environment = [
-        "PATH=${config.home.profileDirectory}/bin:/run/current-system/sw/bin"
-      ];
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
 
   home.activation.quickshellState = config.lib.dag.entryAfter [ "linkGeneration" ] ''
     run mkdir -p "${home}/.local/state/quickshell"

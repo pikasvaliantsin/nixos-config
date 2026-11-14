@@ -3,6 +3,8 @@ singleton Notifications 1.0 Notifications.qml
 singleton NotificationUi 1.0 NotificationUi.qml
 NotificationCenter 1.0 NotificationCenter.qml
 AuthAgent 1.0 AuthAgent.qml
+Calc 1.0 Calc.qml
+FileSearch 1.0 FileSearch.qml
 CaptureMenu 1.0 CaptureMenu.qml
 KeyboardOsd 1.0 KeyboardOsd.qml
 singleton Idle 1.0 Idle.qml

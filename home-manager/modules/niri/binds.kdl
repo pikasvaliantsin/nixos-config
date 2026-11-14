@@ -1,11 +1,12 @@
 // Бинды Niri. Всё, что раньше шло через `dms ipc call`, теперь — обычные
-// команды: walker/swayosd/gtklock/niri msg/playerctl/wpctl/dfiles.
+// команды: omarchy-ipc/swayosd/gtklock/niri msg/playerctl/wpctl/dfiles.
 
 binds {
     // --- сессия, лаунчер, центр уведомлений -------------------------------
-    Alt+Space hotkey-overlay-title="Лаунчер" { spawn "walker"; }
-    Mod+D hotkey-overlay-title="Лаунчер" { spawn "walker"; }
-    Mod+Shift+D hotkey-overlay-title="Поиск файлов" { spawn "walker" "-m" "files"; }
+    Alt+Space hotkey-overlay-title="Поиск приложений" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"apps\"}"; }
+    Mod+D hotkey-overlay-title="Меню" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"root\"}"; }
+    Mod+Shift+D hotkey-overlay-title="Поиск файлов" { spawn "omarchy-ipc" "call" "local.file-search" "toggle"; }
+    Mod+Shift+C hotkey-overlay-title="Калькулятор" { spawn "omarchy-ipc" "call" "local.calc" "toggle"; }
     // Notification center is a custom plugin on top of omarchy-shell.
     Mod+N hotkey-overlay-title="Уведомления" { spawn "omarchy-ipc" "call" "notifications" "toggle"; }
     // Clipboard history overlay (QML, Omarchy clipboard plugin).

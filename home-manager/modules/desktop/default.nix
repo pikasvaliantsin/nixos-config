@@ -36,7 +36,35 @@ in
     };
   };
 
-  programs.dsearch.enable = true;
+  programs.dsearch = {
+    enable = true;
+    config = {
+      index_path = "${config.home.homeDirectory}/.cache/dsearch/index";
+      http_enabled = false;
+      listen_addr = "127.0.0.1:43654";
+      max_file_bytes = 2097152;
+      worker_count = 6;
+      index_all_files = true;
+      index_xattr_tags = true;
+      max_depth = 0;
+      text_extensions = [
+        ".txt" ".md" ".go" ".py" ".js" ".ts" ".jsx" ".tsx" ".json" ".yaml" ".yml"
+        ".toml" ".html" ".css" ".rs" ".c" ".cpp" ".h" ".java" ".rb" ".php" ".sh"
+      ];
+      index_paths = [{
+        path = config.home.homeDirectory;
+        max_depth = 6;
+        exclude_hidden = true;
+        extract_exif = true;
+        extract_xattr_tags = false;
+        merge_default_exclude_dirs = true;
+        exclude_dirs = [
+          ".git" ".hg" ".svn" "node_modules" "result" ".cache" "target" "dist"
+          "build" "vendor" "__pycache__" ".venv" "venv" ".direnv" ".opencode"
+        ];
+      }];
+    };
+  };
 
   # Конфиг niri: основной файл и бинды. theme.kdl линкуется в themes.nix.
   xdg.configFile = {

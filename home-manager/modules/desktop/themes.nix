@@ -8,8 +8,8 @@
 #
 # theme-set собирает из любого источника ~/.local/state/theme/generated/<name>
 # (colors.toml, shell.toml, niri.kdl, gtk.css, ghostty.conf, foot.ini,
-# fuzzel.ini, btop.theme), переключает симлинки и отдаёт новые цвета живой
-# оболочке через IPC applyTheme. Пересборка не нужна; fuzzel/btop/gtklock/GTK
+# btop.theme), переключает симлинки и отдаёт новые цвета живой
+# оболочке через IPC applyTheme. Пересборка не нужна; btop/gtklock/GTK
 # подхватят при следующем запуске.
 {
   config,
@@ -132,7 +132,7 @@ let
         bright_cyan="$cyan"
       else
         cp "$theme_path/colors.toml" "$out/colors.toml"
-        for file in shell.toml niri.kdl gtk.css gtklock.css fuzzel.ini btop.theme; do
+        for file in shell.toml niri.kdl gtk.css gtklock.css btop.theme; do
           if [ -f "$theme_path/$file" ]; then cp "$theme_path/$file" "$out/$file"; fi
         done
         colors="$theme_path/colors.toml"
@@ -265,40 +265,6 @@ let
 
       if [ ! -f "$out/gtklock.css" ]; then
         cp "$out/gtk.css" "$out/gtklock.css"
-      fi
-
-      if [ ! -f "$out/fuzzel.ini" ]; then
-        bghex="''${bg#\#}"
-        fghex="''${fg#\#}"
-        accenthex="''${accent#\#}"
-        mutedhex="''${muted#\#}"
-        cat >"$out/fuzzel.ini" <<EOF
-      [main]
-      font=JetBrains Mono:size=11
-      prompt="  "
-      icons-enabled=yes
-      terminal=ghostty
-      lines=12
-      width=48
-      horizontal-pad=16
-      vertical-pad=12
-      inner-pad=10
-
-      [colors]
-      background=''${bghex}f2
-      text=''${fghex}ff
-      prompt=''${accenthex}ff
-      input=''${fghex}ff
-      match=''${accenthex}ff
-      selection=''${mutedhex}ff
-      selection-text=''${fghex}ff
-      selection-match=''${accenthex}ff
-      border=''${mutedhex}ff
-
-      [border]
-      width=1
-      radius=12
-      EOF
       fi
 
       if [ ! -f "$out/btop.theme" ]; then
@@ -536,7 +502,6 @@ in
     xdg.configFile = {
       "theme/palette.json".source = mkLink "${current}/palette.json";
       "niri/theme.kdl".source = mkLink "${current}/niri.kdl";
-      "fuzzel/fuzzel.ini".source = mkLink "${current}/fuzzel.ini";
       "btop/themes/current.theme".source = mkLink "${current}/btop.theme";
       "gtklock/style.css".source = mkLink "${current}/gtklock.css";
       "gtk-3.0/gtk.css".source = mkLink "${current}/gtk.css";

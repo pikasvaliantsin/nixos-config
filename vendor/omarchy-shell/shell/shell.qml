@@ -288,6 +288,10 @@ ShellRoot {
 
   NotificationCenter { }
 
+  // Search panels: files use the dsearch index, calculator uses qalc.
+  FileSearch { }
+  Calc { }
+
   // Keyboard layout and Caps Lock OSD. The layout widget lives in the bar;
   // this single instance only reports changes to the Omarchy OSD.
   KeyboardOsd {

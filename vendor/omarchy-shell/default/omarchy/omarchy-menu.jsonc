@@ -1,0 +1,73 @@
+{
+  // Minimal menu for this NixOS/niri port. The upstream Omarchy menu is full
+  // of Hyprland/Arch actions that do not exist here; this file keeps the
+  // parts that map to the packages and helpers actually installed.
+  "apps": {
+    "icon": "󰀻",
+    "label": "Apps",
+    "aliases": ["app", "applications"],
+    "provider": "apps"
+  },
+  "files": {
+    "icon": "󰈞",
+    "label": "Files",
+    "aliases": ["files", "find", "dsearch"],
+    "action": "omarchy-ipc call local.file-search toggle"
+  },
+  "calculator": {
+    "icon": "󰃬",
+    "label": "Calculator",
+    "aliases": ["calc", "qalc"],
+    "action": "omarchy-ipc call local.calc toggle"
+  },
+  "capture": {
+    "icon": "",
+    "label": "Capture",
+    "aliases": ["screenshot", "screenrecord"]
+  },
+  "capture.screenshot-region": {
+    "icon": "",
+    "label": "Screenshot: region",
+    "action": "omarchy-capture-screenshot region"
+  },
+  "capture.screenshot-screen": {
+    "icon": "",
+    "label": "Screenshot: screen",
+    "action": "omarchy-capture-screenshot screen"
+  },
+  "capture.record": {
+    "icon": "",
+    "label": "Record screen",
+    "action": "omarchy-capture-screenrecording --fullscreen"
+  },
+  "system": {
+    "icon": "",
+    "label": "System",
+    "aliases": ["power", "power-menu"]
+  },
+  "system.lock": {
+    "icon": "",
+    "label": "Lock",
+    "action": "gtklock"
+  },
+  "system.suspend": {
+    "icon": "󰒲",
+    "label": "Suspend",
+    "action": "systemctl suspend"
+  },
+  "system.logout": {
+    "icon": "󰍃",
+    "label": "Logout",
+    "action": "niri msg action quit"
+  },
+  "system.reboot": {
+    "icon": "󰜉",
+    "label": "Reboot",
+    "action": "systemctl reboot"
+  },
+  "system.shutdown": {
+    "icon": "󰐥",
+    "label": "Shutdown",
+    "action": "systemctl poweroff"
+  }
+}
