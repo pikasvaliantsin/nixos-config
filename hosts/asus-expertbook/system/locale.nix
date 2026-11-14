@@ -22,6 +22,9 @@ _:
 
   console = {
     font = "cyr-sun16";
-    keyMap = "us";
+    # В голом TTY нет XKB-групп: Super+Space там не работает. Этот keymap
+    # даёт Windows-подобное переключение RU/EN по Alt+Shift прямо в консоли
+    # (UTF-8, чтобы кириллица совпадала с локалью).
+    keyMap = "ruwin_alt_sh-UTF-8";
   };
 }

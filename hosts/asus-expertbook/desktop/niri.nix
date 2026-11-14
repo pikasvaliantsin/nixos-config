@@ -1,6 +1,7 @@
 # Niri + DMS + greeter: всё, что относится к графической сессии хоста.
 {
   pkgs,
+  lib,
   inputs,
   ...
 }:
@@ -39,8 +40,11 @@
         input {
             keyboard {
                 xkb {
+                    layout "us,ru"
+                    options "grp:win_space_toggle,compose:ralt,ctrl:nocaps"
                 }
                 numlock
+                track-layout "global"
             }
 
             touchpad {
@@ -88,6 +92,29 @@
   };
 
   systemd.services.greetd.restartIfChanged = false;
+
+  # dux-greeter preStart копирует DMS session.json в /var/lib/dms-greeter и
+  # переписывает wallpaperPath на /var/lib/dms-greeter/wallpaper. Если в
+  # session.json уже лежит этот переписанный путь (например, после переезда
+  # с Omarchy), upstream делает `cp` файла самого в себя. Из-за `set -e`
+  # greetd падает ещё до запуска композитора:
+  #   cp: '/var/lib/dms-greeter/wallpaper' and 'wallpaper' are the same file
+  #
+  # Подменяем cp на обёртку, которая молча пропускает self-copy. Так сохраняется
+  # и upstream-логика, и обои, а greetd не падает.
+  systemd.services.greetd.preStart = lib.mkBefore ''
+    cp() {
+      if [ "$#" -eq 2 ]; then
+        if [ "$1" -ef "$2" ]; then
+          return 0
+        fi
+        if [ -d "$2" ] && [ "$1" -ef "$2/$(basename "$1")" ]; then
+          return 0
+        fi
+      fi
+      command cp "$@"
+    }
+  '';
 
   # PAM для gtklock: обычный логин + отпечаток.
   security.pam.services.gtklock = {
