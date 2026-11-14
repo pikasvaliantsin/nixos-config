@@ -10,11 +10,34 @@ import qs.Ui
 KeyboardPanel {
   id: root
 
+  property real nowMs: Date.now()
+
   function resetLabel(value) {
     if (!value) return ""
     var d = new Date(value)
     if (isNaN(d.getTime())) return ""
-    return "resets " + Qt.formatDateTime(d, "dd MMM HH:mm")
+
+    var absolute = Qt.formatDateTime(d, "dd MMM HH:mm")
+    var ms = d.getTime() - root.nowMs
+    if (ms <= 0) return "resets now · " + absolute
+
+    var minutes = Math.floor(ms / 60000)
+    if (minutes < 1) return "resets in <1m · " + absolute
+    if (minutes < 60) return "resets in " + minutes + "m · " + absolute
+
+    var hours = Math.floor(minutes / 60)
+    var remMinutes = minutes % 60
+    if (hours < 24) {
+      return "resets in " + hours + "h"
+        + (remMinutes > 0 ? " " + remMinutes + "m" : "")
+        + " · " + absolute
+    }
+
+    var days = Math.floor(hours / 24)
+    var remHours = hours % 24
+    return "resets in " + days + "d"
+      + (remHours > 0 ? " " + remHours + "h" : "")
+      + " · " + absolute
   }
 
   function number(value) {
@@ -53,12 +76,24 @@ KeyboardPanel {
   contentWidth: root.fittedContentWidth(Style.space(330))
   contentHeight: root.fittedContentHeight(column.implicitHeight)
 
-  onOpenChanged: if (open) OpenCodeUsage.refresh()
+  onOpenChanged: {
+    if (open) {
+      root.nowMs = Date.now()
+      OpenCodeUsage.refresh()
+    }
+  }
 
   Column {
     id: column
     width: parent.width
     spacing: Style.space(10)
+
+    Timer {
+      interval: 30000
+      running: root.open
+      repeat: true
+      onTriggered: root.nowMs = Date.now()
+    }
 
     RowLayout {
       width: parent.width
