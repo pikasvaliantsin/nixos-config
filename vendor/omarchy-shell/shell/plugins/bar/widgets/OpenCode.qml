@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import qs.Commons
 import qs.Custom
 import qs.Ui
@@ -22,7 +23,14 @@ Panel {
         fillMode: Image.PreserveAspectFit
       }
     }
-    onPressed: function() { root.toggle() }
+    onPressed: function(button) {
+      if (button === Qt.RightButton) {
+        if (root.opened) root.close()
+        Quickshell.execDetached(["ghostty", "-e", "opencode"])
+        return
+      }
+      root.toggle()
+    }
   }
 
   OpenCodePanel {
