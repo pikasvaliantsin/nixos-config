@@ -296,6 +296,9 @@ ShellRoot {
   // Developer toolbox: generators and text transformers (DevTools.js).
   DevToolsPanel { }
 
+  // Theme and wallpaper carousel (omarchy-gallery).
+  GalleryPanel { }
+
   // Keyboard layout and Caps Lock OSD. The layout widget lives in the bar;
   // this single instance only reports changes to the Omarchy OSD.
   KeyboardOsd {

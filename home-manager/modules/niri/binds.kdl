@@ -9,6 +9,8 @@ binds {
     Mod+Shift+D hotkey-overlay-title="Поиск файлов" { spawn "omarchy-ipc" "call" "local.file-search" "toggle"; }
     Mod+Shift+C hotkey-overlay-title="Калькулятор" { spawn "omarchy-ipc" "call" "local.calc" "toggle"; }
     Mod+Shift+X hotkey-overlay-title="Инструменты разработчика" { spawn "omarchy-ipc" "call" "devtools" "toggle"; }
+    Mod+Alt+T hotkey-overlay-title="Темы" { spawn "omarchy-ipc" "call" "gallery" "themes"; }
+    Mod+Shift+B hotkey-overlay-title="Обои" { spawn "omarchy-ipc" "call" "gallery" "wallpapers"; }
     // Notification center is a custom plugin on top of omarchy-shell.
     Mod+N hotkey-overlay-title="Уведомления" { spawn "omarchy-ipc" "call" "notifications" "toggle"; }
     // Clipboard history overlay (QML, Omarchy clipboard plugin).

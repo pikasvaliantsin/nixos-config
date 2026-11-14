@@ -20,6 +20,23 @@
     "aliases": ["calc", "qalc"],
     "action": "omarchy-ipc call local.calc toggle"
   },
+  "style": {
+    "icon": "󰏘",
+    "label": "Style",
+    "aliases": ["theme", "appearance", "wallpaper", "background"]
+  },
+  "style.themes": {
+    "icon": "󰏘",
+    "label": "Themes",
+    "aliases": ["carousel"],
+    "action": "omarchy-ipc call gallery themes"
+  },
+  "style.wallpapers": {
+    "icon": "󰸉",
+    "label": "Wallpapers",
+    "aliases": ["backgrounds", "carousel"],
+    "action": "omarchy-ipc call gallery wallpapers"
+  },
   "capture": {
     "icon": "",
     "label": "Capture",

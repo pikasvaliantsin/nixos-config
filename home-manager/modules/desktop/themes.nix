@@ -529,6 +529,126 @@ let
     '';
   };
 
+
+  # Data for the theme and wallpaper carousels. One source of truth for the
+  # lists both the gallery overlay and the shell need, so the carousel order
+  # matches bg-cycle exactly.
+  gallery = pkgs.writeShellApplication {
+    name = "omarchy-gallery";
+    runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.jq pkgs.awww pkgs.procps themeSet ];
+    text = ''
+      set -euo pipefail
+      state_dir=${lib.escapeShellArg stateDir}
+      themes_dir=${lib.escapeShellArg themesDir}
+      omarchy_themes_dir="''${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/themes"
+
+      current=$(basename "$(readlink -f "$state_dir/current")")
+
+      first_image() {
+        local dir=$1
+        [ -d "$dir" ] || return 0
+        find -L "$dir" -maxdepth 1 -type f \
+          \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) \
+          2>/dev/null | sort | head -n1 || true
+      }
+
+      theme_entry() {
+        local path=$1 name=$2 kind=native preview="" bg="" fg="" accent="" candidate
+        [ -f "$path/palette.json" ] || kind=omarchy
+        for candidate in preview.png preview.webp preview.jpg; do
+          if [ -f "$path/$candidate" ]; then preview="$path/$candidate"; break; fi
+        done
+        [ -n "$preview" ] || preview=$(first_image "$path/backgrounds")
+        [ -n "$preview" ] || preview=$(first_image "$path/wallpapers")
+        if [ -f "$path/palette.json" ]; then
+          bg=$(jq -r '.bg // empty' "$path/palette.json")
+          fg=$(jq -r '.fg // empty' "$path/palette.json")
+          accent=$(jq -r '.primary // .secondary // empty' "$path/palette.json")
+        elif [ -f "$path/colors.toml" ]; then
+          bg=$(awk -F'"' '/^background[[:space:]]*=/{print $2; exit}' "$path/colors.toml")
+          fg=$(awk -F'"' '/^foreground[[:space:]]*=/{print $2; exit}' "$path/colors.toml")
+          accent=$(awk -F'"' '/^accent[[:space:]]*=/{print $2; exit}' "$path/colors.toml")
+        fi
+        jq -cn --arg name "$name" --arg kind "$kind" --arg preview "$preview" \
+          --arg bg "$bg" --arg fg "$fg" --arg accent "$accent" \
+          '{name:$name,kind:$kind,preview:$preview,bg:$bg,fg:$fg,accent:$accent}'
+      }
+
+      list_themes() {
+        local entries=() dir name
+        for dir in "$themes_dir"/*/; do
+          [ -d "$dir" ] || continue
+          [ -f "$dir/palette.json" ] || [ -f "$dir/colors.toml" ] || continue
+          name=$(basename "$dir")
+          entries+=("$(theme_entry "''${dir%/}" "$name")")
+        done
+        for dir in "$omarchy_themes_dir"/*/; do
+          [ -d "$dir" ] || continue
+          [ -f "$dir/colors.toml" ] || continue
+          name=$(basename "$dir")
+          [ -e "$themes_dir/$name" ] && continue
+          entries+=("$(theme_entry "''${dir%/}" "$name")")
+        done
+        if [ ''${#entries[@]} -eq 0 ]; then
+          jq -cn --arg current "$current" '{current:$current, items:[]}'
+          return
+        fi
+        printf '%s\n' "''${entries[@]}" | jq -sc --arg current "$current" '{current:$current, items:.}'
+      }
+
+      wallpaper_files() {
+        local dir="$state_dir/current/wallpapers"
+        [ -d "$dir" ] || dir="$HOME/Pictures/Wallpapers"
+        find -L "$dir" -maxdepth 1 -type f \
+          \( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \) \
+          2>/dev/null | sort || true
+      }
+
+      list_wallpapers() {
+        local files=() file index=0
+        while IFS= read -r file; do files+=("$file"); done < <(wallpaper_files)
+        [ -f "$state_dir/wallpaper.idx" ] && index=$(cat "$state_dir/wallpaper.idx" 2>/dev/null || echo 0)
+        if [ ''${#files[@]} -eq 0 ]; then
+          printf '%s\n' '{"index":0,"items":[]}'
+          return
+        fi
+        printf '%s\n' "''${files[@]}" | jq -Rsc --argjson index "$index" \
+          '{index:($index | tonumber? // 0), items:(split("\n") | map(select(length > 0)))}'
+      }
+
+      set_wallpaper() {
+        local want=$1 files=() file index=0
+        while IFS= read -r file; do files+=("$file"); done < <(wallpaper_files)
+        [ ''${#files[@]} -gt 0 ] || { echo "omarchy-gallery: no wallpapers" >&2; exit 1; }
+        index=$want
+        { [ "$index" -ge 0 ] && [ "$index" -lt ''${#files[@]} ]; } || exit 1
+        echo "$index" >"$state_dir/wallpaper.idx"
+        if ! pgrep -f 'awww-daemon' >/dev/null 2>&1; then
+          awww-daemon --format xrgb >/dev/null 2>&1 &
+          sleep 0.5
+        fi
+        awww img "''${files[$index]}" --transition-type random --transition-duration 0.8
+      }
+
+      case "''${1:-}" in
+        themes) list_themes ;;
+        wallpapers) list_wallpapers ;;
+        theme)
+          [ $# -eq 2 ] || { echo "usage: omarchy-gallery theme <name>" >&2; exit 2; }
+          exec ${themeSet}/bin/theme-set "$2"
+          ;;
+        wallpaper)
+          [ $# -eq 2 ] || { echo "usage: omarchy-gallery wallpaper <index>" >&2; exit 2; }
+          set_wallpaper "$2"
+          ;;
+        *)
+          echo "usage: omarchy-gallery themes|wallpapers|theme <name>|wallpaper <index>" >&2
+          exit 2
+          ;;
+      esac
+    '';
+  };
+
   bgCycle = pkgs.writeShellApplication {
     name = "bg-cycle";
     runtimeInputs = [ pkgs.coreutils pkgs.awww pkgs.findutils ];
@@ -585,6 +705,7 @@ in
     home.packages = [
       themeSet
       themeIcons
+      gallery
       themeInstall
       bgCycle
       bgNext

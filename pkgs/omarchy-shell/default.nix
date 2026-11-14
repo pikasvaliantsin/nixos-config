@@ -3,6 +3,7 @@
   stdenvNoCC,
   makeWrapper,
   quickshell,
+  qt6,
   bash,
   coreutils,
   python3,
@@ -115,6 +116,7 @@ EOF
     wrapProgram $out/bin/omarchy-launch-shell \
       --prefix PATH : $out/share/omarchy/bin \
       --prefix PATH : ${lib.makeBinPath runtimeDeps} \
+      --prefix QT_PLUGIN_PATH : ${qt6.qtimageformats}/lib/qt-6/plugins \
       --set OMARCHY_PATH $out/share/omarchy \
       --set OMARCHY_SESSION_ID niri
   '';

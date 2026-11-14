@@ -121,6 +121,24 @@ Use `pgrep -f awww-daemon`; the daemon is a normal `awww-daemon` process.
 (or `~/Pictures/Wallpapers` if there is none). The state index is
 `~/.local/state/theme/wallpaper.idx`.
 
+## Carousel
+
+`Mod+Alt+T` opens the theme carousel, `Mod+Shift+B` the wallpaper one
+(`Mod+Escape` → Style has both). One overlay, two lists, both fed by
+`omarchy-gallery`:
+
+- `themes` merges the repository themes and `~/.config/omarchy/themes`,
+  preferring the repository copy on a name clash. A card uses `preview.*` when
+  the theme ships one, otherwise its first background, and a native theme with
+  no artwork gets a palette card from `palette.json`.
+- `wallpapers` returns the same sorted list `bg-cycle` uses plus the current
+  index, so the carousel and the keyboard cycle never disagree.
+- `theme <name>` execs `theme-set`; `wallpaper <index>` writes
+  `wallpaper.idx` and runs `awww img` with the usual transition.
+
+IPC: `omarchy-ipc call gallery themes|wallpapers|next|previous|apply|close`,
+and `gallery status` for the current mode, index, count and name.
+
 ## Verification
 
 After a switch, check the bar, panels, active/inactive borders, a new terminal
