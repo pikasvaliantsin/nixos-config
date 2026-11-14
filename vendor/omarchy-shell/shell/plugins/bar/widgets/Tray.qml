@@ -919,6 +919,7 @@ BarWidget {
       }
       onWheel: function(wheel) {
         trayItemRoot.modelData.scroll(wheel.angleDelta.y, false)
+        wheel.accepted = true
       }
     }
 

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Layouts
 import Quickshell
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 BarWidget {
@@ -24,7 +25,7 @@ BarWidget {
     anchors.fill: parent
     anchors.rightMargin: root.trailingGap
     columns: root.vertical ? 1 : root.displayWorkspaces.length
-    columnSpacing: root.vertical ? 0 : Style.space(1)
+    columnSpacing: root.vertical ? 0 : Style.space(2)
     rowSpacing: root.vertical ? Style.space(2) : 0
 
     Repeater {
@@ -38,13 +39,38 @@ BarWidget {
         readonly property bool focused: workspace !== null && workspace.is_focused
 
         bar: root.bar
-        text: focused ? "\uDB85\uDCFB" : String(workspace.name || workspace.idx)
+        active: focused
+        activeColor: Commons.Color.accent
+        consumeWheel: true
+        text: String(workspace.name || workspace.idx)
         opacity: occupied || focused ? 1 : 0.5
         horizontalMargin: 6
         verticalPadding: 6
-        fixedWidth: root.vertical ? root.barSize : Style.space(20)
+        fixedWidth: root.vertical ? root.barSize : Style.space(22)
         fixedHeight: root.barSize
         onPressed: function() { root.focusWorkspace(workspace.id) }
+        onWheelMoved: function(delta) {
+          if (root.bar && typeof root.bar.scrollWorkspaces === "function")
+            root.bar.scrollWorkspaces(delta)
+        }
+
+        Rectangle {
+          z: -1
+          anchors.centerIn: parent
+          width: Style.space(18)
+          height: Style.space(18)
+          radius: Style.space(6)
+          color: focused
+            ? Util.alpha(Commons.Color.accent, 0.18)
+            : (hover.hovered ? Util.alpha(Commons.Color.foreground, 0.08) : "transparent")
+          border.width: focused ? Math.max(1, Style.space(1)) : 0
+          border.color: Util.alpha(Commons.Color.accent, 0.70)
+
+          Behavior on color { ColorAnimation { duration: Style.duration(140) } }
+          Behavior on border.color { ColorAnimation { duration: Style.duration(140) } }
+        }
+
+        HoverHandler { id: hover }
       }
     }
   }

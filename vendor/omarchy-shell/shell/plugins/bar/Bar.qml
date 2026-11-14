@@ -114,6 +114,14 @@ Item {
     return ""
   }
 
+  // Wheel over the bar moves between workspaces. Widgets with their own wheel
+  // handling consume the event first (see WidgetButton.consumeWheel).
+  function scrollWorkspaces(delta) {
+    if (!delta) return
+    Quickshell.execDetached(["niri", "msg", "action",
+      delta > 0 ? "focus-workspace-up" : "focus-workspace-down"])
+  }
+
   // Reported by the open panel. Only a screen name and four numbers are kept,
   // whoever reports them; the section comes from the bar's own layout.
   function notePopoutCard(card) {
@@ -1816,6 +1824,14 @@ Item {
       Rectangle {
         anchors.fill: parent
         color: root.transparent ? "transparent" : (root.glassy ? root.glassBackground : root.background)
+      }
+
+      WheelHandler {
+        onWheel: function(event) {
+          if (event.angleDelta.y === 0) return
+          root.scrollWorkspaces(event.angleDelta.y)
+          event.accepted = true
+        }
       }
 
       Loader {

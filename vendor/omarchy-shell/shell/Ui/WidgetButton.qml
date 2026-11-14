@@ -23,6 +23,9 @@ Item {
   property bool interactive: true
   property bool pressable: true
   property bool useActiveColor: true
+  // Set by widgets that consume wheel input (volume, workspaces) so the bar's
+  // background wheel handler does not also switch workspaces.
+  property bool consumeWheel: false
   property bool maintainIndicatorReveal: false
   property bool labelVisible: true
   // Off for icon-font labels, whose figure metrics say nothing about the glyph.
@@ -188,6 +191,9 @@ Item {
         root.revealHost.setIndicatorItemHovered(false)
     }
     onClicked: function(mouse) { if (root.pressable) root.triggerPress(mouse.button) }
-    onWheel: function(wheel) { root.wheelMoved(wheel.angleDelta.y) }
+    onWheel: function(wheel) {
+      root.wheelMoved(wheel.angleDelta.y)
+      if (root.consumeWheel) wheel.accepted = true
+    }
   }
 }

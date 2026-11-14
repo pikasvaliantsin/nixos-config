@@ -55,6 +55,7 @@ BarWidget {
     id: button
     anchors.fill: parent
     bar: root.bar
+    consumeWheel: true
     text: root.muted ? "󰍭" : "󰍬"
     active: root.inUse
     tooltipText: root.muted ? I18n.t("bar.microphoneMuted") : (root.inUse ? I18n.t("bar.microphoneInUse") : I18n.t("bar.microphoneLive"))
