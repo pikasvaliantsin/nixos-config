@@ -827,14 +827,22 @@ Item {
     root.rebuildDisplay()
   }
 
-  function setActiveMenu(id, pushHistory, fromPointer) {
+  function setActiveMenu(id, pushHistory, fromPointer, restore) {
     panel.freezeCardTop()
     if (!root.item(id)) id = "root"
-    if (pushHistory && id !== root.activeMenu) root.navStack = root.navStack.concat([root.activeMenu])
+    // Remember the cursor row with the menu we are leaving, so Back returns to
+    // the same row instead of snapping to the first entry.
+    if (pushHistory && id !== root.activeMenu)
+      root.navStack = root.navStack.concat([{
+        menu: root.activeMenu,
+        index: root.selectedIndex,
+        cursorActive: root.cursorActive,
+        filterText: root.filterText
+      }])
     root.activeMenu = id
-    root.filterText = ""
-    root.selectedIndex = 0
-    root.cursorActive = true
+    root.filterText = restore ? String(restore.filterText || "") : ""
+    root.selectedIndex = restore ? Math.max(0, Number(restore.index) || 0) : 0
+    root.cursorActive = restore ? restore.cursorActive !== false : true
     if (fromPointer) pointerGate.allowInitialSample()
     else root.disarmPointer()
     root.rebuildDisplay()
@@ -848,7 +856,9 @@ Item {
     if (root.navStack.length > 0) {
       var previous = root.navStack[root.navStack.length - 1]
       root.navStack = root.navStack.slice(0, root.navStack.length - 1)
-      root.setActiveMenu(previous, false)
+      var previousMenu = previous && typeof previous === "object" ? previous.menu : previous
+      var restore = previous && typeof previous === "object" ? previous : null
+      root.setActiveMenu(previousMenu, false, false, restore)
       return true
     }
 
