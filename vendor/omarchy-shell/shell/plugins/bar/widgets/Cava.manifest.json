@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "local.cava",
+  "name": "Cava spectrum",
+  "version": "1.0.0",
+  "author": "local",
+  "description": "Cava audio spectrum that runs only while music plays",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "Cava.qml"
+  },
+  "barWidget": {
+    "displayName": "Cava spectrum",
+    "description": "Audio spectrum bars next to the media widget",
+    "category": "Media",
+    "defaultSection": "center",
+    "allowMultiple": false
+  }
+}

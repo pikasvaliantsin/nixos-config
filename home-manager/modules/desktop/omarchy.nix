@@ -55,6 +55,7 @@ in
     wlsunset
     foot
     omarchySpeedtest
+    cava
   ];
 
   # The shell reads ~/.config/omarchy/shell.json first; without it, the
@@ -63,6 +64,31 @@ in
     config.lib.file.mkOutOfStoreSymlink "${confDir}/shell.json";
   xdg.configFile."omarchy/niri-style.json".source =
     config.lib.file.mkOutOfStoreSymlink "${confDir}/niri-style.json";
+
+  # Raw ASCII frames on stdout for the bar widget (local.cava). 16 bars at
+  # 30 fps keeps the process cheap; `source = auto` follows the default sink.
+  xdg.configFile."cava/omarchy-bar.conf".text = ''
+    [general]
+    bars = 16
+    framerate = 30
+    autosens = 1
+    sensitivity = 80
+
+    [input]
+    method = pipewire
+    source = auto
+
+    [output]
+    method = raw
+    raw_target = /dev/stdout
+    data_format = ascii
+    ascii_max_range = 1000
+    bar_delimiter = 59
+    frame_delimiter = 10
+
+    [smoothing]
+    noise_reduction = 60
+  '';
 
   systemd.user.services.omarchy-shell = {
     Unit = {
@@ -85,6 +111,10 @@ in
   home.activation.omarchyState = config.lib.dag.entryAfter [ "linkGeneration" ] ''
     run mkdir -p "${stateDir}/current"
     run mkdir -p "${stateDir}/agents/usage"
+    # Weather location. The upstream save helper is not packaged here, so the
+    # coordinates live in the panel's own state file and survive rebuilds.
+    run mkdir -p "${stateDir}/settings"
+    run sh -c 'p="${stateDir}/settings/weather.json"; [ -e "$p" ] || printf "%s\n" "{\"name\":\"Homyel\",\"latitude\":52.4345,\"longitude\":30.9754}" >"$p"'
     # Notification history and DND state, mode 0600. The shell writes these
     # atomically; pre-creating them keeps the directory and file private.
     run mkdir -p "${stateDir}/notifications"

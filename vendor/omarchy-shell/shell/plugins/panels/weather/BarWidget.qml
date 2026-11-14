@@ -50,6 +50,17 @@ BarWidget {
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
+  // The upstream pill is a glyph only; the panel knows the current
+  // temperature, so show it next to the icon and widen the slot to match.
+  readonly property string temperatureLabel: panelLoader.item && panelLoader.item.reportTempNum
+    ? panelLoader.item.reportTempNum + "°" : ""
+
+  FontMetrics {
+    id: temperatureMetrics
+    font.family: Style.font.family
+    font.pixelSize: Style.bar.iconFont
+  }
+
   onBarChanged: injectPanel()
   onSettingsChanged: injectPanel()
 
@@ -69,7 +80,9 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: panelLoader.item ? panelLoader.item.label : ""
+    labelText: root.temperatureLabel
     slotSize: Style.bar.statusSlot
+      + (root.temperatureLabel !== "" ? temperatureMetrics.advanceWidth(root.temperatureLabel) + Style.space(2) : 0)
     // Tooltip suppressed because the panel is the detail view.
     tooltipText: ""
 

@@ -158,6 +158,17 @@ components may be separate. Check the process list first.
   its pin.
 - Calculator: the card shows `0` and keeps the same height from opening until
   a result arrives.
+- Weather: the center pill shows the condition glyph and the current
+  temperature; a click opens the panel with the hourly and daily forecast.
+  The location comes from `~/.local/state/omarchy/settings/weather.json`
+  (Homyel, 52.4345/30.9754), so the panel must not fall back to geo-detect.
+- Media: start playback in a browser and confirm the play/pause glyph, the
+  scrolling title and the panel controls. The widget hides with no player.
+- Cava: 16 bars sit between the weather pill and the media title and appear
+  only while something is playing. `omarchy-ipc call local.cava preview` shows
+  them for 8 seconds with a test tone;
+  `omarchy-ipc call local.cava status` reports the frame and bar count.
+  `pactl` must show the cava process only during playback.
 - Developer tools: `Mod+Shift+X` opens the toolbox. Switch tools with the rail
   and the search field, generate a UUID v4 and v7 (check the version nibble),
   format JSON with sorting, decode a JWT, convert a timestamp and a colour,

@@ -11,9 +11,7 @@
       "left": [
         {
           "id": "omarchy.workspaces"
-        }
-      ],
-      "centerBegin": [
+        },
         {
           "id": "omarchy.indicators",
           "items": [
@@ -26,7 +24,17 @@
           ]
         }
       ],
+      "centerBegin": [],
       "center": [
+        {
+          "id": "omarchy.weather"
+        },
+        {
+          "id": "local.cava"
+        },
+        {
+          "id": "omarchy.media"
+        },
         {
           "id": "omarchy.clock",
           "format": "ddd d MMM HH:mm",
@@ -34,12 +42,11 @@
           "verticalFormat": "HH\n—\nmm"
         }
       ],
-      "centerEnd": [
+      "centerEnd": [],
+      "right": [
         {
           "id": "omarchy.keyboard-layout"
-        }
-      ],
-      "right": [
+        },
         {
           "id": "omarchy.tray",
           "pinned": [],
@@ -86,13 +93,11 @@
     "omarchy.idle",
     "omarchy.image-picker",
     "omarchy.lock",
-    "omarchy.media",
     "omarchy.nightlight",
     "omarchy.notifications",
     "omarchy.polkit",
     "omarchy.reminders",
     "omarchy.tailscale",
-    "omarchy.weather",
     "omarchy.wifiqr"
   ],
   "plugins": []
