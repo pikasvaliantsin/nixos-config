@@ -15,12 +15,16 @@ Item {
   property string expression: ""
   property string result: ""
   property string error: ""
+  property bool copied: false
+  property string pendingOutput: ""
 
   function open(payload) {
     root.opened = true
     root.expression = ""
     root.result = ""
     root.error = ""
+    root.copied = false
+    root.pendingOutput = ""
     Qt.callLater(function() {
       input.text = ""
       input.forceActiveFocus()
@@ -43,6 +47,8 @@ Item {
     var text = String(root.expression || "").replace(/^=/, "").trim()
     root.result = ""
     root.error = ""
+    root.copied = false
+    root.pendingOutput = ""
     if (text.length === 0) return
     calcProc.command = ["/etc/profiles/per-user/" + Quickshell.env("USER") + "/bin/qalc", "-t", text]
     calcProc.running = true
@@ -52,7 +58,7 @@ Item {
     if (!root.result) return
     Quickshell.execDetached(["wl-copy", root.result])
     root.error = ""
-    root.result = "Copied: " + root.result
+    root.copied = true
   }
 
   ShellIpc {
@@ -71,19 +77,19 @@ Item {
 
   Process {
     id: calcProc
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        var value = String(text()).trim()
-        if (value.length === 0) {
-          root.error = "No result"
-          root.result = ""
-        } else {
-          root.result = value
-        }
+    stdout: SplitParser {
+      onRead: function(line) { root.pendingOutput += line + "\n" }
+    }
+    onExited: {
+      var value = String(root.pendingOutput).trim()
+      root.pendingOutput = ""
+      if (value.length === 0) {
+        root.error = "Invalid expression"
+        root.result = ""
+      } else {
+        root.result = value
       }
     }
-    onExited: if (exitCode !== 0 && root.result.length === 0) root.error = "Invalid expression"
   }
 
   OverlayWindow {
@@ -149,7 +155,7 @@ Item {
         Text {
           width: parent.width
           visible: root.result.length > 0 || root.error.length > 0
-          text: root.error.length > 0 ? root.error : root.result
+          text: root.error.length > 0 ? root.error : (root.result + (root.copied ? "  ✓" : ""))
           color: root.error.length > 0 ? Commons.Color.urgent : Commons.Color.menu.text
           font.family: Style.font.family
           font.pixelSize: Style.font.display
