@@ -26,6 +26,9 @@ Item {
   // Set by widgets that consume wheel input (volume, workspaces) so the bar's
   // background wheel handler does not also switch workspaces.
   property bool consumeWheel: false
+  // Small optical nudge for labels whose glyph ink sits left of the advance
+  // width (notably the digit 1 in a monospace font).
+  property real labelHorizontalOffset: 0
   property bool maintainIndicatorReveal: false
   property bool labelVisible: true
   // Off for icon-font labels, whose figure metrics say nothing about the glyph.
@@ -122,6 +125,7 @@ Item {
     textFormat: Text.PlainText
     visible: root.labelVisible && !root.iconLabel
     anchors.centerIn: parent
+    anchors.horizontalCenterOffset: root.labelHorizontalOffset
     // Centering the line box puts the figures above the bar's middle, since
     // the box keeps room for descenders. Center the figure height instead, so
     // labels line up with the icons beside them.

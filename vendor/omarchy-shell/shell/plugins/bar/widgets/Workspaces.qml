@@ -41,6 +41,7 @@ BarWidget {
         bar: root.bar
         active: focused
         activeColor: Commons.Color.accent
+        labelHorizontalOffset: Style.space(1)
         consumeWheel: true
         text: String(workspace.name || workspace.idx)
         opacity: occupied || focused ? 1 : 0.5
