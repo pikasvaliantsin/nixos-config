@@ -5,6 +5,7 @@ import Quickshell.Services.Pipewire
 import qs.Ui
 import qs.Commons
 import qs.Commons as Commons
+import "../../panels/audio/Model.js" as AudioModel
 
 BarWidget {
   id: root
@@ -106,8 +107,10 @@ BarWidget {
     root.pendingSink = ""
   }
 
+  // Same naming as the audio panel's Output list (nickname first, then the
+  // cleaned description), so both pickers read the same for a device.
   function sinkLabel(node) {
-    return node ? String(node.description || node.nickname || node.name || "") : ""
+    return AudioModel.nodeLabel(node)
   }
 
   readonly property string currentSinkLabel: {
