@@ -188,6 +188,21 @@ PanelWindow {
   }
   readonly property real anchorW: anchorItem ? anchorItem.width : 0
   readonly property real anchorH: anchorItem ? anchorItem.height : 0
+
+  // The anchor moves when the bar reveals or hides its inactive indicators,
+  // which happens as the pointer settles after a click. An open card must not
+  // chase it: freeze the opening point until the panel closes.
+  property point frozenAnchor: Qt.point(0, 0)
+  property real frozenAnchorW: 0
+  property real frozenAnchorH: 0
+  property bool anchorFrozen: false
+
+  function freezeAnchor() {
+    frozenAnchor = anchorScreenPos
+    frozenAnchorW = anchorW
+    frozenAnchorH = anchorH
+    anchorFrozen = true
+  }
   readonly property real screenW: screen ? screen.width : 0
   readonly property real screenH: screen ? screen.height : 0
   readonly property real availableCardWidth: screenW > 0
@@ -239,6 +254,9 @@ PanelWindow {
   readonly property real barH: anchorWindow ? anchorWindow.height : 0
   readonly property point cardOrigin: {
     if (!anchorItem || !bar) return Qt.point(margin, margin)
+    var anchorPos = anchorFrozen ? frozenAnchor : anchorScreenPos
+    var anchorWidth = anchorFrozen ? frozenAnchorW : anchorW
+    var anchorHeight = anchorFrozen ? frozenAnchorH : anchorH
     var x = 0, y = 0
     if (centerOnBar && (barPos === "top" || barPos === "bottom")) {
       x = screenW / 2 - contentWidth / 2
@@ -247,16 +265,16 @@ PanelWindow {
       x = barPos === "left" ? barThickness + gap : screenW - barThickness - contentWidth - gap
       y = screenH / 2 - drawnHeight / 2
     } else if (barPos === "bottom") {
-      x = anchorScreenPos.x + anchorW / 2 - contentWidth / 2
+      x = anchorPos.x + anchorWidth / 2 - contentWidth / 2
       y = screenH - barThickness - drawnHeight - gap
     } else if (barPos === "left") {
       x = barThickness + gap
-      y = anchorScreenPos.y + anchorH / 2 - drawnHeight / 2
+      y = anchorPos.y + anchorHeight / 2 - drawnHeight / 2
     } else if (barPos === "right") {
       x = screenW - barThickness - contentWidth - gap
-      y = anchorScreenPos.y + anchorH / 2 - drawnHeight / 2
+      y = anchorPos.y + anchorHeight / 2 - drawnHeight / 2
     } else { // "top" (default)
-      x = anchorScreenPos.x + anchorW / 2 - contentWidth / 2
+      x = anchorPos.x + anchorWidth / 2 - contentWidth / 2
       y = barThickness + gap
     }
     x = Math.max(margin, Math.min(x, screenW - contentWidth - margin))
@@ -267,8 +285,11 @@ PanelWindow {
   // Where the card grows from, in its own coordinates: the point on its
   // bar-facing edge nearest the icon it hangs from.
   readonly property point growOrigin: {
-    var x = Math.max(0, Math.min(anchorScreenPos.x + anchorW / 2 - cardOrigin.x, contentWidth))
-    var y = Math.max(0, Math.min(anchorScreenPos.y + anchorH / 2 - cardOrigin.y, drawnHeight))
+    var anchorPos = anchorFrozen ? frozenAnchor : anchorScreenPos
+    var anchorWidth = anchorFrozen ? frozenAnchorW : anchorW
+    var anchorHeight = anchorFrozen ? frozenAnchorH : anchorH
+    var x = Math.max(0, Math.min(anchorPos.x + anchorWidth / 2 - cardOrigin.x, contentWidth))
+    var y = Math.max(0, Math.min(anchorPos.y + anchorHeight / 2 - cardOrigin.y, drawnHeight))
     if (barPos === "bottom") return Qt.point(x, drawnHeight)
     if (barPos === "left") return Qt.point(0, y)
     if (barPos === "right") return Qt.point(contentWidth, y)
@@ -283,6 +304,7 @@ PanelWindow {
   onOpenChanged: {
     heightLive = false
     if (open) {
+      freezeAnchor()
       heightSettle.restart()
       if (content) contentRequested = true
       focusPrimed = false
@@ -291,6 +313,7 @@ PanelWindow {
         if (root.open && root.focusTarget) root.focusTarget.forceActiveFocus()
       })
     } else {
+      anchorFrozen = false
       focusPrimeTimer.stop()
       focusPrimed = false
     }
