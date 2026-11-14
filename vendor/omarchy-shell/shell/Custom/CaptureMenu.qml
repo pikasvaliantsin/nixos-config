@@ -13,12 +13,16 @@ KeyboardPanel {
   property bool recording: false
   property string audioMode: "desktop"
 
-  // The popup always starts on system audio. A stale "No audio" choice from a
-  // previous session must not silently make the next recording silent.
-  onOpenChanged: if (open) root.audioMode = "desktop"
+  readonly property string audioModePath: Quickshell.env("HOME") + "/.local/state/omarchy/screenrecord-audio"
+
+  function loadAudioMode(raw) {
+    var value = String(raw || "").trim()
+    if (value === "none" || value === "desktop" || value === "both") root.audioMode = value
+  }
 
   function setAudioMode(value) {
     root.audioMode = value
+    audioModeFile.setText(value + "\n")
   }
 
   function recordCommand(region) {
@@ -135,4 +139,14 @@ KeyboardPanel {
     }
   }
 
+  // A FileView is not an Item, so it must not become a child of the panel
+  // content. Declaring it as a property keeps it out of contentItem.
+  property FileView audioModeFile: FileView {
+    path: root.audioModePath
+    atomicWrites: true
+    blockLoading: true
+    printErrors: false
+    onLoaded: root.loadAudioMode(text())
+    onLoadFailed: root.loadAudioMode("")
+  }
 }

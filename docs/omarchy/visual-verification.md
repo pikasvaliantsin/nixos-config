@@ -56,9 +56,8 @@ pactl list short modules | grep omarchy_screenrec   # empty when idle
 
 Bindings are `Alt+R` (screen) and `Alt+Shift+R` (region), both with desktop
 audio by default. The bar recording indicator is also a button: while
-recording it stops, otherwise it opens the capture menu. The menu starts on
-system audio every time; pick No audio or Desktop + mic for that recording
-only, so a previous choice cannot make the next recording silent.
+recording it stops, otherwise it opens the capture menu with the audio mode.
+The mode is stored in `~/.local/state/omarchy/screenrecord-audio`.
 
 Recording files land in `~/Videos/Screencasts/` (override with
 `OMARCHY_SCREENRECORD_DIR`) for both backends. After stop every recording is
