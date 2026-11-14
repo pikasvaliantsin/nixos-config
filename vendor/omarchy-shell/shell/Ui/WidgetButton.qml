@@ -193,7 +193,9 @@ Item {
     onClicked: function(mouse) { if (root.pressable) root.triggerPress(mouse.button) }
     onWheel: function(wheel) {
       root.wheelMoved(wheel.angleDelta.y)
-      if (root.consumeWheel) wheel.accepted = true
+      // Let non-consuming widgets bubble the wheel to the bar's workspace
+      // scroller. Volume/workspaces/tray set consumeWheel and stop it here.
+      wheel.accepted = root.consumeWheel
     }
   }
 }

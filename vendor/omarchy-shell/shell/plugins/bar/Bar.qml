@@ -1826,6 +1826,8 @@ Item {
         color: root.transparent ? "transparent" : (root.glassy ? root.glassBackground : root.background)
       }
 
+      // Catches wheel events that bubble up from the bar content (empty areas
+      // and widgets that do not consume the wheel themselves).
       WheelHandler {
         onWheel: function(event) {
           if (event.angleDelta.y === 0) return
@@ -2501,6 +2503,16 @@ Item {
       suppressClick = false
       pressedX = mouse.x
       pressedY = mouse.y
+    }
+
+    // This area covers the whole bar, so the wheel switches workspaces over
+    // empty space and over widgets that do not consume wheel input. Widgets
+    // with their own wheel handling (workspaces, microphone, tray) accept the
+    // event first.
+    onWheel: function(wheel) {
+      if (wheel.angleDelta.y === 0) return
+      root.scrollWorkspaces(wheel.angleDelta.y)
+      wheel.accepted = true
     }
 
     onPressAndHold: function(mouse) {
