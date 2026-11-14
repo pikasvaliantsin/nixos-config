@@ -285,6 +285,16 @@ ShellRoot {
   Variants {
     model: Quickshell.screens
     delegate: Component {
+      NotificationDismiss {
+        required property var modelData
+        screen: modelData
+      }
+    }
+  }
+
+  Variants {
+    model: Quickshell.screens
+    delegate: Component {
       NotificationCenter {
         required property var modelData
         screen: modelData
