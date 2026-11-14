@@ -74,8 +74,18 @@ Live cards show buttons built by `Notifications.actionsFor()`:
 
 History entries do not carry live action objects and do not show buttons.
 
-Inline replies are not implemented; the server does not expose
-`hasInlineReply` UI here.
+Live cards with `hasInlineReply` show a reply field. `Enter` sends through
+`Notification.sendInlineReply()` and dismisses the notification; `Escape` in
+the field closes just the field. `inlineReplySupported` is enabled on the
+server. History entries have no reply field.
+
+## Toasts
+
+Toasts are optional and **off by default**. Toggle them with the `Toasts`
+control in the center header or `notifications toasts` IPC; the choice is
+persisted in `quiet.json` next to DND. When enabled, a notification also shows
+a small top-right toast for five seconds, with hover pause, click-to-center and
+a close button. They do not take keyboard focus. DND suppresses toasts.
 
 ## DND
 
@@ -88,6 +98,10 @@ entries.
 ## Center layout
 
 - one `NotificationCenter` instance in `shell.qml`;
+- Recent tab: live notifications plus notifications closed in this shell
+  session, grouped by app name; a group header shows the count and latest
+  summary and expands to its cards. History tab: persisted closed entries,
+  newest first;
 - the center is one full-screen `OverlayWindow` on the focused output, like
   the clipboard. Its scrim `MouseArea` catches an outside click, the card at
   the top-right stops clicks from reaching the scrim, and an item-level key
@@ -108,6 +122,7 @@ omarchy-ipc call notifications open
 omarchy-ipc call notifications close
 omarchy-ipc call notifications clear
 omarchy-ipc call notifications dnd
+omarchy-ipc call notifications toasts
 omarchy-ipc call notifications count
 omarchy-ipc call notifications quiet
 ```
@@ -130,7 +145,8 @@ omarchy-ipc call notifications clear   # dismiss all active into history
 `notify-send` also works for a quick local test, but prefer the Omarchy helper
 in runtime code. Check active card, history, time, action buttons (the
 `--action` helper path and, if the sender provides them, standard D-Bus
-actions), Escape and click-outside behaviour.
+actions), inline reply where supported, Recent/History tabs, grouping,
+optional toasts, Escape and click-outside behaviour.
 
 To check persistence:
 

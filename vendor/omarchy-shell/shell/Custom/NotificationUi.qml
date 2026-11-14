@@ -7,12 +7,15 @@ Singleton {
   id: root
 
   property bool notificationsOpen: false
+  property string tab: "recent"
 
   function toggle() {
-    root.notificationsOpen = !root.notificationsOpen
+    if (root.notificationsOpen) root.notificationsOpen = false
+    else root.open()
   }
 
   function open() {
+    root.tab = "recent"
     root.notificationsOpen = true
   }
 
@@ -31,6 +34,7 @@ Singleton {
     function close(): void { root.close() }
     function clear(): void { Notifications.clearAll() }
     function dnd(): void { root.toggleDnd() }
+    function toasts(): void { Notifications.toggleToasts() }
     function count(): string { return String(Notifications.count) }
     function quiet(): string { return Notifications.doNotDisturb ? "on" : "off" }
   }

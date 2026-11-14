@@ -287,6 +287,7 @@ ShellRoot {
   // click, the same way the clipboard overlay does.
 
   NotificationCenter { }
+  Toasts { }
 
   // Search panels: files use the dsearch index, calculator uses qalc.
   FileSearch { }

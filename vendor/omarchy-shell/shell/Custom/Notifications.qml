@@ -5,10 +5,10 @@ import Quickshell.Io
 import Quickshell.Services.Notifications
 import qs.Commons
 
-// The only notification server in the session. No toasts: every notification
-// is tracked and shown in the center. Dismissed notifications move to a
-// persisted history so closing the card or restarting the shell does not lose
-// their text.
+// The only notification server in the session. Toasts are optional and off by
+// default; every notification is tracked and shown in the center. Dismissed
+// notifications move to a recent session list and a persisted history so
+// closing the card or restarting the shell does not lose their text.
 Singleton {
   id: root
 
@@ -23,9 +23,15 @@ Singleton {
   // destroyed by the server.
   property var history: []
   property bool historyLoaded: false
+  // Notifications closed since this shell started. The persisted history is
+  // longer-lived; Recent is the session's quickly reachable tail.
+  property var recent: []
 
   property bool doNotDisturb: false
+  property bool toastsEnabled: false
   property bool quietLoaded: false
+
+  signal toastRequested(var entry)
 
   function bounded(value, max) {
     return String(value || "").slice(0, max)
@@ -45,8 +51,21 @@ Singleton {
 
   function addHistory(notification, fromDnd) {
     if (!notification) return
-    root.history = [root.historyEntry(notification, fromDnd)].concat(root.history).slice(0, 50)
+    var entry = root.historyEntry(notification, fromDnd)
+    root.history = [entry].concat(root.history).slice(0, 50)
+    root.recent = [entry].concat(root.recent).slice(0, 50)
     root.saveHistory()
+  }
+
+  function clearRecent() {
+    root.recent = []
+  }
+
+  function removeRecent(index) {
+    if (index < 0 || index >= root.recent.length) return
+    var next = root.recent.slice()
+    next.splice(index, 1)
+    root.recent = next
   }
 
   function removeHistory(index) {
@@ -113,17 +132,20 @@ Singleton {
     if (root.quietLoaded) return
     try {
       var parsed = JSON.parse(String(raw || "{}"))
-      if (parsed && typeof parsed === "object" && typeof parsed.dnd === "boolean")
-        root.doNotDisturb = parsed.dnd
+      if (parsed && typeof parsed === "object") {
+        if (typeof parsed.dnd === "boolean") root.doNotDisturb = parsed.dnd
+        if (typeof parsed.toasts === "boolean") root.toastsEnabled = parsed.toasts
+      }
     } catch (e) {
       root.doNotDisturb = false
+      root.toastsEnabled = false
     }
     root.quietLoaded = true
   }
 
   function saveQuiet() {
     if (!root.quietLoaded) return
-    quietFile.setText(JSON.stringify({ dnd: root.doNotDisturb }) + "\n")
+    quietFile.setText(JSON.stringify({ dnd: root.doNotDisturb, toasts: root.toastsEnabled }) + "\n")
   }
 
   function setDoNotDisturb(value) {
@@ -133,6 +155,25 @@ Singleton {
 
   function toggleDoNotDisturb() {
     root.setDoNotDisturb(!root.doNotDisturb)
+  }
+
+  function setToastsEnabled(value) {
+    root.toastsEnabled = !!value
+    root.saveQuiet()
+  }
+
+  function toggleToasts() {
+    root.setToastsEnabled(!root.toastsEnabled)
+  }
+
+  function toastEntry(notification) {
+    return {
+      appName: root.bounded(notification.appName, 256),
+      appIcon: root.bounded(notification.appIcon, 256),
+      summary: root.bounded(notification.summary, 2048),
+      body: root.bounded(notification.body, 32768),
+      urgency: Number(notification.urgency || 0)
+    }
   }
 
   // The omarchy-actions hint (omarchy-notification-send --action): up to three
@@ -224,6 +265,7 @@ Singleton {
     id: server
     keepOnReload: true
     actionsSupported: true
+    inlineReplySupported: true
     bodySupported: true
     imageSupported: true
     bodyMarkupSupported: false
@@ -235,6 +277,7 @@ Singleton {
         return
       }
       n.tracked = true
+      if (root.toastsEnabled) root.toastRequested(root.toastEntry(n))
       n.closed.connect(function() { root.addHistory(n) })
     }
   }

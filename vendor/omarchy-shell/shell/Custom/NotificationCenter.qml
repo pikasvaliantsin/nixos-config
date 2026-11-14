@@ -13,6 +13,45 @@ import qs.Ui
 Item {
   id: root
 
+  property var recentGroups: []
+
+  function buildGroups() {
+    var groups = []
+    var byKey = ({})
+
+    function add(entry, live, historyIndex, recentIndex) {
+      if (!entry) return
+      var name = String(entry.appName || "Notifications")
+      var key = name.toLowerCase()
+      if (byKey[key] === undefined) {
+        byKey[key] = groups.length
+        groups.push({ appName: name, appIcon: String(entry.appIcon || ""), entries: [] })
+      }
+      groups[byKey[key]].entries.push({
+        entry: entry,
+        live: live,
+        historyIndex: historyIndex,
+        recentIndex: recentIndex
+      })
+    }
+
+    var live = Notifications.list && Notifications.list.values ? Notifications.list.values : []
+    for (var i = 0; i < live.length; i++) add(live[i], true, -1, -1)
+    for (var j = 0; j < Notifications.recent.length; j++)
+      add(Notifications.recent[j], false, -1, j)
+    return groups
+  }
+
+  function rebuildGroups() { root.recentGroups = root.buildGroups() }
+
+  Component.onCompleted: rebuildGroups()
+
+  Connections {
+    target: Notifications
+    function onCountChanged() { root.rebuildGroups() }
+    function onRecentChanged() { root.rebuildGroups() }
+  }
+
   readonly property int cardWidth: Math.min(Style.space(360), Math.max(Style.space(280), panel.width - Style.gapsOut * 2))
   readonly property int cardHeight: Math.min(Style.space(560), Math.max(Style.space(140), column.implicitHeight + Style.space(24)))
 
@@ -99,14 +138,42 @@ Item {
           }
           Item { Layout.fillWidth: true }
           Text {
-            text: "Clear"
-            color: Notifications.count > 0 ? Commons.Color.accent : Commons.Color.muted
+            text: "Toasts"
+            color: Notifications.toastsEnabled ? Commons.Color.accent : Commons.Color.muted
             font.family: Style.font.family
             font.pixelSize: Style.font.caption
             MouseArea {
               anchors.fill: parent
-              enabled: Notifications.count > 0
-              onClicked: Notifications.clearAll()
+              onClicked: Notifications.toggleToasts()
+            }
+          }
+          Text {
+            text: "DND"
+            color: Notifications.doNotDisturb ? Commons.Color.urgent : Commons.Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.caption
+            MouseArea {
+              anchors.fill: parent
+              onClicked: Notifications.toggleDoNotDisturb()
+            }
+          }
+          Text {
+            text: "Clear"
+            color: (NotificationUi.tab === "history"
+              ? Notifications.history.length > 0
+              : Notifications.count > 0 || Notifications.recent.length > 0)
+              ? Commons.Color.accent : Commons.Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.caption
+            MouseArea {
+              anchors.fill: parent
+              onClicked: {
+                if (NotificationUi.tab === "history") Notifications.clearHistory()
+                else {
+                  Notifications.clearAll()
+                  Notifications.clearRecent()
+                }
+              }
             }
           }
           Text {
@@ -119,6 +186,35 @@ Item {
               onClicked: NotificationUi.close()
             }
           }
+        }
+
+        RowLayout {
+          Layout.fillWidth: true
+          spacing: Style.space(12)
+
+          Text {
+            text: "Recent"
+            color: NotificationUi.tab === "recent" ? Commons.Color.accent : Commons.Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            font.bold: NotificationUi.tab === "recent"
+            MouseArea {
+              anchors.fill: parent
+              onClicked: NotificationUi.tab = "recent"
+            }
+          }
+          Text {
+            text: "History"
+            color: NotificationUi.tab === "history" ? Commons.Color.accent : Commons.Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            font.bold: NotificationUi.tab === "history"
+            MouseArea {
+              anchors.fill: parent
+              onClicked: NotificationUi.tab = "history"
+            }
+          }
+          Item { Layout.fillWidth: true }
         }
 
         Rectangle {
@@ -143,49 +239,16 @@ Item {
             spacing: Style.space(6)
 
             Repeater {
-              model: Notifications.list.values
-              delegate: Card {
+              model: NotificationUi.tab === "recent" ? root.recentGroups : []
+              delegate: GroupDelegate {
                 required property var modelData
                 width: listColumn.width
-                entry: modelData
-                live: true
+                group: modelData
               }
-            }
-
-            Rectangle {
-              visible: Notifications.history.length > 0
-              width: parent.width
-              height: 1
-              color: Commons.Color.popups.border
-              opacity: 0.5
-            }
-
-            RowLayout {
-              visible: Notifications.history.length > 0
-              width: parent.width
-              spacing: Style.space(8)
-
-              Text {
-                text: "History"
-                color: Commons.Color.muted
-                font.family: Style.font.family
-                font.pixelSize: Style.font.bodySmall
-              }
-              Text {
-                text: "Clear"
-                color: Commons.Color.accent
-                font.family: Style.font.family
-                font.pixelSize: Style.font.caption
-                MouseArea {
-                  anchors.fill: parent
-                  onClicked: Notifications.clearHistory()
-                }
-              }
-              Item { Layout.fillWidth: true }
             }
 
             Repeater {
-              model: Notifications.history
+              model: NotificationUi.tab === "history" ? Notifications.history : []
               delegate: Card {
                 required property var modelData
                 required property int index
@@ -197,7 +260,9 @@ Item {
             }
 
             Text {
-              visible: Notifications.count === 0 && Notifications.history.length === 0
+              visible: NotificationUi.tab === "recent"
+                ? root.recentGroups.length === 0
+                : Notifications.history.length === 0
               width: parent.width
               text: "Nothing here"
               color: Commons.Color.muted
@@ -216,6 +281,19 @@ Item {
       property var entry: null
       property bool live: false
       property int historyIndex: -1
+      property int recentIndex: -1
+      property bool replyOpen: false
+      property string replyText: ""
+
+      function sendReply() {
+        if (!card.entry || !card.entry.hasInlineReply) return
+        var text = String(card.replyText || "").trim()
+        if (text.length === 0) return
+        card.entry.sendInlineReply(text)
+        card.replyText = ""
+        card.replyOpen = false
+        card.entry.dismiss()
+      }
 
       readonly property var actions: live && entry ? Notifications.actionsFor(entry) : []
       readonly property string timeLabel: {
@@ -303,6 +381,45 @@ Item {
           }
         }
 
+        Column {
+          width: cardBody.width
+          spacing: Style.space(4)
+          visible: card.live && card.entry && card.entry.hasInlineReply && card.replyOpen
+
+          TextField {
+            id: replyField
+            width: parent.width
+            placeholderText: card.entry && card.entry.inlineReplyPlaceholder
+              ? card.entry.inlineReplyPlaceholder : "Reply"
+            foreground: Commons.Color.foreground
+            accent: Commons.Color.accent
+            onAccepted: card.sendReply()
+            Keys.onEscapePressed: function(event) {
+              card.replyOpen = false
+              event.accepted = true
+            }
+            onTextChanged: card.replyText = text
+          }
+        }
+
+        Text {
+          visible: card.live && card.entry && card.entry.hasInlineReply && !card.replyOpen
+          width: cardBody.width
+          text: "Reply"
+          color: Commons.Color.accent
+          font.family: Style.font.family
+          font.pixelSize: Style.font.bodySmall
+          MouseArea {
+            anchors.fill: parent
+            anchors.margins: -Style.space(3)
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              card.replyOpen = true
+              Qt.callLater(function() { replyField.forceActiveFocus() })
+            }
+          }
+        }
+
         Text {
           visible: !card.live
           width: cardBody.width
@@ -327,7 +444,89 @@ Item {
           anchors.fill: parent
           anchors.margins: -Style.space(4)
           cursorShape: Qt.PointingHandCursor
-          onClicked: Notifications.removeHistory(card.historyIndex)
+          onClicked: {
+            if (card.recentIndex >= 0) Notifications.removeRecent(card.recentIndex)
+            else Notifications.removeHistory(card.historyIndex)
+          }
+        }
+      }
+    }
+
+    component GroupDelegate: Column {
+      id: groupRoot
+
+      property var group: null
+      readonly property var entries: group && group.entries ? group.entries : []
+      readonly property bool single: entries.length <= 1
+      property bool expanded: false
+
+      width: listColumn.width
+      spacing: Style.space(6)
+
+      Rectangle {
+        visible: !groupRoot.single
+        width: parent.width
+        height: groupColumn.implicitHeight + Style.space(18)
+        radius: Style.space(10)
+        color: Commons.Color.popups.background
+        border.width: 1
+        border.color: Commons.Color.popups.border
+
+        Column {
+          id: groupColumn
+          anchors {
+            left: parent.left
+            right: parent.right
+            top: parent.top
+            margins: Style.space(9)
+          }
+          spacing: Style.space(2)
+
+          Text {
+            width: parent.width
+            text: groupRoot.group ? String(groupRoot.group.appName || "") : ""
+            color: Commons.Color.accent
+            font.family: Style.font.family
+            font.pixelSize: Style.font.caption
+            elide: Text.ElideRight
+          }
+          Text {
+            width: parent.width
+            text: groupRoot.entries.length + (groupRoot.entries.length === 1 ? " notification" : " notifications")
+            color: Commons.Color.foreground
+            font.family: Style.font.family
+            font.pixelSize: Style.font.body
+            font.bold: true
+          }
+          Text {
+            width: parent.width
+            text: groupRoot.entries.length > 0 && groupRoot.entries[0].entry
+              ? String(groupRoot.entries[0].entry.summary || "") : ""
+            color: Commons.Color.muted
+            font.family: Style.font.family
+            font.pixelSize: Style.font.bodySmall
+            maximumLineCount: 1
+            elide: Text.ElideRight
+          }
+        }
+
+        MouseArea {
+          anchors.fill: parent
+          cursorShape: Qt.PointingHandCursor
+          onClicked: groupRoot.expanded = !groupRoot.expanded
+        }
+      }
+
+      Repeater {
+        model: groupRoot.single || groupRoot.expanded ? groupRoot.entries : []
+
+        delegate: Card {
+          required property var modelData
+          width: groupRoot.width
+          entry: modelData.entry
+          live: modelData.live
+          historyIndex: modelData.historyIndex
+          recentIndex: modelData.recentIndex
         }
       }
     }
