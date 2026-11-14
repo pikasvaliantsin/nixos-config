@@ -10,10 +10,6 @@ BarIndicator {
   property bool recording: false
   property bool menuOpen: false
 
-  // The indicator widget mounts this button outside the collapsible inactive
-  // area so it is a target even before a recording exists.
-  alwaysShow: settings && settings.alwaysShow === true
-
   function close() { root.menuOpen = false }
 
   active: recording

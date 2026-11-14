@@ -18,6 +18,7 @@
           "id": "omarchy.indicators",
           "items": [
             "PasswordlessSudo",
+            "ScreenRecording",
             "Reminder",
             "NightLight",
             "Dnd",

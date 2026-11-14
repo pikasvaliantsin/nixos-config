@@ -8,7 +8,7 @@ BarWidget {
   id: root
   moduleName: "omarchy.indicators"
 
-  readonly property var defaultIndicatorEntries: [ "PasswordlessSudo", "RemoteSession", "Reminder", "NightLight", "Dnd", "StayAwake" ]
+  readonly property var defaultIndicatorEntries: [ "PasswordlessSudo", "ScreenRecording", "RemoteSession", "Reminder", "NightLight", "Dnd", "StayAwake" ]
   readonly property var indicatorEntries: indicatorEntriesFromSettings(settings)
   property var activeIndicatorIds: []
   property var indicatorActiveStates: ({})
@@ -371,16 +371,6 @@ BarWidget {
             reportActiveState: activeIndicatorBlockRoot.reportActiveState
           }
         }
-
-        // Always mounted: before a recording this opens the capture menu,
-        // during one it stops the recording. "single" skips the active/
-        // inactive block filtering so the button never disappears.
-        IndicatorLoader {
-          indicatorsModule: activeIndicatorBlockRoot.indicatorsModule
-          entry: ({ id: "ScreenRecording", alwaysShow: true })
-          indicatorBlock: "single"
-          reportActiveState: false
-        }
       }
     }
 
@@ -400,13 +390,6 @@ BarWidget {
             indicatorBlock: "active"
             reportActiveState: activeIndicatorBlockRoot.reportActiveState
           }
-        }
-
-        IndicatorLoader {
-          indicatorsModule: activeIndicatorBlockRoot.indicatorsModule
-          entry: ({ id: "ScreenRecording", alwaysShow: true })
-          indicatorBlock: "single"
-          reportActiveState: false
         }
       }
     }
