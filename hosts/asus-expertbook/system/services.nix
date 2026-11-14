@@ -56,10 +56,48 @@
     '';
   };
 
+  # Лимит заряда батареи ASUS. Порог хранится в EC (ACPI-хук
+  # "ASUS Battery Extension"), поэтому действует и при выключенном ноуте,
+  # пока подключён адаптер. Сбрасывается BIOS-обновлением, EC-reset и MyASUS
+  # в Windows, поэтому переприменяем при загрузке и на событие адаптера.
+  #
+  # Start-порога на этой модели нет: если заряд уже выше 60, EC просто не
+  # будет заряжать дальше. Чтобы опуститься до 60, нужно разрядить батарею
+  # работой от неё один раз.
+  systemd.services.battery-charge-limit = {
+    description = "Apply ASUS battery charge limit (60%)";
+    wantedBy = [ "multi-user.target" ];
+    path = [ pkgs.coreutils ];
+    serviceConfig = {
+      Type = "oneshot";
+      # RemainAfterExit не ставим: юнит должен оставаться inactive, иначе
+      # SYSTEMD_WANTS из udev-правила ниже не сможет запустить его повторно.
+    };
+    script = ''
+      set -eu
+
+      threshold=/sys/class/power_supply/BAT0/charge_control_end_threshold
+      if [ ! -w "$threshold" ]; then
+        echo "charge threshold недоступен, пропускаю" >&2
+        exit 0
+      fi
+
+      echo 60 > "$threshold"
+      echo "charge limit: $(cat "$threshold")"
+    '';
+  };
+
   services = {
     # На этой машине без _CPC демону нечего предложить, кроме platform_profile,
     # а он конфликтует с настройкой выше. Не включаем.
     power-profiles-daemon.enable = false;
+
+    # Переприменяем лимит заряда при подключении/отключении адаптера.
+    # Реагируем именно на AC0: событие на BAT0 может быть следствием самой
+    # записи порога и дать петлю перезапусков.
+    udev.extraRules = ''
+      SUBSYSTEM=="power_supply", KERNEL=="AC0", TAG+="systemd", ENV{SYSTEMD_WANTS}+="battery-charge-limit.service"
+    '';
 
     # ========================================
     # AUDIO
