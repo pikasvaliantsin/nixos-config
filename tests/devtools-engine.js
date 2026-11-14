@@ -123,5 +123,82 @@ check("chmod invalid", D.describeChmod("999").error.length > 0)
 eq("dispatch unknown", D.run("nope", "", {}, rng).error, "Unknown tool: nope")
 check("dispatch uuid", D.run("uuid", "", { version: "4" }, rng).output.length === 36)
 
+
+// --- review: chmod special bits --------------------------------------------
+eq("chmod rws", D.describeChmod("rwsr-xr-x").output.split("\n")[0], "Octal     4755")
+check("chmod rws symbolic", D.describeChmod("rwsr-xr-x").output.includes("Symbolic  rwsr-xr-x"))
+check("chmod rws special", D.describeChmod("rwsr-xr-x").output.includes("Special   setuid"))
+eq("chmod sticky input", D.describeChmod("rwxr-xr-t").output.split("\n")[0], "Octal     1755")
+check("chmod sticky symbolic", D.describeChmod("rwxr-xr-t").output.includes("Symbolic  rwxr-xr-t"))
+eq("chmod setuid+setgid", D.describeChmod("rwsrwsrwx").output.split("\n")[0], "Octal     6777")
+check("chmod both names", D.describeChmod("rwsrwsrwx").output.includes("setuid, setgid"))
+eq("chmod S without x", D.describeChmod("rwSr-xr-x").output.split("\n")[0], "Octal     4655")
+check("chmod S symbolic", D.describeChmod("rwSr-xr-x").output.includes("Symbolic  rwSr-xr-x"))
+check("chmod octal setuid", D.describeChmod("4755").output.includes("Symbolic  rwsr-xr-x"))
+check("chmod octal sticky", D.describeChmod("1777").output.includes("Symbolic  rwxrwxrwt"))
+check("chmod octal plain", D.describeChmod("0755").output.includes("Symbolic  rwxr-xr-x"))
+eq("chmod zero", D.describeChmod("000").output.split("\n")[0], "Octal     0000")
+check("chmod still rejects", D.describeChmod("999").error.length > 0)
+
+// --- review: colour validation ---------------------------------------------
+check("color hex length", D.convertColor("#abcde").error.length > 0)
+check("color hex length 7", D.convertColor("#abcdef1").error.length > 0)
+check("color non numeric rgb", D.convertColor("rgb(a,b,c)").error.length > 0)
+check("color non numeric hsl", D.convertColor("hsl(a,0%,0%)").error.length > 0)
+check("color percent channels", D.convertColor("rgb(100%,0%,0%)").output.includes("HEX  #ff0000"))
+check("color still valid", D.convertColor("#8ec07c").output.includes("rgb(142, 192, 124)"))
+
+// --- review: JWT claim dates ------------------------------------------------
+const hugeExp = D.decodeJwt("eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjFlMjB9.x").output
+check("jwt absurd exp", hugeExp.indexOf("NaN") === -1, hugeExp)
+check("jwt valid iat kept", D.decodeJwt(jwt).output.includes("2018-01-18"))
+
+// --- review: base64 strictness ---------------------------------------------
+eq("b64 padded", D.encodeText("YQ==", { mode: "decode" }).output, "a")
+eq("b64 unpadded", D.encodeText("YQ", { mode: "decode" }).output, "a")
+eq("b64 one pad", D.encodeText("YWI=", { mode: "decode" }).output, "ab")
+eq("b64 two pad", D.encodeText("YWJjZA==", { mode: "decode" }).output, "abcd")
+eq("b64 empty", D.encodeText("", { mode: "decode" }).output, "")
+check("b64 rejects garbage", D.encodeText("!!!!", { mode: "decode" }).error.length > 0)
+check("b64 rejects inner padding", D.encodeText("YW=Jj", { mode: "decode" }).error.length > 0)
+check("b64 rejects extra padding", D.encodeText("YQ===", { mode: "decode" }).error.length > 0)
+check("b64 keeps urlSafe roundtrip", D.encodeText(D.encodeText("?~", { urlSafe: true }).output, { mode: "decode", urlSafe: true }).output === "?~")
+
+// --- review: regex bounds ---------------------------------------------------
+check("regex pattern cap", D.testRegex("x", { pattern: "a".repeat(1001) }).error.length > 0)
+check("regex text cap", D.testRegex("a".repeat(262145), { pattern: "a" }).error.length > 0)
+const emptyMatches = D.testRegex("abc", { pattern: "(?:)", flags: "g" }).output
+check("regex zero length", emptyMatches.startsWith("4 matches"), emptyMatches)
+check("regex still matches", D.testRegex("id=7", { pattern: "id=(\\d+)" }).output.includes("group 1: 7"))
+
+// --- review: QV4 fallback paths (no TextEncoder/TextDecoder) ---------------
+const savedEncoder = global.TextEncoder
+const savedDecoder = global.TextDecoder
+delete global.TextEncoder
+delete global.TextDecoder
+const fallbackPath = path.join(os.tmpdir(), "devtools-engine.fallback.cjs")
+fs.writeFileSync(fallbackPath, source)
+delete require.cache[fallbackPath]
+const F = require(fallbackPath)
+eq("fallback utf8 encode emoji", JSON.stringify(Array.from(F.utf8Encode("🚀"))), JSON.stringify([240, 159, 154, 128]))
+eq("fallback utf8 decode emoji", F.utf8Decode([240, 159, 154, 128]), "🚀")
+eq("fallback utf8 roundtrip", F.utf8Decode(F.utf8Encode("héllo — Привет — 🚀")), "héllo — Привет — 🚀")
+eq("fallback utf8 three byte", F.utf8Decode(F.utf8Encode("— — € ₽")), "— — € ₽")
+eq("fallback utf8 cyrillic", F.utf8Decode(F.utf8Encode("Привет мир")), "Привет мир")
+eq("fallback utf8 mixed", F.utf8Decode(F.utf8Encode("aé—🚀z€中")), "aé—🚀z€中")
+eq("fallback utf8 two byte", F.utf8Decode([0xc3, 0xa9]), "é")
+eq("fallback utf8 three bytes manual", F.utf8Decode([0xe2, 0x80, 0x94]), "—")
+eq("fallback utf8 four bytes manual", F.utf8Decode([0xf0, 0x9f, 0x9a, 0x80]), "🚀")
+eq("fallback base64 three byte", F.encodeText(F.encodeText("a—b", {}).output, { mode: "decode" }).output, "a—b")
+eq("fallback base64 emoji", F.encodeText(sample, { mode: "encode" }).output, Buffer.from(sample, "utf8").toString("base64"))
+eq("fallback base64 roundtrip", F.encodeText(F.encodeText(sample, {}).output, { mode: "decode" }).output, sample)
+check("fallback jwt", F.decodeJwt(jwt).output.includes('"sub": "1234567890"'))
+const unicodeJwt = "eyJhbGciOiJIUzI1NiJ9."
+  + Buffer.from(JSON.stringify({ name: "Привет" }), "utf8").toString("base64url") + ".sig"
+eq("fallback jwt unicode", F.decodeJwt(unicodeJwt).output.includes("Привет"), true)
+eq("native jwt unicode", D.decodeJwt(unicodeJwt).output.includes("Привет"), true)
+global.TextEncoder = savedEncoder
+global.TextDecoder = savedDecoder
+
 console.log(failures === 0 ? "ALL TESTS PASSED" : failures + " TEST(S) FAILED")
 process.exit(failures === 0 ? 0 : 1)

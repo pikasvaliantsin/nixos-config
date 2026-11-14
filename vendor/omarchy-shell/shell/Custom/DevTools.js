@@ -61,15 +61,18 @@ function utf8Decode(bytes) {
       var second = bytes[index++] || 0
       output += String.fromCharCode(((first & 0x1f) << 6) | (second & 0x3f))
     } else if (first < 0xf0) {
-      var third = bytes[index++] || 0
-      var thirdByte = bytes[index++] || 0
-      output += String.fromCharCode(((first & 0x0f) << 12) | ((second & 0x3f) << 6) | (thirdByte & 0x3f))
+      // Each branch reads its own continuation bytes. Reusing `second` here
+      // would pull the byte from a previous iteration (or undefined).
+      var secondThree = bytes[index++] || 0
+      var thirdThree = bytes[index++] || 0
+      output += String.fromCharCode(((first & 0x0f) << 12)
+        | ((secondThree & 0x3f) << 6) | (thirdThree & 0x3f))
     } else {
-      var fourth = bytes[index++] || 0
-      var fifth = bytes[index++] || 0
-      var sixth = bytes[index++] || 0
-      var point = (((first & 0x07) << 18) | ((fourth & 0x3f) << 12)
-                   | ((fifth & 0x3f) << 6) | (sixth & 0x3f)) - 0x10000
+      var secondFour = bytes[index++] || 0
+      var thirdFour = bytes[index++] || 0
+      var fourthFour = bytes[index++] || 0
+      var point = (((first & 0x07) << 18) | ((secondFour & 0x3f) << 12)
+                   | ((thirdFour & 0x3f) << 6) | (fourthFour & 0x3f)) - 0x10000
       output += String.fromCharCode(0xd800 + (point >> 10), 0xdc00 + (point & 0x3ff))
     }
   }
@@ -95,7 +98,9 @@ function encodeBase64(bytes, urlSafe) {
 
 function decodeBase64(value, urlSafe) {
   var text = String(value).replace(/\s+/g, "")
-  if (/^[^A-Za-z0-9+/\-_]/.test(text)) throw new Error("Not a Base64 value")
+  if (text.length === 0) return []
+  if (!/^[A-Za-z0-9+/\-_]*={0,2}$/.test(text))
+    throw new Error("Not a Base64 value (bad characters or misplaced padding)")
   if (text.length % 4 === 1) throw new Error("Base64 length is invalid")
   while (text.length % 4 !== 0) text += "="
   var bytes = []
@@ -323,6 +328,7 @@ function decodeJwt(input) {
     var name = claimNames[index]
     var value = Number(claims[name])
     if (!Number.isFinite(value) || value <= 0) continue
+    if (isNaN(new Date(value * 1000).getTime())) continue
     claimLines.push("  " + name + "  " + isoUtc(new Date(value * 1000))
                     + "  (" + describeWhen(value * 1000) + ")")
   }
@@ -411,12 +417,16 @@ function parseColor(input) {
   var hex = text.match(/^#?([0-9a-f]{3,8})$/)
   if (hex) {
     var value = hex[1]
+    if (value.length !== 3 && value.length !== 4 && value.length !== 6 && value.length !== 8)
+      throw new Error("Hex colours have 3, 4, 6 or 8 digits")
     if (value.length === 3 || value.length === 4)
       value = value.split("").map(function(char) { return char + char }).join("")
     var red = parseInt(value.slice(0, 2), 16)
     var green = parseInt(value.slice(2, 4), 16)
     var blue = parseInt(value.slice(4, 6), 16)
     var alpha = value.length >= 8 ? parseInt(value.slice(6, 8), 16) / 255 : 1
+    if (!Number.isFinite(red) || !Number.isFinite(green) || !Number.isFinite(blue))
+      throw new Error("Colour channels must be numbers")
     return { r: red, g: green, b: blue, a: alpha }
   }
   var rgb = text.match(/^rgba?\(([^)]+)\)$/)
@@ -428,6 +438,9 @@ function parseColor(input) {
       return Math.round(parseFloat(part))
     }
     var alphaPart = rgbParts.length > 3 ? rgbParts[3] : "1"
+    if (!Number.isFinite(parseFloat(rgbParts[0])) || !Number.isFinite(parseFloat(rgbParts[1]))
+        || !Number.isFinite(parseFloat(rgbParts[2])) || !Number.isFinite(parseFloat(alphaPart)))
+      throw new Error("Colour channels must be numbers")
     return {
       r: clamp(channel(rgbParts[0]), 0, 255),
       g: clamp(channel(rgbParts[1]), 0, 255),
@@ -439,6 +452,9 @@ function parseColor(input) {
   if (hsl) {
     var parts = hsl[1].split(/[,/]/).map(function(part) { return part.trim() })
     if (parts.length < 3) throw new Error("hsl() needs three channels")
+    if (!Number.isFinite(parseFloat(parts[0])) || !Number.isFinite(parseFloat(parts[1]))
+        || !Number.isFinite(parseFloat(parts[2])))
+      throw new Error("Colour channels must be numbers")
     var hue = ((parseFloat(parts[0]) % 360) + 360) % 360 / 360
     var saturation = clamp(parseFloat(parts[1]) / 100, 0, 1)
     var lightness = clamp(parseFloat(parts[2]) / 100, 0, 1)
@@ -532,6 +548,10 @@ function testRegex(input, options) {
   var flags = String(opts.flags || "g")
   var text = String(input)
   if (pattern.length === 0) return { output: "", error: "" }
+  // QV4's RegExp backtracks without a time limit: a catastrophic pattern can
+  // otherwise block the whole shell. Keep both sides small.
+  if (pattern.length > 1000) return { output: "", error: "Pattern is longer than 1000 characters" }
+  if (text.length > 262144) return { output: "", error: "Text is longer than 256 KiB; use grep for that" }
   var expression
   try {
     expression = new RegExp(pattern, flags.indexOf("g") >= 0 ? flags : flags + "g")
@@ -614,12 +634,19 @@ function textDiff(original, modified) {
 
 var PERMISSION_BITS = ["read", "write", "execute"]
 
-function chmodPages(value) {
-  var digits = String(value).split("").map(Number)
+// Three permission pages plus the special digit. setuid/setgid/sticky are
+// rendered back into the symbolic form (s/S/t/T), not just named.
+
+function chmodPages(digits, special) {
   var pages = []
   for (var index = 0; index < 3; index++) {
-    var digit = digits[index] || 0
-    pages.push((digit & 4 ? "r" : "-") + (digit & 2 ? "w" : "-") + (digit & 1 ? "x" : "-"))
+    var digit = digits[index]
+    var execute = "-"
+    if (index === 0 && (special & 4)) execute = (digit & 1) ? "s" : "S"
+    else if (index === 1 && (special & 2)) execute = (digit & 1) ? "s" : "S"
+    else if (index === 2 && (special & 1)) execute = (digit & 1) ? "t" : "T"
+    else if (digit & 1) execute = "x"
+    pages.push((digit & 4 ? "r" : "-") + (digit & 2 ? "w" : "-") + execute)
   }
   return pages
 }
@@ -629,40 +656,45 @@ function describeChmod(input) {
   if (text.length === 0) return { output: "", error: "" }
   var octalMatch = text.match(/^0?([0-7]{3,4})$/)
   var symbolicMatch = text.match(/^([-dlbcps])?([rwxstST-]{9})$/)
-  var octal
+  var digits = [0, 0, 0]
+  var special = 0
+
   if (octalMatch) {
-    octal = octalMatch[1]
+    var octal = octalMatch[1]
     if (octal.length === 3) octal = "0" + octal
+    special = Number(octal[0])
+    for (var index = 0; index < 3; index++) digits[index] = Number(octal[index + 1])
   } else if (symbolicMatch) {
     var rights = symbolicMatch[2]
-    octal = "0"
     for (var page = 0; page < 3; page++) {
       var chunk = rights.slice(page * 3, page * 3 + 3)
       var digit = 0
       if (chunk[0] === "r") digit += 4
       if (chunk[1] === "w") digit += 2
-      if (chunk[2] === "x" || chunk[2] === "s" || chunk[2] === "t") digit += 1
-      octal += String(digit)
+      var execute = chunk[2]
+      if (execute === "x" || execute === "s" || execute === "t") digit += 1
+      if (page === 0 && (execute === "s" || execute === "S")) special += 4
+      if (page === 1 && (execute === "s" || execute === "S")) special += 2
+      if (page === 2 && (execute === "t" || execute === "T")) special += 1
+      digits[page] = digit
     }
-    if (rights[2] === "s" || rights[5] === "s") octal = String(Number(octal) | 800)
-    if (rights[8] === "t") octal = String(Number(octal) | 1000)
   } else {
     return { output: "", error: "Use three or four octal digits, or rwxr-xr-x" }
   }
 
-  var special = Number(octal[0])
-  var pages = chmodPages(octal.slice(1))
+  var pages = chmodPages(digits, special)
   var specialNames = []
   if (special & 4) specialNames.push("setuid")
   if (special & 2) specialNames.push("setgid")
   if (special & 1) specialNames.push("sticky")
   var owners = ["Owner", "Group", "Other"]
-  var lines = ["Octal     " + octal, "Symbolic  " + pages.join("")]
-  for (var index = 0; index < 3; index++) {
-    var chunk = pages[index]
+  var lines = ["Octal     " + special + digits.join(""), "Symbolic  " + pages.join("")]
+  for (var owner = 0; owner < 3; owner++) {
+    var chunk = pages[owner]
     var names = []
-    for (var bit = 0; bit < 3; bit++) if (chunk[bit] !== "-") names.push(PERMISSION_BITS[bit])
-    lines.push(owners[index].padEnd(10) + chunk + "  (" + (names.length ? names.join(", ") : "none") + ")")
+    for (var bit = 0; bit < 3; bit++)
+      if (chunk[bit] !== "-") names.push(PERMISSION_BITS[bit])
+    lines.push(owners[owner].padEnd(10) + chunk + "  (" + (names.length ? names.join(", ") : "none") + ")")
   }
   lines.push("Special   " + (specialNames.length ? specialNames.join(", ") : "none"))
   return { output: lines.join("\n"), error: "" }
