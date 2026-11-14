@@ -90,6 +90,27 @@ def process_context():
     }
 
 
+def invoking_user():
+    """The real user behind sudo, from the sudo process's real UID.
+
+    sudo is setuid root, so PAM_USER is the target user and PAM_RUSER is only
+    set when sudoers has pam_ruser enabled. The parent sudo process still has
+    the invoking user's real UID, which is exactly who owns the auth socket.
+    """
+    try:
+        status = read_text("/proc/%d/status" % os.getppid(), 8192)
+        for line in status.splitlines():
+            if line.startswith("Uid:"):
+                uid = int(line.split()[1])
+                return pwd.getpwuid(uid).pw_name
+    except (IndexError, KeyError, ValueError, OSError):
+        pass
+
+    return (os.environ.get("PAM_GUI_USER")
+            or os.environ.get("PAM_RUSER")
+            or os.environ.get("PAM_USER", ""))
+
+
 def send(connection, payload):
     try:
         connection.sendall((json.dumps(payload, separators=(",", ":")) + "\n").encode())
@@ -127,11 +148,8 @@ def stop_fingerprint(process):
 
 
 def main():
-    # sudo sets PAM_USER to the target user (often root) and PAM_RUSER to the
-    # invoking user. Authenticate as the person who asked, never as root.
-    user = (os.environ.get("PAM_GUI_USER")
-            or os.environ.get("PAM_RUSER")
-            or os.environ.get("PAM_USER", ""))
+    # Authenticate the person who asked, never the root target.
+    user = invoking_user()
     if not user:
         return 1
 
