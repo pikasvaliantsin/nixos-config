@@ -125,9 +125,21 @@ Item {
   Process {
     id: applyProc
     onExited: function(code, status) {
-      if (code !== 0 || status !== 0) root.errorText = "Apply failed"
-      else root.notice = root.isThemes ? "Theme applied" : "Wallpaper applied"
+      if (code !== 0 || status !== 0) {
+        root.errorText = "Apply failed"
+        return
+      }
+      root.notice = root.isThemes ? "Theme applied" : "Wallpaper applied"
+      // Picking a theme ends the interaction. Wallpapers keep the deck open
+      // so several can be tried without reopening it each time.
+      if (root.isThemes) closeAfterApply.restart()
     }
+  }
+
+  Timer {
+    id: closeAfterApply
+    interval: 220
+    onTriggered: root.close()
   }
 
   ShellIpc {
