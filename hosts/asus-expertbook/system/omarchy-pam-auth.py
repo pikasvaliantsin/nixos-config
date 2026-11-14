@@ -18,6 +18,7 @@ import pwd
 import select
 import socket
 import subprocess
+import struct
 import sys
 import time
 
@@ -33,6 +34,60 @@ def socket_path(user):
     except KeyError:
         return None
     return "/run/user/%d/omarchy-auth.sock" % uid
+
+
+def read_text(path, limit):
+    try:
+        with open(path, "rb") as handle:
+            return handle.read(limit).decode("utf-8", "replace").strip()
+    except OSError:
+        return ""
+
+
+def process_context():
+    """The command sudo is about to run, and where it came from.
+
+    The helper is forked by sudo, so its parent is the sudo process. Reading
+    /proc gives the dialog facts that the requesting terminal cannot replace
+    through an environment variable or prompt string.
+    """
+    pid = os.getppid()
+    argv = []
+    raw = read_text("/proc/%d/cmdline" % pid, 8192)
+    if raw:
+        argv = [part for part in raw.split("\0") if part]
+
+    cwd = ""
+    try:
+        cwd = os.readlink("/proc/%d/cwd" % pid)
+    except OSError:
+        pass
+
+    parent_name = ""
+    parent_pid = 0
+    try:
+        stat = read_text("/proc/%d/stat" % pid, 4096)
+        fields = stat.rsplit(")", 1)[1].split()
+        parent_pid = int(fields[1])
+        parent_name = read_text("/proc/%d/comm" % parent_pid, 256)
+    except (IndexError, ValueError, OSError):
+        pass
+
+    tty = os.environ.get("PAM_TTY", "")
+    if not tty:
+        try:
+            tty = os.readlink("/proc/%d/fd/0" % pid)
+        except OSError:
+            pass
+
+    return {
+        "command": " ".join(argv)[:2048],
+        "cwd": cwd[:1024],
+        "tty": tty[:256],
+        "pid": pid,
+        "parent": parent_name[:128],
+        "parent_pid": parent_pid,
+    }
 
 
 def send(connection, payload):
@@ -88,11 +143,25 @@ def main():
         return 1
     connection.setblocking(False)
 
-    if not send(connection, {
+    # Only a process owned by the user who is authenticating may present the
+    # dialog. /run/user/<uid> is already private, but this also rejects a
+    # socket substituted by another account in a shared runtime layout.
+    try:
+        credentials = connection.getsockopt(
+            socket.SOL_SOCKET, socket.SO_PEERCRED, struct.calcsize("3i"))
+        _peer_pid, peer_uid, _peer_gid = struct.unpack("3i", credentials)
+        if peer_uid != pwd.getpwnam(user).pw_uid:
+            return 1
+    except (OSError, KeyError):
+        return 1
+
+    request = {
         "type": "auth_request",
         "user": user,
         "service": os.environ.get("PAM_SERVICE", "sudo"),
-    }):
+    }
+    request.update(process_context())
+    if not send(connection, request):
         return 1
 
     buffer = b""

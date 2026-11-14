@@ -21,6 +21,12 @@ Item {
   property var client: null
   property string user: ""
   property string service: ""
+  property string command: ""
+  property string cwd: ""
+  property string tty: ""
+  property int requestPid: 0
+  property string parentName: ""
+  property int parentPid: 0
   property bool opened: false
   property bool checking: false
   property bool fingerprintActive: false
@@ -57,6 +63,12 @@ Item {
       root.client = connection
       root.user = String(message.user || "")
       root.service = String(message.service || "sudo")
+      root.command = String(message.command || "")
+      root.cwd = String(message.cwd || "")
+      root.tty = String(message.tty || "")
+      root.requestPid = Number(message.pid || 0)
+      root.parentName = String(message.parent || "")
+      root.parentPid = Number(message.parent_pid || 0)
       root.opened = true
       root.checking = false
       root.fingerprintActive = false
@@ -137,6 +149,12 @@ Item {
     root.fingerprintActive = false
     root.statusError = false
     root.status = ""
+    root.command = ""
+    root.cwd = ""
+    root.tty = ""
+    root.requestPid = 0
+    root.parentName = ""
+    root.parentPid = 0
     passwordInput.text = ""
     passwordInput.enabled = true
     root.client = null
@@ -190,7 +208,7 @@ Item {
     BorderSurface {
       id: card
       anchors.centerIn: parent
-      width: Math.min(Style.space(360), Math.max(Style.space(280), window.width - Style.gapsOut * 2))
+      width: Math.min(Style.space(440), Math.max(Style.space(300), window.width - Style.gapsOut * 2))
       height: dialog.implicitHeight + card.padding * 2
       color: Commons.Color.popups.background
       borderSpec: Border.surfaceSpec("popups", "border", Commons.Color.popups.border, Math.max(1, Style.space(2)))
@@ -214,11 +232,46 @@ Item {
 
         Text {
           width: parent.width
-          text: root.user.length > 0 ? root.service + " · " + root.user : root.service
+          text: {
+            var value = root.user.length > 0 ? root.service + " · " + root.user : root.service
+            if (root.requestPid > 0) value += " · pid " + root.requestPid
+            return value
+          }
           color: Commons.Color.popups.text
           opacity: 0.6
           font.family: Style.font.family
           font.pixelSize: Style.font.caption
+        }
+
+        Text {
+          width: parent.width
+          visible: root.command.length > 0
+          text: root.command
+          color: Commons.Color.popups.text
+          font.family: Style.font.family
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.Wrap
+          maximumLineCount: 4
+          elide: Text.ElideRight
+        }
+
+        Text {
+          width: parent.width
+          visible: root.parentName.length > 0 || root.tty.length > 0 || root.cwd.length > 0
+          text: {
+            var parts = []
+            if (root.parentName.length > 0) parts.push(root.parentName + (root.parentPid > 0 ? " (" + root.parentPid + ")" : ""))
+            if (root.tty.length > 0) parts.push(root.tty)
+            if (root.cwd.length > 0) parts.push(root.cwd)
+            return I18n.t("auth.from", "Requested by") + ": " + parts.join(" · ")
+          }
+          color: Commons.Color.popups.text
+          opacity: 0.55
+          font.family: Style.font.family
+          font.pixelSize: Style.font.caption
+          wrapMode: Text.Wrap
+          maximumLineCount: 2
+          elide: Text.ElideRight
         }
 
         TextField {

@@ -436,6 +436,7 @@
   "polkit.checking": "Проверка...",
   "polkit.enterPassword": "Введите пароль",
   "polkit.wrong": "Неверно",
+  "auth.from": "Запрос от",
   "auth.title": "Аутентификация",
   "auth.subtitle": "sudo",
   "auth.password": "Пароль",
