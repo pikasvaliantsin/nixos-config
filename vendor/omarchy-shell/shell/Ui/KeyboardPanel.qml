@@ -139,9 +139,11 @@ PanelWindow {
   // focus when the previously focused application has constrained the pointer.
   // The brief prime covers both cases; OnDemand then releases compositor-wide
   // pointer hit-testing so clicks can reach the dismissal windows below.
-  WlrLayershell.keyboardFocus: open
-    ? (focusPrimed ? WlrKeyboardFocus.OnDemand : WlrKeyboardFocus.Exclusive)
-    : WlrKeyboardFocus.None
+  // niri does not focus an on-demand layer from a plain click reliably, so
+  // Escape could land in the app behind an open panel. Holding the keyboard
+  // exclusively while the panel is open makes key handling deterministic; it
+  // only grabs the keyboard, not the pointer.
+  WlrLayershell.keyboardFocus: open ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
   onBackingWindowVisibleChanged: beginFocusPrime()
 
