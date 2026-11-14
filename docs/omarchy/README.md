@@ -25,6 +25,7 @@ Quickshell architecture and general UI rules.
 | `docs/theming.md` | [`theming.md`](theming.md) | Our `theme-set`/`theme-install`, native palettes, Omarchy `colors.toml`, generated fragments and state links. |
 | `docs/notifications.md` | [`notifications.md`](notifications.md) | Our custom server/center: no toasts, persisted history, actions, DND, IPC, known limitations. |
 | — | [`devtools.md`](devtools.md) | Developer toolbox overlay (`Mod+Shift+X`): pure JS engine, secure random pool, native fallbacks for large inputs. |
+| — | [`upstream-patches.md`](upstream-patches.md) | Files and hunks to re-apply when bumping the vendored Omarchy tag. |
 | `docs/i18n.md` | [`i18n.md`](i18n.md) | Our vendored `en`/`ru` catalogs, `I18n` usage and custom-panel literals. |
 | `docs/testing.md` | [`testing.md`](testing.md) | Nix build/switch, QML load checks, clipboard GC and theme tests; no upstream test suite in the vendor. |
 | `docs/omarchy-shell.md` | [`shell-dev.md`](shell-dev.md) | Condensed to the parts used by this port. |
@@ -44,7 +45,8 @@ repository; `vendor/omarchy-shell/UPSTREAM.md` records the vendored tag.
 4. [`motion.md`](motion.md) — before adding or changing animation.
 5. Area notes: [theming](theming.md), [notifications](notifications.md),
    [devtools](devtools.md), [launcher](launcher.md), [auth](auth.md),
-   [i18n](i18n.md), [testing](testing.md).
+   [i18n](i18n.md), [testing](testing.md), [upstream
+   patches](upstream-patches.md).
 
 ## Deliberate differences from upstream
 
