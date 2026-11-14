@@ -1,0 +1,50 @@
+#!/bin/bash
+# Read and edit the tray lists in the user's shell.json without replacing the
+# Home Manager symlink. Usage: omarchy-tray hidden | unhide <id> | show-all
+set -euo pipefail
+
+config="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/shell.json"
+tray_id="omarchy.tray"
+
+[[ -e $config ]] || exit 1
+# shell.json is usually a Home Manager symlink into the repository. Edit the
+# target so the link stays intact and the change survives activation.
+target=$(readlink -f "$config" 2>/dev/null || printf '%s' "$config")
+[[ -f $target ]] || exit 1
+
+case "${1:-}" in
+hidden)
+  jq -r --arg id "$tray_id" \
+    '.bar.layout[]?[]? | select(.id == $id) | .hidden[]?' "$target" 2>/dev/null || true
+  ;;
+unhide)
+  id="${2:-}"
+  [[ -n $id ]] || {
+    echo "usage: omarchy-tray unhide <id>" >&2
+    exit 2
+  }
+  tmp=$(mktemp)
+  trap 'rm -f "$tmp"' EXIT
+  jq --arg id "$id" --arg tray "$tray_id" '
+    (.bar.layout[]?[]? | select(.id == $tray) | .hidden) |=
+      ((. // []) | map(select(. != $id)))
+  ' "$target" >"$tmp"
+  chmod --reference="$target" "$tmp" 2>/dev/null || chmod 644 "$tmp"
+  mv "$tmp" "$target"
+  omarchy-ipc call shell reloadConfig >/dev/null 2>&1 || true
+  ;;
+show-all)
+  tmp=$(mktemp)
+  trap 'rm -f "$tmp"' EXIT
+  jq --arg tray "$tray_id" '
+    (.bar.layout[]?[]? | select(.id == $tray) | .hidden) |= []
+  ' "$target" >"$tmp"
+  chmod --reference="$target" "$tmp" 2>/dev/null || chmod 644 "$tmp"
+  mv "$tmp" "$target"
+  omarchy-ipc call shell reloadConfig >/dev/null 2>&1 || true
+  ;;
+*)
+  echo "usage: omarchy-tray hidden | unhide <id> | show-all" >&2
+  exit 2
+  ;;
+esac

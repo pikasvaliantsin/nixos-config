@@ -332,6 +332,12 @@ Item {
       volatile: true,
       actionFor: function(value) { return "" }
     },
+    "hidden-tray": {
+      script: "omarchy-tray hidden | while IFS= read -r id; do [ -n \"$id\" ] && printf '%s\\t%s\\n' \"$id\" \"$id\"; done",
+      icon: "\uf0c9",
+      volatile: true,
+      actionFor: function(value) { return "omarchy-tray unhide " + Util.shellQuote(value) }
+    },
     "power-profiles": {
       script: "current=$(powerprofilesctl get 2>/dev/null); omarchy-powerprofiles-list 2>/dev/null | while read -r p; do [[ -z $p ]] && continue; printf '%s\\t%s\\t%s\\n' \"$p\" \"$p\" \"$current\"; done",
       icon: "\udb81\udc0b",

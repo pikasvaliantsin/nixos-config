@@ -158,6 +158,13 @@ components may be separate. Check the process list first.
   its pin.
 - Calculator: the card shows `0` and keeps the same height from opening until
   a result arrives.
+- Tray: left click an icon opens its menu inside a KeyboardPanel; the footer
+  has Pin/Unpin and Hide. Pin keeps the menu open and moves the icon into the
+  bar; Hide closes the menu and removes the icon. Escape and a click outside
+  close the menu. Restore hidden icons through `Mod+Escape` → System → Tray.
+- System: `Super+X` opens the Omarchy System submenu (not wlogout). It has
+  Lock, Logout, Reboot, Shutdown, Hidden apps and Tray icons; it must not offer
+  Suspend.
 - Power panel: open `omarchy.power` and check the battery size, real health,
   charge limit, time left/to full, state and power draw. Cycle count is not
   shown: this battery reports `0` in sysfs and `N/A` in UPower, so there is no

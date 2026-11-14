@@ -13,7 +13,7 @@ binds {
     // Clipboard history overlay (QML, Omarchy clipboard plugin).
     Mod+V hotkey-overlay-title="Буфер обмена" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.clipboard" "{}"; }
     Mod+Alt+L hotkey-overlay-title="Блокировка" { spawn "gtklock"; }
-    Super+X hotkey-overlay-title="Питание" { spawn "wlogout"; }
+    Super+X hotkey-overlay-title="Система" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"system\"}"; }
     Mod+M hotkey-overlay-title="Монитор процессов" { spawn "ghostty" "-e" "dgop" "top"; }
     Ctrl+Alt+Delete hotkey-overlay-title="Монитор процессов" { spawn "ghostty" "-e" "dgop" "top"; }
 

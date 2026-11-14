@@ -13,7 +13,6 @@ BarWidget {
   moduleName: "omarchy.tray"
 
   property bool expanded: false
-  property bool managePopupOpen: false
   property bool trayMenuOpen: false
   property var activeTrayItem: null
   property var activeTrayAnchor: null
@@ -21,6 +20,8 @@ BarWidget {
   readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
   readonly property var pinnedIds: settings.pinned instanceof Array ? settings.pinned : []
   readonly property var hiddenIds: settings.hidden instanceof Array ? settings.hidden : []
+  readonly property string activeItemId: activeTrayItem ? String(activeTrayItem.id || "") : ""
+  readonly property bool activeItemPinned: activeItemId !== "" && pinnedIds.indexOf(activeItemId) !== -1
   readonly property var pinnedItems: bucket("pinned")
   readonly property var drawerItems: bucket("drawer")
   readonly property var allItems: bucket("all")
@@ -44,7 +45,7 @@ BarWidget {
   // A widget being dragged along the bar opens the drawer, to show where it
   // can go, and so does any panel open from the tray or the tray section.
   readonly property bool barDragging: !!bar && bar.traySectionDragActive === true
-  readonly property bool holdOpen: trayMenuOpen || managePopupOpen || barDragging || (!!bar && bar.traySectionPopoutOpen === true)
+  readonly property bool holdOpen: trayMenuOpen || barDragging || (!!bar && bar.traySectionPopoutOpen === true)
   // The mark under the bar sits under the icon whose menu is open.
   readonly property Item openPanelIndicatorItem: trayMenuOpen ? activeTrayAnchor : null
   // Match Waybar's group/tray-expander drawer transition-duration.
@@ -137,17 +138,11 @@ BarWidget {
   }
 
   function close() {
-    managePopupOpen = false
     trayMenuOpen = false
   }
 
   function openTrayMenu(item, anchorItem, mouse) {
-    if (!item || !item.menu) {
-      var point = anchorItem.QsWindow.contentItem.mapFromItem(anchorItem, mouse.x, mouse.y)
-      item.display(anchorItem.QsWindow.window, point.x, point.y)
-      return
-    }
-
+    if (!item) return
     // Reset before switching items: trayMenuOpener.menu binds to
     // activeTrayItem.menu, so assigning a new item invalidates the old root's
     // children immediately, before any nested opener referencing them would
@@ -225,6 +220,16 @@ BarWidget {
     persistTrayState(p, h)
   }
 
+  function toggleActivePin() {
+    if (root.activeItemId !== "") root.togglePin(root.activeItemId)
+  }
+
+  function hideActiveItem() {
+    if (root.activeItemId === "") return
+    root.toggleHide(root.activeItemId)
+    root.close()
+  }
+
   function toggleHide(iid) {
     var p = pinnedIds.slice(), h = hiddenIds.slice()
     var idx = h.indexOf(iid)
@@ -293,9 +298,6 @@ BarWidget {
           height: implicitHeight
           x: root.fixedAtStart ? root.revealExtent : 0
           text: root.fixedAtStart ? "\uf054" : "\uf053"
-          onPressed: function(button) {
-            if (button === Qt.RightButton) root.managePopupOpen = !root.managePopupOpen
-          }
         }
 
         // The icons and the tray section travel out with the chevron from
@@ -384,9 +386,6 @@ BarWidget {
           y: root.fixedAtStart ? root.revealExtent : 0
           text: root.fixedAtStart ? "\uf054" : "\uf053"
           textRotation: 90
-          onPressed: function(button) {
-            if (button === Qt.RightButton) root.managePopupOpen = !root.managePopupOpen
-          }
         }
 
         // The icons and the tray section travel out with the chevron from
@@ -444,138 +443,18 @@ BarWidget {
     }
   }
 
-  PopupCard {
-    id: managePopup
-    anchorItem: root
-    owner: root
-    bar: root.bar
-    open: root.managePopupOpen
-    contentWidth: managePopup.fittedContentWidth(Style.space(300))
-    contentHeight: managePopup.fittedContentHeight(manageColumn.implicitHeight)
-
-    Column {
-      id: manageColumn
-      anchors.fill: parent
-      spacing: Style.space(8)
-
-      Text {
-        text: Commons.I18n.t("tray.title")
-        textFormat: Text.PlainText
-        color: root.foreground
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.body
-        font.bold: true
-      }
-
-      Text {
-        text: Commons.I18n.t("tray.help")
-        textFormat: Text.PlainText
-        color: Qt.darker(root.foreground, 1.4)
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.caption
-        wrapMode: Text.WordWrap
-        width: parent.width
-      }
-
-      Text {
-        visible: root.allItems.length === 0
-        text: Commons.I18n.t("tray.empty")
-        textFormat: Text.PlainText
-        color: Qt.darker(root.foreground, 1.5)
-        font.family: root.fontFamily
-        font.pixelSize: Style.font.bodySmall
-        font.italic: true
-      }
-
-      Repeater {
-        model: root.allItems
-        delegate: Item {
-          id: rowRoot
-          required property var modelData
-          required property int index
-          width: manageColumn.width
-          implicitHeight: 28
-
-          readonly property string itemId: String(modelData.id || "")
-          readonly property string displayName: {
-            var t = String(modelData.title || "").trim()
-            if (t) return t
-            var tt = String(modelData.tooltipTitle || "").trim()
-            if (tt) return tt
-            var id = String(modelData.id || "")
-            var slash = id.lastIndexOf("/")
-            return slash !== -1 ? id.substring(slash + 1) : (id || Commons.I18n.t("tray.unknown"))
-          }
-          readonly property bool isPinned: root.pinnedIds.indexOf(itemId) !== -1
-          readonly property bool isHidden: root.hiddenIds.indexOf(itemId) !== -1
-
-          TrayIcon {
-            id: rowIcon
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: parent.left
-            width: 16
-            height: 16
-            icon: rowRoot.modelData.icon
-          }
-
-          Text {
-            textFormat: Text.PlainText
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.left: rowIcon.right
-            anchors.leftMargin: Style.space(10)
-            anchors.right: rowHideBtn.left
-            anchors.rightMargin: Style.space(8)
-            text: rowRoot.displayName
-            color: root.foreground
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.bodySmall
-            elide: Text.ElideRight
-          }
-
-          Button {
-            id: rowPinBtn
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: parent.right
-            iconText: "\uf08d"
-            text: rowRoot.isPinned ? Commons.I18n.t("tray.unpin") : Commons.I18n.t("tray.pin")
-            foreground: root.foreground
-            horizontalPadding: 8
-            verticalPadding: 3
-            iconSize: Style.font.bodySmall
-            fontSize: Style.font.bodySmall
-            onClicked: root.togglePin(rowRoot.itemId)
-          }
-
-          Button {
-            id: rowHideBtn
-            anchors.verticalCenter: parent.verticalCenter
-            anchors.right: rowPinBtn.left
-            anchors.rightMargin: Style.space(6)
-            iconText: "\uf06e"
-            text: rowRoot.isHidden ? Commons.I18n.t("tray.show") : Commons.I18n.t("tray.hide")
-            foreground: root.foreground
-            horizontalPadding: 8
-            verticalPadding: 3
-            iconSize: Style.font.bodySmall
-            fontSize: Style.font.bodySmall
-            onClicked: root.toggleHide(rowRoot.itemId)
-          }
-        }
-      }
-    }
-  }
-
   QsMenuOpener {
     id: trayMenuOpener
     menu: root.activeTrayItem ? root.activeTrayItem.menu : null
   }
 
-  PopupCard {
+  KeyboardPanel {
     id: trayMenuPopup
     anchorItem: root.activeTrayAnchor || root
     owner: root
     bar: root.bar
     open: root.trayMenuOpen
+    focusTarget: menuEscape
     // The card fades out over 140ms (visible stays true for that whole time --
     // see PopupCard's own visible: open || card.opacity > 0), so resetting on
     // "open" would swap a live submenu for the root menu mid-fade: a visible
@@ -584,7 +463,6 @@ BarWidget {
     // still resets immediately, from openTrayMenu() itself.
     onVisibleChanged: if (!visible) root.resetTrayMenu()
     padding: Style.space(8)
-    borderColor: Qt.rgba(root.foreground.r, root.foreground.g, root.foreground.b, 0.45)
     contentWidth: trayMenuPopup.fittedContentWidth(Style.space(232))
     contentHeight: trayMenuPopup.fittedContentHeight(menuHeaderHeight + trayMenuColumn.implicitHeight, Style.space(420))
 
@@ -592,10 +470,19 @@ BarWidget {
     // read the header's extent through its own visibility.
     readonly property int menuHeaderHeight: menuHeader.visible ? menuHeader.implicitHeight : 0
 
-    Column {
-      id: trayMenuLayout
+    Item {
+      id: menuEscape
       anchors.fill: parent
-      spacing: 0
+      focus: true
+      Keys.onEscapePressed: function(event) {
+        root.close()
+        event.accepted = true
+      }
+
+      Column {
+        id: trayMenuLayout
+        anchors.fill: parent
+        spacing: 0
 
       // Header for a drilled-into submenu: names where we are and walks back
       // out. Pinned above the Flickable rather than scrolling with the rows,
@@ -814,8 +701,93 @@ BarWidget {
               }
             }
           }
+
+          Item {
+            visible: root.submenuDepth === 0
+            width: parent.width
+            implicitHeight: visible ? Style.space(11) : 0
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.leftMargin: Style.space(10)
+              anchors.right: parent.right
+              anchors.rightMargin: Style.space(10)
+              anchors.verticalCenter: parent.verticalCenter
+              height: 1
+              color: Commons.Color.popups.border
+              opacity: 0.45
+            }
+          }
+
+          TrayMenuAction {
+            visible: root.submenuDepth === 0
+            glyph: "\uf08d"
+            label: root.activeItemPinned
+              ? Commons.I18n.t("tray.unpin")
+              : Commons.I18n.t("tray.pin")
+            onClicked: root.toggleActivePin()
+          }
+
+          TrayMenuAction {
+            visible: root.submenuDepth === 0
+            glyph: "\uf070"
+            label: Commons.I18n.t("tray.hide")
+            onClicked: root.hideActiveItem()
+          }
         }
       }
+    }
+    }
+  }
+
+  component TrayMenuAction: Item {
+    id: action
+
+    property string label: ""
+    property string glyph: ""
+    signal clicked()
+
+    width: trayMenuColumn.width
+    implicitHeight: Style.space(30)
+
+    Rectangle {
+      anchors.fill: parent
+      radius: Math.max(2, Style.cornerRadius)
+      color: actionMouse.containsMouse
+        ? Style.hoverFillFor(root.foreground, root.foreground) : "transparent"
+    }
+
+    Text {
+      anchors.verticalCenter: parent.verticalCenter
+      anchors.left: parent.left
+      width: Style.space(22)
+      horizontalAlignment: Text.AlignHCenter
+      text: action.glyph
+      color: root.foreground
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.bodySmall
+    }
+
+    Text {
+      textFormat: Text.PlainText
+      anchors.verticalCenter: parent.verticalCenter
+      anchors.left: parent.left
+      anchors.leftMargin: Style.space(28)
+      anchors.right: parent.right
+      anchors.rightMargin: Style.space(10)
+      text: action.label
+      color: root.foreground
+      font.family: root.fontFamily
+      font.pixelSize: Style.font.bodySmall
+      elide: Text.ElideRight
+    }
+
+    MouseArea {
+      id: actionMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: action.clicked()
     }
   }
 
@@ -900,21 +872,11 @@ BarWidget {
       cursorShape: Qt.PointingHandCursor
       onEntered: if (root.bar) root.bar.showTooltip(trayItemRoot, root.trayTooltip(modelData))
       onExited: if (root.bar) root.bar.hideTooltip(trayItemRoot)
-      onPressed: function(mouse) {
-        if (mouse.button === Qt.RightButton) {
-          trayItemRoot.displayMenu(mouse)
-          mouse.accepted = true
-        }
-      }
       onClicked: function(mouse) {
-        if (mouse.button === Qt.RightButton) {
-          mouse.accepted = true
-        } else if (mouse.button === Qt.MiddleButton) {
+        if (mouse.button === Qt.MiddleButton) {
           trayItemRoot.modelData.secondaryActivate()
-        } else if (trayItemRoot.modelData.onlyMenu) {
-          trayItemRoot.displayMenu(mouse)
         } else {
-          trayItemRoot.modelData.activate()
+          trayItemRoot.displayMenu(mouse)
         }
       }
       onWheel: function(wheel) {

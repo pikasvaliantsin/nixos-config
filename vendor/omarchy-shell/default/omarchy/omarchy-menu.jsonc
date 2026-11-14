@@ -76,11 +76,6 @@
     "label": "Lock",
     "action": "gtklock"
   },
-  "system.suspend": {
-    "icon": "󰒲",
-    "label": "Suspend",
-    "action": "systemctl suspend"
-  },
   "system.logout": {
     "icon": "󰍃",
     "label": "Logout",
@@ -101,5 +96,11 @@
     "label": "Hidden apps",
     "aliases": ["hidden", "restore apps"],
     "provider": "hidden-apps"
+  },
+  "system.tray": {
+    "icon": "\uf0c9",
+    "label": "Tray icons",
+    "aliases": ["tray", "hidden tray"],
+    "provider": "hidden-tray"
   }
 }

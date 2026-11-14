@@ -43,11 +43,7 @@
         {
           "id": "omarchy.tray",
           "pinned": [],
-          "hidden": [
-            "dank-calendar",
-            "Sunshine",
-            "udiskie"
-          ]
+          "hidden": []
         },
         {
           "id": "local.notifications"
