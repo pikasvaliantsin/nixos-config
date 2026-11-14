@@ -58,9 +58,6 @@
           "id": "omarchy.bluetooth"
         },
         {
-          "id": "port-forward"
-        },
-        {
           "id": "omarchy.network"
         },
         {
