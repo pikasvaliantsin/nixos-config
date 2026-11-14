@@ -42,7 +42,7 @@ repository; `vendor/omarchy-shell/UPSTREAM.md` records the vendored tag.
    visual change.
 4. [`motion.md`](motion.md) — before adding or changing animation.
 5. Area notes: [theming](theming.md), [notifications](notifications.md),
-   [i18n](i18n.md), [testing](testing.md).
+   [auth](auth.md), [i18n](i18n.md), [testing](testing.md).
 
 ## Deliberate differences from upstream
 

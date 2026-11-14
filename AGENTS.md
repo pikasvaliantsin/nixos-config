@@ -11,7 +11,8 @@ Read this file first, then the matching guide under [`docs/omarchy/`](docs/omarc
 
 - `flake.nix` — inputs, `nixosConfigurations.asus-expertbook`, overlays.
 - `hosts/asus-expertbook/` — system configuration, including
-  `desktop/niri.nix`, `system/services.nix`, `system/omarchy-sudo.nix`.
+  `desktop/niri.nix`, `system/services.nix`, `system/omarchy-sudo.nix`
+  (sudo PAM and the graphical auth helper).
 - `home-manager/modules/desktop/omarchy.nix` — shell package, user service,
   `omarchy-ipc`, state activation.
 - `home-manager/modules/desktop/omarchy/shell.json` — user bar/plugin layout
@@ -144,5 +145,7 @@ Adapted from Omarchy 4.5.0's agent documentation:
 - [`theming.md`](docs/omarchy/theming.md) — native and Omarchy themes.
 - [`notifications.md`](docs/omarchy/notifications.md) — custom notification
   center, history, actions, DND.
+- [`auth.md`](docs/omarchy/auth.md) — graphical sudo password/fingerprint
+  dialog and the PAM helper.
 - [`i18n.md`](docs/omarchy/i18n.md) — shell strings and translation catalogs.
 - [`testing.md`](docs/omarchy/testing.md) — build and acceptance workflow.

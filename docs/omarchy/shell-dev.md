@@ -132,5 +132,6 @@ OpenCode bar widget) or `OpticalGlyph`; do not introduce a second icon loader.
 - `shell/plugins/clipboard/` — clipboard overlay and history UI;
 - `CaptureMenu.qml`, `ReminderMenu.qml`, `SudoMenu.qml`, `OpenCodePanel.qml`
   — local panels;
+- `AuthAgent.qml` — graphical sudo password/fingerprint dialog;
 - `shell/Commons/Niri.qml` — niri adapter;
 - `home-manager/modules/desktop/themes.nix` — theme generation and switching.
