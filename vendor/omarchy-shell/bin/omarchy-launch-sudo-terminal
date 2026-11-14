@@ -1,0 +1,11 @@
+#!/bin/bash
+# Dedicated small floating terminal for the temporary-sudo password prompt.
+# The generic transient terminal stays larger for setup commands.
+set -euo pipefail
+exec foot \
+  --app-id=org.omarchy.sudo \
+  --title="Passwordless sudo" \
+  --window-size-pixels=520x260 \
+  -o csd.size=0 \
+  -o csd.border-width=0 \
+  "$@"

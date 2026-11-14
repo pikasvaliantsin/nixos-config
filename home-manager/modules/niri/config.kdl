@@ -131,6 +131,14 @@ window-rule {
     default-window-height { fixed 420; }
 }
 
+// Compact prompt for the temporary-sudo password.
+window-rule {
+    match app-id="^org.omarchy.sudo$"
+    open-floating true
+    default-column-width { fixed 520; }
+    default-window-height { fixed 260; }
+}
+
 environment {
     "GTK_USE_PORTAL" "1"
     "WLR_NO_HARDWARE_CURSORS" "1"

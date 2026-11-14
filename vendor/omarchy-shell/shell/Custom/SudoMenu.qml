@@ -14,7 +14,7 @@ KeyboardPanel {
   contentHeight: root.fittedContentHeight(menuColumn.implicitHeight)
 
   function enable(minutes) {
-    Util.execArgv(["omarchy-launch-floating-terminal", "sudo", "omarchy-sudo-passwordless", String(minutes)])
+    Util.execArgv(["omarchy-launch-sudo-terminal", "sudo", "omarchy-sudo-passwordless", String(minutes)])
     if (root.owner && typeof root.owner.close === "function") root.owner.close()
   }
 
