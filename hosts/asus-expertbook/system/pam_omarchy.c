@@ -24,7 +24,9 @@ PAM_EXTERN int
 pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
 {
     const void *user = NULL;
+    const void *ruser = NULL;
     const void *service = NULL;
+    const void *tty = NULL;
     int status;
     pid_t pid;
 
@@ -34,7 +36,9 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
         return PAM_SERVICE_ERR;
 
     pam_get_item(pamh, PAM_USER, &user);
+    pam_get_item(pamh, PAM_RUSER, &ruser);
     pam_get_item(pamh, PAM_SERVICE, &service);
+    pam_get_item(pamh, PAM_TTY, &tty);
 
     pid = fork();
     if (pid < 0)
@@ -43,8 +47,14 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
     if (pid == 0) {
         if (user)
             setenv("PAM_USER", (const char *)user, 1);
+        /* sudo sets PAM_USER to the target (root) and PAM_RUSER to the
+         * invoking user. The dialog and verification belong to the latter. */
+        if (ruser)
+            setenv("PAM_GUI_USER", (const char *)ruser, 1);
         if (service)
             setenv("PAM_SERVICE", (const char *)service, 1);
+        if (tty)
+            setenv("PAM_TTY", (const char *)tty, 1);
         execv(argv[0], (char *const *)argv);
         _exit(127);
     }

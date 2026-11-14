@@ -127,7 +127,11 @@ def stop_fingerprint(process):
 
 
 def main():
-    user = os.environ.get("PAM_USER", "")
+    # sudo sets PAM_USER to the target user (often root) and PAM_RUSER to the
+    # invoking user. Authenticate as the person who asked, never as root.
+    user = (os.environ.get("PAM_GUI_USER")
+            or os.environ.get("PAM_RUSER")
+            or os.environ.get("PAM_USER", ""))
     if not user:
         return 1
 
