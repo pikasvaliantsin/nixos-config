@@ -293,6 +293,9 @@ ShellRoot {
   FileSearch { }
   Calc { }
 
+  // Developer toolbox: generators and text transformers (DevTools.js).
+  DevToolsPanel { }
+
   // Keyboard layout and Caps Lock OSD. The layout widget lives in the bar;
   // this single instance only reports changes to the Omarchy OSD.
   KeyboardOsd {

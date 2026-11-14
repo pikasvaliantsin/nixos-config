@@ -24,6 +24,7 @@ Quickshell architecture and general UI rules.
 | `agents/skills/motion.md` | [`motion.md`](motion.md) | Same motion rules; no Hyprland animation toggle, so `Style.reduceMotion` is currently a manual flag. |
 | `docs/theming.md` | [`theming.md`](theming.md) | Our `theme-set`/`theme-install`, native palettes, Omarchy `colors.toml`, generated fragments and state links. |
 | `docs/notifications.md` | [`notifications.md`](notifications.md) | Our custom server/center: no toasts, persisted history, actions, DND, IPC, known limitations. |
+| — | [`devtools.md`](devtools.md) | Developer toolbox overlay (`Mod+Shift+X`): pure JS engine, secure random pool, native fallbacks for large inputs. |
 | `docs/i18n.md` | [`i18n.md`](i18n.md) | Our vendored `en`/`ru` catalogs, `I18n` usage and custom-panel literals. |
 | `docs/testing.md` | [`testing.md`](testing.md) | Nix build/switch, QML load checks, clipboard GC and theme tests; no upstream test suite in the vendor. |
 | `docs/omarchy-shell.md` | [`shell-dev.md`](shell-dev.md) | Condensed to the parts used by this port. |
@@ -42,8 +43,8 @@ repository; `vendor/omarchy-shell/UPSTREAM.md` records the vendored tag.
    visual change.
 4. [`motion.md`](motion.md) — before adding or changing animation.
 5. Area notes: [theming](theming.md), [notifications](notifications.md),
-   [launcher](launcher.md), [auth](auth.md), [i18n](i18n.md),
-   [testing](testing.md).
+   [devtools](devtools.md), [launcher](launcher.md), [auth](auth.md),
+   [i18n](i18n.md), [testing](testing.md).
 
 ## Deliberate differences from upstream
 
@@ -57,6 +58,7 @@ repository; `vendor/omarchy-shell/UPSTREAM.md` records the vendored tag.
 - Screenshot/recording helpers are the ones packaged in this repo
   (`omarchy-capture-screenshot`, `omarchy-capture-screenrecording`, `grim`,
   `wl-screenrec`), not the upstream `omarchy capture` CLI.
-- The notification center and clipboard are local code: the center lives in
-  `shell/Custom`, the clipboard plugin in `shell/plugins/clipboard`; see
+- The notification center, clipboard and developer toolbox are local code:
+  the center lives in `shell/Custom`, the clipboard plugin in
+  `shell/plugins/clipboard`, the toolbox in `shell/Custom/DevTools*`; see
   their notes before changing behaviour.

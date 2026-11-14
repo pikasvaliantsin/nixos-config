@@ -15,3 +15,4 @@ singleton OpenCodeUsage 1.0 OpenCodeUsage.qml
 OpenCodePanel 1.0 OpenCodePanel.qml
 SudoMenu 1.0 SudoMenu.qml
 Toasts 1.0 Toasts.qml
+DevToolsPanel 1.0 DevToolsPanel.qml

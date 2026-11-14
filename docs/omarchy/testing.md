@@ -16,6 +16,12 @@ niri validate -c ~/.local/state/theme/current/niri.kdl
 `niri validate` on a theme only works after `theme-set` has generated the
 file.
 
+The developer-tools engine is plain JavaScript and has its own checks:
+
+```bash
+nix shell nixpkgs#nodejs -c node tests/devtools-engine.js
+```
+
 ## Build
 
 Always pass the substituter; the local cache endpoint may be unreachable.

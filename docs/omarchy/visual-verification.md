@@ -158,6 +158,12 @@ components may be separate. Check the process list first.
   its pin.
 - Calculator: the card shows `0` and keeps the same height from opening until
   a result arrives.
+- Developer tools: `Mod+Shift+X` opens the toolbox. Switch tools with the rail
+  and the search field, generate a UUID v4 and v7 (check the version nibble),
+  format JSON with sorting, decode a JWT, convert a timestamp and a colour,
+  run a regex, diff two texts and check chmod 4755. Escape and a click outside
+  close it. Paste >32 KiB into Base64 and confirm the footer says it is using
+  `base64`, and that the output still decodes back.
 - Port forwarding: the right-side widget reads
   `~/.config/omarchy/port-forwards.json`. Add a forward, turn it on, confirm the
   `omarchy-pf-<id>.service` transient unit and the listening local port, then
