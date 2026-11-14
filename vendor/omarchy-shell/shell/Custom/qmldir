@@ -17,3 +17,4 @@ SudoMenu 1.0 SudoMenu.qml
 Toasts 1.0 Toasts.qml
 DevToolsPanel 1.0 DevToolsPanel.qml
 GalleryPanel 1.0 GalleryPanel.qml
+KeybindsPanel 1.0 KeybindsPanel.qml

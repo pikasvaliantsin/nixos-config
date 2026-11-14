@@ -153,7 +153,7 @@ binds {
     // --- обзор / прочее ---------------------------------------------------
     Mod+O repeat=false { toggle-overview; }
     Mod+Tab repeat=false { toggle-overview; }
-    Mod+Shift+Slash hotkey-overlay-title="Горячие клавиши" { spawn "niri" "msg" "action" "show-hotkey-overlay"; }
+    Mod+Shift+Slash hotkey-overlay-title="Горячие клавиши" { spawn "omarchy-ipc" "call" "keybinds" "toggle"; }
     Mod+Shift+P { power-off-monitors; }
     Mod+Shift+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
     Mod+Shift+E { quit; }

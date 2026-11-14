@@ -188,6 +188,10 @@ components may be separate. Check the process list first.
   it again, add `{"id": "port-forward"}` to the right section and restart the
   shell; its config is `~/.config/omarchy/port-forwards.json` and
   `omarchy-ipc call port-forward list` is the headless check.
+- Keybindings: `Mod+Shift+Slash` opens the sheet with all binds grouped by
+  the section comments. Typing filters keys, titles and actions; `Esc` and a
+  click outside close it. `omarchy-ipc call keybinds status` reports 8 sections
+  and the binding count.
 - Gallery: `Mod+Alt+T` opens the theme carousel and `Mod+Shift+B` the
   wallpaper carousel (also `Mod+Escape` → Style). Arrows and the wheel move the
   selection, Enter or Apply applies, Escape and a click outside close. A theme

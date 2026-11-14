@@ -2,12 +2,21 @@
 {
   config,
   inputs,
+  pkgs,
   ...
 }:
 
 let
   configPath = "${config.mySystem.dotfilesRoot}/home-manager/modules/niri";
   mkLink = file: config.lib.file.mkOutOfStoreSymlink "${configPath}/${file}";
+
+  # Keybinding sheet data for the shell overlay. Reads the live binds file, so
+  # the sheet follows the compositor configuration without a rebuild.
+  keybinds = pkgs.writeShellApplication {
+    name = "omarchy-keybinds";
+    runtimeInputs = [ pkgs.python3 ];
+    text = ''exec python3 ${../niri/keybinds.py} "$@"'';
+  };
 in
 {
   imports = [
@@ -65,6 +74,8 @@ in
       }];
     };
   };
+
+  home.packages = [ keybinds ];
 
   # Конфиг niri: основной файл и бинды. theme.kdl линкуется в themes.nix.
   xdg.configFile = {

@@ -37,6 +37,12 @@
     "aliases": ["backgrounds", "carousel"],
     "action": "omarchy-ipc call gallery wallpapers"
   },
+  "keybindings": {
+    "icon": "󰌌",
+    "label": "Keybindings",
+    "aliases": ["keys", "shortcuts", "hotkeys"],
+    "action": "omarchy-ipc call keybinds toggle"
+  },
   "capture": {
     "icon": "",
     "label": "Capture",

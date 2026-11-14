@@ -299,6 +299,9 @@ ShellRoot {
   // Theme and wallpaper carousel (omarchy-gallery).
   GalleryPanel { }
 
+  // Niri keybinding sheet (omarchy-keybinds).
+  KeybindsPanel { }
+
   // Keyboard layout and Caps Lock OSD. The layout widget lives in the bar;
   // this single instance only reports changes to the Omarchy OSD.
   KeyboardOsd {

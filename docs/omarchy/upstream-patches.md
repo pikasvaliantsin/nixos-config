@@ -11,6 +11,7 @@ These are new files; a wholesale vendor replacement should keep them:
 | Path | Purpose |
 |---|---|
 | `shell/Custom/GalleryPanel.qml` | theme/wallpaper deck (`Mod+Alt+T`, `Mod+Shift+B`) |
+| `shell/Custom/KeybindsPanel.qml` | searchable keybinding sheet (`Mod+Shift+Slash`) |
 | `shell/Custom/DevTools.js`, `DevToolsPanel.qml` | developer toolbox (`Mod+Shift+X`) |
 | `shell/Custom/Notifications.qml`, `NotificationCenter.qml`, `NotificationUi.qml`, `Toasts.qml` | notification server and center |
 | `shell/plugins/bar/widgets/Cava.qml`, `Cava.manifest.json` | cava spectrum |
@@ -90,7 +91,10 @@ These must be reviewed when an update changes paths or contracts:
   `QT_PLUGIN_PATH` with `qt6.qtimageformats` (WebP previews), `bin/*`
   symlinks, `OMARCHY_SESSION_ID=niri`.
 - `home-manager/modules/niri/binds.kdl` — hotkeys for File search, Calculator,
-  DevTools, Gallery, notifications, clipboard, System menu.
+  DevTools, Gallery, Keybindings, notifications, clipboard, System menu.
+- `home-manager/modules/niri/keybinds.py` — parser behind `omarchy-keybinds`
+  (`home-manager/modules/desktop/default.nix` packages it); rewrite it if the
+  binds file format changes.
 - `hosts/asus-expertbook/system/services.nix` — WirePlumber rule that renames
   the analog sink to `Laptop Audio`.
 - `hosts/asus-expertbook/system/fingerprint.nix` — patched libfprint.
