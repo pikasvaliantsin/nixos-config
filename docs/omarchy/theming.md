@@ -57,7 +57,6 @@ For every switch, `theme-set` builds:
   niri.kdl
   gtk.css
   gtklock.css
-  fuzzel.ini
   btop.theme
   ghostty.conf
   foot.ini
@@ -87,7 +86,7 @@ Do not hand-edit `generated/`; it is rebuilt on every `theme-set`.
 - `gtk.css` / `gtklock.css` — GTK3/4 and lock screen color overrides.
 - `ghostty.conf` / `foot.ini` — terminal palettes. The transient sudo terminal
   uses the same foot theme.
-- `fuzzel.ini`, `btop.theme` — launcher and monitor colors.
+- `btop.theme` — monitor colors.
 
 ## Live application
 
@@ -97,8 +96,8 @@ Do not hand-edit `generated/`; it is rebuilt on every `theme-set`.
    shell's `applyTheme` through `omarchy-ipc` (or `quickshell ipc` fallback);
 2. touches the niri theme include so niri reloads border colors;
 3. applies the first wallpaper file through `awww`;
-4. leaves GTK/GTKLock/fuzzel/btop/terminals to pick up the files on next
-   start (the shell updates live).
+4. leaves GTK/GTKLock/btop/terminals to pick up the files on next start
+   (the shell updates live).
 
 If `awww-daemon` is not running, `theme-set` and `bg-cycle` start it once.
 Use `pgrep -f awww-daemon`; the daemon is a normal `awww-daemon` process.

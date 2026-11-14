@@ -122,6 +122,9 @@ components may be separate. Check the process list first.
 - The OSD is the upstream `omarchy.osd` panel, enabled in `shell.json`; the
   audio bar widget consumes the wheel so the bar's workspace scroller does not
   also fire.
+- Launcher: `Mod+D` opens the Omarchy menu root, `Alt+Space` opens its Apps
+  submenu, `Mod+Shift+D` opens the dsearch file finder and `Mod+Shift+C` opens
+  the calculator. Check Walker/Elephant are inactive.
 - Power panel: open `omarchy.power` and check the battery size, real health,
   charge limit, time left/to full, state and power draw. Cycle count is not
   shown: this battery reports `0` in sysfs and `N/A` in UPower, so there is no
@@ -140,7 +143,7 @@ After `theme-set`/`theme-install`, verify:
 - active/inactive borders;
 - GTK CSS for a newly opened GTK app;
 - Ghostty/foot colors for a newly opened terminal;
-- fuzzel/btop if the theme provides them;
+- btop if the theme provides it;
 - wallpaper on both outputs.
 
 `theme-set` applies colors to the live shell through the shell's `applyTheme`

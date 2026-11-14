@@ -20,7 +20,9 @@ Read this file first, then the matching guide under [`docs/omarchy/`](docs/omarc
 - `home-manager/modules/desktop/themes.nix` — `theme-set`, `theme-install`,
   `bg-cycle` and generated theme state.
 - `home-manager/modules/desktop/desktop-tools.nix` — clipboard capture/copy/GC,
-  transient terminal helpers, launcher services.
+  transient terminal helpers, capture/runtime services.
+- `home-manager/modules/desktop/default.nix` — desktop module imports and the
+  `dsearch` index configuration.
 - `home-manager/modules/niri/` — niri config, binds, theme include.
 - `vendor/omarchy-shell/` — vendored Omarchy 4.5.0 shell source. QML source of
   truth; the Nix store copy is read-only.
@@ -96,8 +98,8 @@ Theme work goes through `theme-set` and `theme-install`; see
 [`docs/omarchy/theming.md`](docs/omarchy/theming.md). The active theme is a
 symlink under `~/.local/state/theme/current`, and the shell reads
 `~/.local/state/omarchy/current/theme/`. Generated fragments include
-`colors.toml`, `shell.toml`, `niri.kdl`, GTK CSS, Ghostty/foot, fuzzel and
-btop. Do not hand-edit the Nix store; edit the theme source and regenerate.
+`colors.toml`, `shell.toml`, `niri.kdl`, GTK CSS, Ghostty/foot and btop.
+Do not hand-edit the Nix store; edit the theme source and regenerate.
 
 ## Clipboard and notifications
 
@@ -145,6 +147,8 @@ Adapted from Omarchy 4.5.0's agent documentation:
 - [`theming.md`](docs/omarchy/theming.md) — native and Omarchy themes.
 - [`notifications.md`](docs/omarchy/notifications.md) — custom notification
   center, history, actions, DND.
+- [`launcher.md`](docs/omarchy/launcher.md) — Omarchy menu, dsearch file search
+  and the qalc calculator.
 - [`auth.md`](docs/omarchy/auth.md) — graphical sudo password/fingerprint
   dialog and the PAM helper.
 - [`i18n.md`](docs/omarchy/i18n.md) — shell strings and translation catalogs.
