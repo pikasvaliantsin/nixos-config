@@ -136,6 +136,10 @@ Use `pgrep -f awww-daemon`; the daemon is a normal `awww-daemon` process.
 - `theme <name>` execs `theme-set`; `wallpaper <index>` writes
   `wallpaper.idx` and runs `awww img` with the usual transition.
 
+The deck is a fan of tall slices: the selected one widens into a preview while
+its neighbours stay narrow. `Mod+Alt+T` and `Mod+Shift+B` toggle their deck —
+the same hotkey closes it. Arrows/Up/Down and the wheel move, Enter applies.
+
 IPC: `omarchy-ipc call gallery themes|wallpapers|next|previous|apply|close`,
 and `gallery status` for the current mode, index, count and name.
 
