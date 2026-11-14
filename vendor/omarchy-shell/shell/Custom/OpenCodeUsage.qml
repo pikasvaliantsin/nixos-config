@@ -16,11 +16,26 @@ Singleton {
   readonly property string usageStatus: data && data.usageStatusText ? String(data.usageStatusText) : ""
   readonly property string authHelp: data && data.authHelpText ? String(data.authHelpText) : ""
   readonly property bool ready: !!(data && data.ready)
-  readonly property int todayTokens: data && data.todayTotalTokens ? Number(data.todayTotalTokens) : 0
+  readonly property real todayTokens: data && data.todayTotalTokens ? Number(data.todayTotalTokens) : 0
   readonly property int todayPrompts: data && data.todayPrompts ? Number(data.todayPrompts) : 0
   readonly property int todaySessions: data && data.todaySessions ? Number(data.todaySessions) : 0
   readonly property int totalPrompts: data && data.totalPrompts ? Number(data.totalPrompts) : 0
   readonly property int totalSessions: data && data.totalSessions ? Number(data.totalSessions) : 0
+  readonly property real totalTokens: {
+    if (!root.data) return 0
+    if (root.data.totalTokens !== undefined) return Number(root.data.totalTokens) || 0
+
+    var usage = root.data.modelUsage || ({})
+    var total = 0
+    for (var model in usage) {
+      var item = usage[model] || ({})
+      total += Number(item.inputTokens || 0)
+        + Number(item.outputTokens || 0)
+        + Number(item.cacheReadInputTokens || 0)
+        + Number(item.cacheCreationInputTokens || 0)
+    }
+    return total
+  }
 
   function parse(raw) {
     try {

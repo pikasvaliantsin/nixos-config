@@ -21,6 +21,30 @@ KeyboardPanel {
     return Commons.I18n.formatNumber(Number(value) || 0)
   }
 
+  // Compact token counts: 215K, 2M, 2B. Counts below a thousand stay plain.
+  function compact(value) {
+    var n = Number(value) || 0
+    var units = [
+      { limit: 1e9, suffix: "B" },
+      { limit: 1e6, suffix: "M" },
+      { limit: 1e3, suffix: "K" }
+    ]
+    for (var i = 0; i < units.length; i++) {
+      if (n >= units[i].limit) {
+        var scaled = n / units[i].limit
+        var text = scaled >= 100
+          ? String(Math.round(scaled))
+          : String(Math.round(scaled * 10) / 10)
+        return text.replace(/\.0$/, "") + units[i].suffix
+      }
+    }
+    return String(Math.round(n))
+  }
+
+  function tokens(value) {
+    return root.compact(value) + " tokens"
+  }
+
   function launch() {
     Quickshell.execDetached(["ghostty", "-e", "opencode"])
     if (root.owner && typeof root.owner.close === "function") root.owner.close()
@@ -135,7 +159,7 @@ KeyboardPanel {
 
     Text {
       width: parent.width
-      text: "Today: " + root.number(OpenCodeUsage.todayTokens) + " tokens · "
+      text: "Today: " + root.tokens(OpenCodeUsage.todayTokens) + " · "
         + root.number(OpenCodeUsage.todayPrompts) + " prompts · "
         + root.number(OpenCodeUsage.todaySessions) + " sessions"
       color: Commons.Color.foreground
@@ -145,7 +169,8 @@ KeyboardPanel {
     }
     Text {
       width: parent.width
-      text: "All time: " + root.number(OpenCodeUsage.totalPrompts) + " prompts · "
+      text: "All time: " + root.tokens(OpenCodeUsage.totalTokens) + " · "
+        + root.number(OpenCodeUsage.totalPrompts) + " prompts · "
         + root.number(OpenCodeUsage.totalSessions) + " sessions"
       color: Commons.Color.muted
       font.family: Style.font.family
