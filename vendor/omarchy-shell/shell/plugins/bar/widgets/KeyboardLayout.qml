@@ -49,7 +49,7 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: root.label
-    fontSize: Style.font.caption
+    fontSize: Style.font.body
     horizontalMargin: 6
     tooltipText: root.fullName + (CapsLock.active
       ? " · " + I18n.t("keyboard.capsOn", "Caps Lock ON")

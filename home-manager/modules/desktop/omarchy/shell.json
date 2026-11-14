@@ -1,5 +1,9 @@
 {
   "version": 1,
+  "keyboard": {
+    "showCapsOsd": false,
+    "showLayoutOsd": false
+  },
   "bar": {
     "position": "top",
     "background": "opaque",

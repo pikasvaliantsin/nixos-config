@@ -290,7 +290,10 @@ ShellRoot {
 
   // Keyboard layout and Caps Lock OSD. The layout widget lives in the bar;
   // this single instance only reports changes to the Omarchy OSD.
-  KeyboardOsd { host: shell }
+  KeyboardOsd {
+    host: shell
+    settings: shell.shellConfig && shell.shellConfig.keyboard ? shell.shellConfig.keyboard : ({})
+  }
 
   // Graphical sudo authentication. The PAM helper talks to this socket and
   // verifies the password or fingerprint itself.
