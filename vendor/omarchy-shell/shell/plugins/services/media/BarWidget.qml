@@ -155,6 +155,14 @@ BarWidget {
         player: root.activePlayer ? String(root.activePlayer.identity || "") : "",
         mprisVolume: root.activePlayer ? root.activePlayer.volumeSupported : false,
         node: node ? String(node.name || "") : "",
+        sources: (function() {
+          var list = []
+          for (var index = 0; index < root.sourcePlayers.length; index++) {
+            var player = root.sourcePlayers[index]
+            if (player) list.push(String(player.identity || "") + "|" + String(player.dbusName || ""))
+          }
+          return list
+        })(),
         nodeVolume: node && node.audio ? node.audio.volume : null,
         playerVolume: root.activePlayer ? root.activePlayer.volume : null,
         streams: (function() {

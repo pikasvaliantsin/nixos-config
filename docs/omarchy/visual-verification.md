@@ -164,6 +164,8 @@ components may be separate. Check the process list first.
   (Homyel, 52.4345/30.9754), so the panel must not fall back to geo-detect.
 - Media: start playback in a browser and confirm the play/pause glyph, the
   scrolling title and the panel controls. The widget hides with no player.
+  The source list appears only with two or more real players: `playerctld`
+  mirrors the active player, so it must not show up as a second source.
 - Cava: 16 bars sit between the weather pill and the media title and appear
   only while something is playing. `omarchy-ipc call local.cava preview` shows
   them for 8 seconds with a test tone;

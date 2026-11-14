@@ -15,7 +15,20 @@ Item {
   property var pendingTrackOsd: null
   property int playSerial: 0
 
-  readonly property var players: Mpris.players ? Mpris.players.values : []
+  // playerctld mirrors whichever player is active, so leaving it in the list
+  // shows every track twice (same identity, same metadata). It is a proxy,
+  // not a source; keep the real players only.
+  readonly property var players: {
+    var list = Mpris.players ? Mpris.players.values : []
+    var players = []
+    for (var index = 0; index < list.length; index++) {
+      var player = list[index]
+      if (!player) continue
+      if (String(player.dbusName || "").indexOf("playerctld") !== -1) continue
+      players.push(player)
+    }
+    return players
+  }
   readonly property var nodes: Pipewire.nodes ? Pipewire.nodes.values : []
   readonly property var playbackStreams: {
     var list = []
