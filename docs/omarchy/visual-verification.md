@@ -158,6 +158,12 @@ components may be separate. Check the process list first.
   its pin.
 - Calculator: the card shows `0` and keeps the same height from opening until
   a result arrives.
+- Port forwarding: the right-side widget reads
+  `~/.config/omarchy/port-forwards.json`. Add a forward, turn it on, confirm the
+  `omarchy-pf-<id>.service` transient unit and the listening local port, then
+  restart the shell and confirm the tunnel/status is reconciled. Auth must be
+  SSH key/agent only; host-key and Tailscale approval errors appear in the
+  status. `omarchy-ipc call port-forward list` is the headless check.
 - Tray: left click an icon opens its menu inside a KeyboardPanel; the footer
   has Pin/Unpin and Hide. Pin keeps the menu open and moves the icon into the
   bar; Hide closes the menu and removes the icon. Escape and a click outside

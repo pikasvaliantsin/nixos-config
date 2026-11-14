@@ -43,7 +43,10 @@
         {
           "id": "omarchy.tray",
           "pinned": [],
-          "hidden": []
+          "hidden": [
+            "udiskie",
+            "dank-calendar"
+          ]
         },
         {
           "id": "local.notifications"
@@ -53,6 +56,9 @@
         },
         {
           "id": "omarchy.bluetooth"
+        },
+        {
+          "id": "port-forward"
         },
         {
           "id": "omarchy.network"
