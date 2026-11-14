@@ -288,6 +288,10 @@ ShellRoot {
 
   NotificationCenter { }
 
+  // Keyboard layout and Caps Lock OSD. The layout widget lives in the bar;
+  // this single instance only reports changes to the Omarchy OSD.
+  KeyboardOsd { host: shell }
+
   // ------------------------------------------------------------- services
   //
   // Generic loader for any enabled plugin that declares kind "service".

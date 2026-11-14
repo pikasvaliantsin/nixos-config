@@ -126,6 +126,11 @@ components may be separate. Check the process list first.
   charge limit, time left/to full, state and power draw. Cycle count is not
   shown: this battery reports `0` in sysfs and `N/A` in UPower, so there is no
   real value to display.
+- Keyboard layout: the widget sits right of the clock. With Caps Lock off the
+  layout code is lowercase (`ru`), with it on uppercase (`RU`); a click cycles
+  the layout. Layout switches and Caps Lock changes both show the bottom OSD.
+  Caps Lock is a lock again, not Ctrl: `ctrl:nocaps` was removed from the niri
+  xkb options. Do not add it back if the bar indicator is expected to work.
 
 ## Themes and wallpapers
 

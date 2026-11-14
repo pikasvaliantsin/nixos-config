@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+"""Print Caps Lock state as 0/1, then once per physical toggle.
+
+Niri does not expose modifier state over IPC, and this keyboard's LED stays at
+0 even when the XKB state is locked. Listen to the kernel key events instead:
+the user is in the input group, and a Caps Lock press is unambiguous.
+
+Initial state comes from the LED where the firmware keeps it accurate; a
+machine whose LED does not follow XKB starts from "off", which is the same
+state a fresh session starts in.
+"""
+
+import fcntl
+import glob
+import os
+import select
+import struct
+import sys
+import time
+
+EV_KEY = 1
+KEY_CAPSLOCK = 58
+INPUT_EVENT_SIZE = 24
+
+
+def _eviocgbit(ev, length):
+    return (2 << 30) | (length << 16) | (ord("E") << 8) | (0x20 + ev)
+
+
+def led_state():
+    state = 0
+    for path in glob.glob("/sys/class/leds/input*::capslock/brightness"):
+        try:
+            with open(path, "r", encoding="ascii") as handle:
+                state = max(state, int(handle.read().strip() or "0"))
+        except (OSError, ValueError):
+            pass
+    return bool(state)
+
+
+def has_caps_key(fd):
+    try:
+        ev_bits = fcntl.ioctl(fd, _eviocgbit(0, 8), bytes(8))
+        if not (ev_bits[EV_KEY // 8] & (1 << (EV_KEY % 8))):
+            return False
+        key_bits = fcntl.ioctl(fd, _eviocgbit(EV_KEY, 96), bytes(96))
+        return bool(key_bits[KEY_CAPSLOCK // 8] & (1 << (KEY_CAPSLOCK % 8)))
+    except OSError:
+        return False
+
+
+def open_keyboards():
+    fds = []
+    for path in glob.glob("/dev/input/event*"):
+        try:
+            fd = os.open(path, os.O_RDONLY | os.O_NONBLOCK)
+        except OSError:
+            continue
+        if has_caps_key(fd):
+            fds.append(fd)
+        else:
+            os.close(fd)
+    return fds
+
+
+def main():
+    state = led_state()
+    print("1" if state else "0", flush=True)
+
+    fds = open_keyboards()
+    poller = select.poll()
+    for fd in fds:
+        poller.register(fd, select.POLLIN)
+
+    last_rescan = time.monotonic()
+    last_press = 0.0
+
+    while True:
+        try:
+            events = poller.poll(1000)
+        except InterruptedError:
+            continue
+
+        for fd, _ in events:
+            try:
+                data = os.read(fd, INPUT_EVENT_SIZE * 64)
+            except OSError:
+                continue
+            for offset in range(0, len(data) - INPUT_EVENT_SIZE + 1, INPUT_EVENT_SIZE):
+                _sec, _usec, kind, code, value = struct.unpack_from("llHHi", data, offset)
+                if kind != EV_KEY or code != KEY_CAPSLOCK or value != 1:
+                    continue
+                # Some keyboards repeat the key event on more than one node.
+                now = time.monotonic()
+                if now - last_press < 0.05:
+                    continue
+                last_press = now
+                state = not state
+                print("1" if state else "0", flush=True)
+
+        # Pick up keyboards plugged in after the shell started.
+        now = time.monotonic()
+        if now - last_rescan < 2.0:
+            continue
+        last_rescan = now
+        fresh = open_keyboards()
+        if fresh:
+            for fd in fds:
+                try:
+                    poller.unregister(fd)
+                except KeyError:
+                    pass
+                os.close(fd)
+            fds = fresh
+            for fd in fds:
+                poller.register(fd, select.POLLIN)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except KeyboardInterrupt:
+        sys.exit(0)

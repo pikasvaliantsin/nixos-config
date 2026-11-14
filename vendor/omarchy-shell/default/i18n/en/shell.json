@@ -412,6 +412,8 @@
   "polkit.checking": "Checking...",
   "polkit.enterPassword": "Enter password",
   "polkit.wrong": "Wrong",
+  "keyboard.capsOn": "Caps Lock ON",
+  "keyboard.capsOff": "Caps Lock OFF",
   "power.battery": "Battery",
   "power.batteryHealth": "Battery health",
   "power.batterySize": "Battery size",

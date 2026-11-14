@@ -436,6 +436,8 @@
   "polkit.checking": "Проверка...",
   "polkit.enterPassword": "Введите пароль",
   "polkit.wrong": "Неверно",
+  "keyboard.capsOn": "Caps Lock включён",
+  "keyboard.capsOff": "Caps Lock выключен",
   "power.battery": "Батарея",
   "power.batteryHealth": "Здоровье",
   "power.batterySize": "Ёмкость батареи",

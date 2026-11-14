@@ -30,6 +30,11 @@
           "verticalFormat": "HH\n—\nmm"
         }
       ],
+      "centerEnd": [
+        {
+          "id": "omarchy.keyboard-layout"
+        }
+      ],
       "right": [
         {
           "id": "omarchy.tray",
