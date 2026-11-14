@@ -109,6 +109,24 @@
         enable = true;
         support32Bit = true;
       };
+
+      # Human name for the built-in analog output (ALC256). This only renames
+      # the node: routing, profiles and the default sink are untouched.
+      wireplumber.extraConfig."51-device-names" = {
+        "monitor.alsa.rules" = [
+          {
+            matches = [
+              { "node.name" = "alsa_output.pci-0000_04_00.6.analog-stereo"; }
+            ];
+            actions = {
+              "update-props" = {
+                "node.description" = "Laptop Speakers";
+                "node.nick" = "Laptop Speakers";
+              };
+            };
+          }
+        ];
+      };
     };
 
     # ========================================
