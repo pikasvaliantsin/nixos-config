@@ -143,6 +143,24 @@ the same hotkey closes it. Arrows/Up/Down and the wheel move, Enter applies.
 IPC: `omarchy-ipc call gallery themes|wallpapers|next|previous|apply|close`,
 and `gallery status` for the current mode, index, count and name.
 
+### Why not the upstream picker
+
+Omarchy's own carousel is vendored at `shell/plugins/image-picker`, but its
+theme mode is driven by two scripts we do not ship: `omarchy-theme-switcher`
+(builds a preview cache and `--print-rows`) and `omarchy-menu-images` (summons
+the overlay and returns the selection). Both assume upstream state
+(`~/.local/state/omarchy/current/theme.name`, `$OMARCHY_PATH/themes`,
+`omarchy-theme-set`), while this port owns the pipeline through `theme-set`,
+`bg-cycle` and `palette.json`. Wiring them would add ~550 lines of adapter
+bash that has to be re-checked on every upstream bump.
+
+The deck above is the smaller renderer over `omarchy-gallery`. If a future
+Omarchy release brings something we actually need from the picker (video
+previews, theme deletion, filtering), swap only the renderer: summon
+`omarchy.image-picker` with rows derived from `omarchy-gallery themes`, and
+feed the selection file back into `theme-set` / `omarchy-gallery wallpaper`.
+
+
 ## Verification
 
 After a switch, check the bar, panels, active/inactive borders, a new terminal
