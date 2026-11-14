@@ -675,7 +675,13 @@ Item {
       MouseArea { anchors.fill: parent; onClicked: {} }
 
       ColumnLayout {
+        // BorderSurface.padding does not inset children by itself: anchor to
+        // the content box so the header and footer keep the card's padding.
         anchors.fill: parent
+        anchors.leftMargin: card.contentLeftInset
+        anchors.topMargin: card.contentTopInset
+        anchors.rightMargin: card.contentRightInset
+        anchors.bottomMargin: card.contentBottomInset
         spacing: Style.space(12)
 
         // Header ----------------------------------------------------------
