@@ -29,15 +29,15 @@ fingerprint.
 ## PAM order
 
 ```pam
-auth [success=done auth_err=die ignore=ignore default=ignore] pam_omarchy.so /nix/store/...-omarchy-pam-auth
+auth [success=done abort=die ignore=ignore default=ignore] pam_omarchy.so /nix/store/...-omarchy-pam-auth
 auth sufficient pam_fprintd.so
 auth sufficient pam_unix.so likeauth try_first_pass
 auth required pam_deny.so
 ```
 
 - helper exit 0 → `PAM_SUCCESS`: stop, sudo proceeds;
-- helper exit 5 (Cancel) → `PAM_AUTH_ERR`: deny immediately, no terminal
-  fingerprint prompt;
+- helper exit 5 (Cancel) → `PAM_ABORT`: deny immediately, no sudo retry and no
+  terminal fingerprint prompt;
 - helper exit 1 (no graphical session) → `PAM_IGNORE`: let the normal
   fprintd/password stack handle it;
 - other failures → ignore/fallback.

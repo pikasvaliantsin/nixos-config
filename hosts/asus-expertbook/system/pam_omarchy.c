@@ -71,7 +71,9 @@ pam_sm_authenticate(pam_handle_t *pamh, int flags, int argc, const char **argv)
         case 1:
             return PAM_IGNORE;
         case 5:
-            return PAM_AUTH_ERR;
+            /* PAM_AUTH_ERR makes sudo retry passwd_tries times; PAM_ABORT
+             * stops the whole authentication attempt on the first Cancel. */
+            return PAM_ABORT;
         default:
             return PAM_SYSTEM_ERR;
         }

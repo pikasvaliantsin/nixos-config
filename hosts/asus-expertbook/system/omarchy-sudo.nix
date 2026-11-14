@@ -61,7 +61,7 @@ in
   # while an explicit Cancel (PAM_AUTH_ERR) denies immediately.
   security.pam.services.sudo.rules.auth.omarchy-gui = {
     order = config.security.pam.services.sudo.rules.auth.unix.order - 1000;
-    control = "[success=done auth_err=die ignore=ignore default=ignore]";
+    control = "[success=done abort=die ignore=ignore default=ignore]";
     modulePath = "${pamOmarchy}/lib/security/pam_omarchy.so";
     args = [ "${pamAuth}" ];
   };
