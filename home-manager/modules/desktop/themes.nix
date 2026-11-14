@@ -38,6 +38,89 @@ let
 
   mkLink = path: config.lib.file.mkOutOfStoreSymlink path;
 
+  themeIcons = pkgs.writeShellApplication {
+    name = "theme-icons";
+    runtimeInputs = [ pkgs.coreutils pkgs.glib pkgs.gnugrep pkgs.gnused ];
+    text = ''
+      set -euo pipefail
+      fallback="Papirus-Dark"
+      roots=()
+      add_root() { [ -d "$1" ] && roots+=("$1") || true; }
+
+      add_root "$HOME/.icons"
+      add_root "$HOME/.local/share/icons"
+      add_root "''${XDG_DATA_HOME:-$HOME/.local/share}/icons"
+      add_root "$HOME/.nix-profile/share/icons"
+      add_root "/etc/profiles/per-user/''${USER}/share/icons"
+      add_root "/run/current-system/sw/share/icons"
+      IFS=: read -r -a data_dirs <<< "''${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+      for data_dir in "''${data_dirs[@]}"; do add_root "$data_dir/icons"; done
+
+      resolve() {
+        local wanted="''${1:-}" root
+        [ -n "$wanted" ] || return 1
+        for root in "''${roots[@]}"; do
+          if [ -d "$root/$wanted" ]; then
+            printf '%s\n' "$wanted"
+            return 0
+          fi
+        done
+        return 1
+      }
+
+      apply_gtk() {
+        local name=$1 version file tmp
+        for version in 3.0 4.0; do
+          file="$HOME/.config/gtk-$version/settings.ini"
+          mkdir -p "$(dirname "$file")"
+          tmp=$(mktemp)
+          if [ -e "$file" ]; then cat "$file" >"$tmp"; fi
+          if grep -q '^gtk-icon-theme-name=' "$tmp" 2>/dev/null; then
+            sed -i "s|^gtk-icon-theme-name=.*|gtk-icon-theme-name=$name|" "$tmp"
+          elif grep -q '^\[Settings\]' "$tmp" 2>/dev/null; then
+            sed -i "/^\[Settings\]/a gtk-icon-theme-name=$name" "$tmp"
+          else
+            if [ -s "$tmp" ]; then printf '\n' >>"$tmp"; fi
+            printf '[Settings]\ngtk-icon-theme-name=%s\n' "$name" >>"$tmp"
+          fi
+          chmod 644 "$tmp"
+          # HM links this file into the store; replace the link with a
+          # writable settings file so a runtime icon choice can stick.
+          rm -f "$file"
+          mv "$tmp" "$file"
+        done
+        if command -v gsettings >/dev/null 2>&1; then
+          gsettings set org.gnome.desktop.interface icon-theme "$name" >/dev/null 2>&1 || true
+        fi
+      }
+
+      case "''${1:-apply}" in
+        resolve)
+          name="''${2:-}"
+          if ! resolve "$name"; then printf '%s\n' "$fallback"; fi
+          ;;
+        apply)
+          name="''${2:-}"
+          if [ -z "$name" ]; then
+            theme_icons="$HOME/.local/state/theme/current/icons.theme"
+            [ -f "$theme_icons" ] && name=$(head -n1 "$theme_icons" | tr -d '[:space:]')
+          fi
+          name="''${name:-$fallback}"
+          resolved=$(resolve "$name" || true)
+          if [ -z "$resolved" ]; then
+            echo "theme-icons: '$name' is not installed; using $fallback" >&2
+            resolved="$fallback"
+          fi
+          apply_gtk "$resolved"
+          ;;
+        *)
+          echo "usage: theme-icons resolve <name> | apply [name]" >&2
+          exit 2
+          ;;
+      esac
+    '';
+  };
+
   themeSet = pkgs.writeShellApplication {
     name = "theme-set";
     runtimeInputs = [
@@ -106,6 +189,13 @@ let
         exit 1
       fi
 
+      icon_theme="Papirus-Dark"
+      if [ -f "$theme_path/icons.theme" ]; then
+        icon_theme=$(head -n1 "$theme_path/icons.theme" | tr -d '[:space:]')
+        [ -n "$icon_theme" ] || icon_theme="Papirus-Dark"
+      fi
+      icon_theme=$(${themeIcons}/bin/theme-icons resolve "$icon_theme")
+
       out="$state_dir/generated/$theme"
       rm -rf "$out"
       mkdir -p "$out"
@@ -132,7 +222,7 @@ let
         bright_cyan="$cyan"
       else
         cp "$theme_path/colors.toml" "$out/colors.toml"
-        for file in shell.toml niri.kdl gtk.css gtklock.css btop.theme; do
+        for file in shell.toml niri.kdl gtk.css gtklock.css btop.theme icons.theme; do
           if [ -f "$theme_path/$file" ]; then cp "$theme_path/$file" "$out/$file"; fi
         done
         colors="$theme_path/colors.toml"
@@ -360,12 +450,17 @@ let
       rm -rf "$shell_state/theme"
       ln -s "$out" "$shell_state/theme"
 
+      # Persist the resolved icon theme in the generated theme.
+      printf '%s\n' "$icon_theme" >"$out/icons.theme"
+
       # Keep app fragments on the stable current path.
       ln -sfn "$out" "$state_dir/current"
       ln -sfn "$state_dir/current/niri.kdl" ${lib.escapeShellArg repoThemeLink}
       # Niri reloads when a watched file changes; replacing the theme symlink
       # alone does not fire an inotify event, so bump the resolved target.
       touch "$HOME/.config/niri/theme.kdl" 2>/dev/null || true
+
+      ${themeIcons}/bin/theme-icons apply "$icon_theme" || true
 
       if [ -d "$theme_path/backgrounds" ]; then
         rm -rf "$out/wallpapers"
@@ -489,6 +584,7 @@ in
   config = {
     home.packages = [
       themeSet
+      themeIcons
       themeInstall
       bgCycle
       bgNext
@@ -516,6 +612,12 @@ in
         run ln -sfn ${lib.escapeShellArg "${themesDir}/${cfg.name}"} ${lib.escapeShellArg current}
       fi
       run ln -sfn ${lib.escapeShellArg "${current}/niri.kdl"} ${lib.escapeShellArg repoThemeLink}
+    '';
+
+    # gtk.iconTheme is static in Nix; re-apply the active theme's icons after
+    # Home Manager links its settings.ini on every activation/login.
+    home.activation.themeIcons = lib.hm.dag.entryAfter [ "linkGeneration" "themeInit" ] ''
+      run ${themeIcons}/bin/theme-icons apply || true
     '';
 
     xdg.configFile."btop/btop.conf".text = ''

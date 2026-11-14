@@ -184,6 +184,9 @@ After `theme-set`/`theme-install`, verify:
 - GTK CSS for a newly opened GTK app;
 - Ghostty/foot colors for a newly opened terminal;
 - btop if the theme provides it;
+- icon theme: add `icons.theme` with an installed set, run `theme-set`, and
+  check `gsettings get org.gnome.desktop.interface icon-theme` plus a new GTK
+  app. A missing or invalid set must fall back to Papirus-Dark;
 - wallpaper on both outputs.
 
 `theme-set` applies colors to the live shell through the shell's `applyTheme`

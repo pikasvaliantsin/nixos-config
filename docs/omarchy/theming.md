@@ -111,8 +111,9 @@ Use `pgrep -f awww-daemon`; the daemon is a normal `awww-daemon` process.
 - `mode = "light"` is informational; the UI follows the explicit colors.
 - Installed themes are data, not code. Do not execute theme scripts; we only
   consume colors and known fragments.
-- Icon themes (`icons.theme`) are not applied yet; GTK apps keep the configured
-  Papirus theme.
+- `icons.theme` selects the icon theme. It is validated against the user and
+  system icon roots; a missing name falls back to Papirus-Dark. GTK apps pick
+  it up immediately, while Quickshell may need a shell restart.
 
 ## Wallpapers
 
