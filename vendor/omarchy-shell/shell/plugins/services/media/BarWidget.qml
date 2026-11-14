@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Io
 import Quickshell.Services.Pipewire
 import qs.Ui
 import qs.Commons
@@ -20,6 +21,11 @@ BarWidget {
   readonly property string artist: activePlayer ? (activePlayer.trackArtist || "") : ""
 
   property bool popupOpen: false
+  property bool outputOpen: false
+  property string currentSinkName: ""
+  property int streamIndex: -1
+  property int streamSinkIndex: -1
+  property string pendingSink: ""
 
   // MPRIS volume is not universal: Chromium exposes no Volume property at
   // all. Fall back to the player's own PipeWire stream, then to the default
@@ -51,6 +57,82 @@ BarWidget {
     }
     return null
   }
+
+  // Sinks are the real output devices; playback streams also report isSink,
+  // so `!isStream` is what separates the two lists.
+  readonly property var sinkNodes: {
+    var list = []
+    var nodes = Pipewire.nodes ? Pipewire.nodes.values : []
+    for (var index = 0; index < nodes.length; index++) {
+      var node = nodes[index]
+      if (!node || !node.isSink || node.isStream || !node.audio) continue
+      if (String(node.name || "") === "") continue
+      list.push(node)
+    }
+    return list
+  }
+
+  function refreshOutput() {
+    if (!root.audioNode) {
+      root.currentSinkName = ""
+      root.streamIndex = -1
+      root.streamSinkIndex = -1
+      if (root.popupOpen && root.refreshTries < 3) {
+        root.refreshTries++
+        refreshTimer.restart()
+      }
+      return
+    }
+    streamQuery.command = ["pactl", "--format=json", "list", "sink-inputs"]
+    streamQuery.running = true
+  }
+
+  // Move only this player's stream. The default sink stays where it is.
+  function moveStream(sinkName) {
+    if (!sinkName) return
+    root.pendingSink = String(sinkName)
+    if (root.streamIndex < 0) {
+      root.refreshOutput()
+      return
+    }
+    root.applyPendingMove()
+  }
+
+  function applyPendingMove() {
+    if (root.pendingSink === "" || root.streamIndex < 0) return
+    moveProc.command = ["pactl", "move-sink-input", String(root.streamIndex), root.pendingSink]
+    moveProc.running = true
+    root.currentSinkName = root.pendingSink
+    root.pendingSink = ""
+  }
+
+  function sinkLabel(node) {
+    return node ? String(node.description || node.nickname || node.name || "") : ""
+  }
+
+  readonly property string currentSinkLabel: {
+    for (var index = 0; index < root.sinkNodes.length; index++) {
+      var node = root.sinkNodes[index]
+      if (String(node.name || "") === root.currentSinkName) return root.sinkLabel(node)
+    }
+    return root.currentSinkName
+  }
+
+  // The stream table settles a beat after a move, and the player may still be
+  // connecting when the popup opens, so resolve on a short delay and retry.
+  property int refreshTries: 0
+
+  Timer {
+    id: refreshTimer
+    interval: 250
+    onTriggered: root.refreshOutput()
+  }
+
+  onPopupOpenChanged: if (popupOpen) {
+    root.refreshTries = 0
+    refreshTimer.restart()
+  }
+  onAudioNodeChanged: if (popupOpen) refreshTimer.restart()
 
   function adjustPlayerVolume(delta) {
     var player = root.activePlayer
@@ -144,11 +226,79 @@ BarWidget {
     }
   }
 
-  // Scriptable volume, and the headless check for the pipewire fallback.
+  Process {
+    id: streamQuery
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var parsed = null
+        try { parsed = JSON.parse(text) } catch (error) { parsed = null }
+        if (!parsed || !root.audioNode) return
+        var nodeId = String(root.audioNode.id)
+        for (var index = 0; index < parsed.length; index++) {
+          var entry = parsed[index]
+          var properties = entry && entry.properties ? entry.properties : ({})
+          if (String(properties["object.id"] || "") !== nodeId) continue
+          root.streamIndex = Number(entry.index)
+          root.streamSinkIndex = Number(entry.sink)
+          sinkQuery.command = ["pactl", "--format=json", "list", "sinks"]
+          sinkQuery.running = true
+          return
+        }
+        if (root.popupOpen && root.refreshTries < 3) {
+          root.refreshTries++
+          refreshTimer.restart()
+        }
+      }
+    }
+  }
+
+  Process {
+    id: sinkQuery
+    stdout: StdioCollector {
+      onStreamFinished: {
+        var parsed = null
+        try { parsed = JSON.parse(text) } catch (error) { parsed = null }
+        if (!parsed) return
+        for (var index = 0; index < parsed.length; index++)
+          if (Number(parsed[index].index) === root.streamSinkIndex)
+            root.currentSinkName = String(parsed[index].name || "")
+        root.applyPendingMove()
+      }
+    }
+  }
+
+  Process {
+    id: moveProc
+    onExited: {
+      root.refreshTries = 0
+      refreshTimer.restart()
+    }
+  }
+
+  // Scriptable volume and output routing, plus the headless checks.
   ShellIpc {
     target: "omarchy.media"
     function volumeUp(): void { root.adjustPlayerVolume(0.05) }
     function volumeDown(): void { root.adjustPlayerVolume(-0.05) }
+    function outputs(): string {
+      var sinks = []
+      for (var index = 0; index < root.sinkNodes.length; index++) {
+        var node = root.sinkNodes[index]
+        sinks.push({ name: String(node.name || ""), label: root.sinkLabel(node) })
+      }
+      return JSON.stringify({
+        current: root.currentSinkName,
+        streamIndex: root.streamIndex,
+        nodeId: String(root.audioNode ? root.audioNode.id : ""),
+        popupOpen: root.popupOpen,
+        sinks: sinks
+      })
+    }
+    function move(name: string): void { root.moveStream(name) }
+    function refresh(): void {
+      root.refreshTries = 0
+      root.refreshOutput()
+    }
     function volumeStatus(): string {
       var node = root.audioNode
       return JSON.stringify({
@@ -352,6 +502,113 @@ BarWidget {
           enabled: root.activePlayer && root.activePlayer.canGoNext
           opacity: enabled ? 1.0 : 0.4
           onClicked: if (root.mediaService) root.mediaService.runAction("next", false, root.mediaService.playerKey(root.activePlayer))
+        }
+      }
+
+      // Output routing: moves this player's stream only; the system default
+      // sink is left alone.
+      PanelSeparator {
+        visible: root.sinkNodes.length > 1
+        foreground: root.bar.foreground
+      }
+
+      Item {
+        width: parent.width
+        height: outputRow.implicitHeight
+        visible: root.sinkNodes.length > 1
+
+        Row {
+          id: outputRow
+          width: parent.width
+          spacing: Style.space(8)
+
+          Text {
+            width: Style.space(64)
+            text: "Output"
+            color: root.bar.foreground
+            opacity: 0.5
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.caption
+          }
+
+          Text {
+            width: parent.width - Style.space(72)
+            text: root.currentSinkLabel !== "" ? root.currentSinkLabel : "—"
+            color: root.bar.foreground
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.bodySmall
+            elide: Text.ElideRight
+          }
+        }
+
+        MouseArea {
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: root.outputOpen = !root.outputOpen
+        }
+      }
+
+      Column {
+        width: parent.width
+        spacing: Style.space(4)
+        visible: root.outputOpen
+
+        Repeater {
+          model: root.sinkNodes
+
+          delegate: BorderSurface {
+            id: sinkRowSurface
+            required property var modelData
+
+            readonly property bool selected: String(modelData.name || "") === root.currentSinkName
+
+            width: parent.width
+            height: sinkRow.implicitHeight + Style.space(10)
+            radius: Style.spacing.labelGap
+            color: selected ? Style.selectedFillFor(root.bar.foreground, Commons.Color.accent) : "transparent"
+            borderSpec: selected ? Border.controlSpec("normal", root.bar.foreground, Commons.Color.accent) : Border.none()
+
+            Row {
+              id: sinkRow
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              anchors.leftMargin: sinkRowSurface.borderLeft + Style.space(8)
+              anchors.rightMargin: sinkRowSurface.borderRight + Style.space(8)
+              spacing: Style.space(8)
+
+              Text {
+                text: sinkRowSurface.selected ? "󰄬" : ""
+                color: root.bar.foreground
+                font.family: root.bar.fontFamily
+                font.pixelSize: Style.font.body
+                width: Style.space(18)
+                horizontalAlignment: Text.AlignHCenter
+                anchors.verticalCenter: parent.verticalCenter
+              }
+
+              Text {
+                width: parent.width - Style.space(26)
+                text: root.sinkLabel(sinkRowSurface.modelData)
+                color: root.bar.foreground
+                font.family: root.bar.fontFamily
+                font.pixelSize: Style.font.bodySmall
+                elide: Text.ElideRight
+                anchors.verticalCenter: parent.verticalCenter
+              }
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              hoverEnabled: true
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                root.moveStream(String(sinkRowSurface.modelData.name || ""))
+                root.outputOpen = false
+              }
+            }
+          }
         }
       }
 

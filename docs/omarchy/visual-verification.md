@@ -166,6 +166,9 @@ components may be separate. Check the process list first.
   scrolling title and the panel controls. The widget hides with no player.
   The source list appears only with two or more real players: `playerctld`
   mirrors the active player, so it must not show up as a second source.
+  The Output row moves only this player's stream (pactl move-sink-input);
+  the system default sink must stay unchanged. `omarchy-ipc call omarchy.media
+  outputs` shows the current device and the available sinks.
 - Cava: 16 bars sit between the weather pill and the media title and appear
   only while something is playing. `omarchy-ipc call local.cava preview` shows
   them for 8 seconds with a test tone;
