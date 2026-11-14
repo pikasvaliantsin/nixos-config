@@ -4,9 +4,8 @@ import qs.Commons as Commons
 import qs.Custom
 import qs.Ui
 
-// Time picker for temporary passwordless sudo. Enabling still asks for the
-// password once in a small floating terminal, then the helper installs the
-// time-limited sudoers rule.
+// Time picker for temporary passwordless sudo. The sudo call goes through
+// the graphical PAM auth dialog, so enabling needs no terminal window.
 KeyboardPanel {
   id: root
 
@@ -14,7 +13,7 @@ KeyboardPanel {
   contentHeight: root.fittedContentHeight(menuColumn.implicitHeight)
 
   function enable(minutes) {
-    Util.execArgv(["omarchy-launch-sudo-terminal", "sudo", "omarchy-sudo-passwordless", String(minutes)])
+    Util.execArgv(["omarchy-sudo-passwordless", String(minutes)])
     if (root.owner && typeof root.owner.close === "function") root.owner.close()
   }
 
@@ -47,7 +46,7 @@ KeyboardPanel {
 
     Text {
       width: parent.width
-      text: "Asks for your sudo password once in a small terminal."
+      text: "Confirm with your password or fingerprint."
       color: Commons.Color.muted
       font.family: Style.font.family
       font.pixelSize: Style.font.caption

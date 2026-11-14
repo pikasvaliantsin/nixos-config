@@ -292,6 +292,10 @@ ShellRoot {
   // this single instance only reports changes to the Omarchy OSD.
   KeyboardOsd { host: shell }
 
+  // Graphical sudo authentication. The PAM helper talks to this socket and
+  // verifies the password or fingerprint itself.
+  AuthAgent { }
+
   // ------------------------------------------------------------- services
   //
   // Generic loader for any enabled plugin that declares kind "service".
