@@ -739,6 +739,9 @@ Panel {
     anchors.fill: parent
     bar: root.bar
     text: root.outputIcon()
+    // Wheel over the volume icon adjusts the sink and shows the OSD; do not
+    // also let the bar's background handler switch workspaces.
+    consumeWheel: true
     onPressed: function(b) {
       if (b === Qt.RightButton) root.toggleAllMuted()
       else root.toggle()

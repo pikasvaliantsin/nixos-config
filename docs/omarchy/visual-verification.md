@@ -105,13 +105,23 @@ components may be separate. Check the process list first.
 - `omarchy-ipc` finds the preview shell too; verify with
   `omarchy-ipc call shell ping`.
 - Keys: `nix shell nixpkgs#wtype -c wtype -k Escape` or `-k Right -k Return`.
-  There is no mouse injection available by default; test hover/click behavior
-  manually or via a panel's IPC methods.
+- Pointer and wheel: `nix shell nixpkgs#wlrctl -c wlrctl pointer move 120 0`
+  or `... pointer scroll 120 0`. A large negative move clamps to the top-left,
+  which gives a known origin for absolute positioning.
 - Niri state: `niri msg --json workspaces`, `niri msg --json windows`,
   `niri msg layers`, `niri msg focused-window`.
 - Notifications: `omarchy-notification-send` (or `notify-send` for a quick
   test). Remember that DND records new notifications in history without a
   live card, and that history and DND survive a shell restart.
+
+## Bar controls
+
+- Volume wheel: scroll over the speaker icon. The output volume changes in 5%
+  steps, the workspace must not change, and the Omarchy OSD appears at the
+  bottom with the volume percentage and progress bar.
+- The OSD is the upstream `omarchy.osd` panel, enabled in `shell.json`; the
+  audio bar widget consumes the wheel so the bar's workspace scroller does not
+  also fire.
 
 ## Themes and wallpapers
 
