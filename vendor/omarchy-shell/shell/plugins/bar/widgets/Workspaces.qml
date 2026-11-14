@@ -13,7 +13,9 @@ BarWidget {
     ? root.QsWindow.window.screen.name : Niri.focusedOutput
   readonly property var displayWorkspaces: Niri.workspaceItems(outputName)
 
-  function focusWorkspace(id) { Niri.focusWorkspace(id) }
+  // niri's focus-workspace takes an index or name, not the internal
+  // workspace id (which is a global, non-contiguous number).
+  function focusWorkspace(reference) { Niri.focusWorkspace(reference) }
 
   readonly property real trailingGap: root.vertical ? 0 : Style.spaceReal(1.5)
 
@@ -49,7 +51,7 @@ BarWidget {
         verticalPadding: 6
         fixedWidth: root.vertical ? root.barSize : Style.space(22)
         fixedHeight: root.barSize
-        onPressed: function() { root.focusWorkspace(workspace.id) }
+        onPressed: function() { root.focusWorkspace(workspace.name || workspace.idx) }
         onWheelMoved: function(delta) {
           if (root.bar && typeof root.bar.scrollWorkspaces === "function")
             root.bar.scrollWorkspaces(delta)
