@@ -21,8 +21,27 @@ Only the shell runtime is kept here:
 - `Bar.qml` uses `Niri.focusedOutput`; Hyprland fullscreen/notch hooks removed
 - `shell.qml` does not register Hyprland global shortcuts; niri binds own the keys
 - Default layout and disabled plugins are in `config/omarchy/shell.json`
-- Notifications, lock, idle, polkit, dock, menu, audio and other unused
-  upstream plugins are disabled. Custom notification center, capture and
-  OpenCode panel are added separately under `shell/custom/` later.
+- Notifications, lock, idle, polkit, dock, menu, media, agents, weather and
+  other unused upstream plugins are disabled. The clipboard plugin is adapted
+  in place; the custom notification center, capture, sudo, reminders and
+  OpenCode UI are added under `shell/Custom/`.
+
+## Documentation
+
+Only the runtime tree is vendored. Upstream `AGENTS.md`, `agents/skills/` and
+`docs/` are not copied here; the parts relevant to this port are adapted in
+[`docs/omarchy/`](../../docs/omarchy/) at the repository root:
+
+- [`shell-dev.md`](../../docs/omarchy/shell-dev.md) — Quickshell work, niri adapter, IPC, panels
+- [`visual-verification.md`](../../docs/omarchy/visual-verification.md) — preview shell, screenshots, recordings
+- [`motion.md`](../../docs/omarchy/motion.md) — animation rules
+- [`theming.md`](../../docs/omarchy/theming.md) — theme-set/theme-install and generated fragments
+- [`notifications.md`](../../docs/omarchy/notifications.md) — custom notification center
+- [`i18n.md`](../../docs/omarchy/i18n.md) — strings and catalogs
+- [`testing.md`](../../docs/omarchy/testing.md) — build and acceptance workflow
+
+The upstream originals can be read from a `v4.5.0` checkout. They frequently
+use Arch/Hyprland commands; the adapted versions here use NixOS, niri,
+`systemctl --user` and `omarchy-ipc`.
 
 This is a fork, not a tracking dependency. Upstream updates are manual.

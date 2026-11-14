@@ -1,3 +1,6 @@
+> Актуальные правила для агентов: [`AGENTS.md`](AGENTS.md) и [`docs/omarchy/`](docs/omarchy/).
+> Этот файл оставлен как исторические заметки Qwen; при конфликте приоритет у `AGENTS.md`.
+
 # Project Context & Rules for Qwen Code
 
 ## Existing Repository Structure

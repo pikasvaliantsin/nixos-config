@@ -3,6 +3,14 @@
 Декларативная конфигурация NixOS для **ASUS ExpertBook** (AMD Vega 7, Niri + DMS)
 на flakes + Home Manager.
 
+## Документация для агентов
+
+- [`AGENTS.md`](AGENTS.md) — правила работы с репозиторием, сборка, shell,
+  визуальная проверка и коммиты.
+- [`docs/omarchy/`](docs/omarchy/) — адаптированная под NixOS + niri
+  документация Omarchy: shell-dev, motion, visual verification, темы,
+  уведомления, i18n и testing.
+
 ## Структура
 
 ```text
