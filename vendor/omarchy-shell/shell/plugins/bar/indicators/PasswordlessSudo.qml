@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell.Io
 import qs.Commons
 import qs.Commons as Commons
+import qs.Custom
 import qs.Ui
 
 BarIndicator {
@@ -9,6 +10,9 @@ BarIndicator {
 
   property bool granted: false
   property bool refreshPending: false
+  property bool menuOpen: false
+
+  function close() { root.menuOpen = false }
 
   active: granted
   activeText: "󰟵"
@@ -66,14 +70,22 @@ BarIndicator {
     }
   }
 
+  onGrantedChanged: if (root.granted) root.menuOpen = false
+
   onPressed: function() {
     if (!root.bar || disableProc.running) return
     if (root.granted) {
+      root.menuOpen = false
       disableProc.running = true
     } else {
-      // Enabling needs one interactive sudo password. Run it in a terminal,
-      // not through the shell process, so sudo has a TTY.
-      Util.execArgv(["omarchy-launch-floating-terminal", "sudo", "omarchy-sudo-passwordless", "15"])
+      root.menuOpen = !root.menuOpen
     }
+  }
+
+  SudoMenu {
+    anchorItem: root
+    bar: root.bar
+    owner: root
+    open: root.menuOpen
   }
 }

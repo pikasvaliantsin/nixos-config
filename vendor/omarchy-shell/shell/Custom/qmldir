@@ -10,3 +10,4 @@ ReminderMenu 1.0 ReminderMenu.qml
 singleton Reminders 1.0 Reminders.qml
 singleton OpenCodeUsage 1.0 OpenCodeUsage.qml
 OpenCodePanel 1.0 OpenCodePanel.qml
+SudoMenu 1.0 SudoMenu.qml
