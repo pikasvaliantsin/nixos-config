@@ -441,7 +441,10 @@ PanelWindow {
     // Every button still down, so a second button pressed or let go mid-hold
     // leaves the first one's feedback alone.
     onPressed: function(mouse) {
-      hold(root.focusPrimed && inBarRegion(mouse.x, mouse.y) ? pressTargetAt(mouse.x, mouse.y) : null, mouse.buttons)
+      // Deliver presses on the bar to its widgets even after the exclusive
+      // focus prime ended. Without this a click on another indicator only
+      // dismisses the open panel and the requested panel never opens.
+      hold(inBarRegion(mouse.x, mouse.y) ? pressTargetAt(mouse.x, mouse.y) : null, mouse.buttons)
     }
     onReleased: function(mouse) { hold(mouse.buttons ? heldTarget : null, mouse.buttons) }
     onCanceled: hold(null)
@@ -450,10 +453,10 @@ PanelWindow {
     onPositionChanged: function(mouse) { hoveringBar = inBarRegion(mouse.x, mouse.y) }
     onExited: hoveringBar = false
     onClicked: function(mouse) {
-      // While Exclusive is priming, Hyprland may route a click from another
-      // output here with translated coordinates. Never interpret that as a
-      // click on this output's bar.
-      if (root.focusPrimed && inBarRegion(mouse.x, mouse.y) && forwardBarClick(mouse.x, mouse.y, mouse.button)) return
+      // Hand a bar click to the widget under the pointer so another panel can
+      // open in the same click. The surface spans one output, so the bar
+      // point is always this panel's own bar; niri hit-tests outputs itself.
+      if (inBarRegion(mouse.x, mouse.y) && forwardBarClick(mouse.x, mouse.y, mouse.button)) return
       root.close()
     }
   }
