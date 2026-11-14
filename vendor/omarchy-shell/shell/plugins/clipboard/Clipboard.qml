@@ -21,6 +21,7 @@ Item {
   property int selectedIndex: 0
   property bool cursorActive: false
   property bool clearConfirmOpen: false
+  property bool clearIncludePinned: false
   property var history: []
   property int hoveredIndex: -1
   property int hoverPendingIndex: -1
@@ -127,6 +128,7 @@ Item {
     root.selectedIndex = 0
     root.cursorActive = true
     root.clearConfirmOpen = false
+    root.clearIncludePinned = false
     root.hoveredIndex = -1
     root.hoverPendingIndex = -1
     root.pinHoverId = -1
@@ -280,23 +282,39 @@ Item {
     if (displayModel.count > 0) resultList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
   }
 
-  function requestClearHistory() {
-    if (root.history.length === 0) return
+  function requestClearHistory(includePinned) {
+    var hasUnpinned = false
+    for (var i = 0; i < root.history.length; i++) {
+      if (root.history[i] && root.history[i].pinned !== true) {
+        hasUnpinned = true
+        break
+      }
+    }
+    if (includePinned ? root.history.length === 0 : !hasUnpinned) return
+    root.clearIncludePinned = includePinned
     clearConfirm.selectedIndex = 1
     root.clearConfirmOpen = true
   }
 
   function cancelClearHistory() {
     root.clearConfirmOpen = false
+    root.clearIncludePinned = false
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
   function confirmClearHistory() {
-    root.history = ClipboardHistory.clearHistory()
+    var keep = []
+    if (!root.clearIncludePinned) {
+      for (var i = 0; i < root.history.length; i++) {
+        if (root.history[i] && root.history[i].pinned === true) keep.push(root.history[i])
+      }
+    }
+    root.history = keep
     root.saveHistory()
     root.selectedIndex = 0
     root.cursorActive = false
     root.clearConfirmOpen = false
+    root.clearIncludePinned = false
     root.rebuildDisplay()
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
@@ -431,6 +449,9 @@ Item {
         id: keyCatcher
         anchors.fill: parent
         focus: true
+        // The confirmation dialog lives inside the key catcher; keep its
+        // whole subtree above the header, list, and footer.
+        z: 100
 
         Keys.priority: Keys.BeforeItem
         Keys.onPressed: function(event) {
@@ -447,8 +468,11 @@ Item {
             root.setFilter(Util.editedFilter(event, root.filterText))
             event.accepted = true
           } else if (event.key === Qt.Key_Delete) {
-            if (event.modifiers & Qt.ShiftModifier) root.requestClearHistory()
-            else root.removeDisplayIndex(root.selectedIndex)
+            if (event.modifiers & Qt.ShiftModifier) {
+              root.requestClearHistory((event.modifiers & Qt.ControlModifier) !== 0)
+            } else {
+              root.removeDisplayIndex(root.selectedIndex)
+            }
             event.accepted = true
           } else if (event.key === Qt.Key_P && (event.modifiers & Qt.ControlModifier)) {
             root.togglePin(root.selectedIndex)
@@ -494,7 +518,9 @@ Item {
           anchors.fill: parent
           opened: root.clearConfirmOpen
           z: 10
-          message: Commons.I18n.t("clipboard.deleteHistory")
+          message: root.clearIncludePinned
+            ? Commons.I18n.t("clipboard.deleteHistory")
+            : Commons.I18n.t("clipboard.deleteUnpinned", "Delete unpinned history? Pinned entries stay.")
           confirmText: Commons.I18n.t("common.delete")
           background: root.background
           foreground: root.foreground
@@ -756,7 +782,7 @@ Item {
         anchors.bottomMargin: card.contentBottomInset
         height: root.footerHeight
         textFormat: Text.PlainText
-        text: "←→ tabs · ↑↓ · Enter copy · ^P pin · Del · Esc"
+        text: "←→ tabs · ↑↓ · Enter · ^P pin · Del/⇧Del · Esc"
         color: root.foreground
         opacity: 0.45
         font.family: root.fontFamily

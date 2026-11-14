@@ -182,6 +182,7 @@
   "bluetooth.turnOnToScan": "Включите Bluetooth для поиска",
   "bluetooth.turnedOff": "Выключено",
   "clipboard.deleteHistory": "Удалить всю историю буфера обмена?",
+  "clipboard.deleteUnpinned": "Удалить незакреплённую историю буфера? Закреплённые останутся.",
   "clipboard.empty": "Буфер обмена пуст",
   "clipboard.files": {
     "few": "%1 файла",

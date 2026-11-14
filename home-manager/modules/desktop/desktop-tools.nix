@@ -121,6 +121,80 @@ let
     '';
   };
 
+  # Remove clipboard images that no longer appear in history, and keep the
+  # image directory under a size ceiling by dropping the oldest unpinned
+  # image entries. Pinned entries and their files are never removed.
+  clipGc = pkgs.writeShellApplication {
+    name = "clipboard-gc";
+    runtimeInputs = [ pkgs.coreutils pkgs.jq pkgs.findutils pkgs.gnugrep pkgs.util-linux ];
+    text = ''
+      set -euo pipefail
+
+      state="''${CLIPBOARD_GC_STATE_DIR:-''${XDG_STATE_HOME:-$HOME/.local/state}/quickshell/clipboard}"
+      max_bytes="''${CLIPBOARD_GC_MAX_BYTES:-1073741824}"
+      hist="$state/history.json"
+      images="$state/images"
+
+      [ -f "$hist" ] || exit 0
+      [ -d "$images" ] || exit 0
+      mkdir -p "$state"
+
+      # Capture and GC share this lock, so a new clip cannot land between the
+      # reference list and the deletions.
+      exec 9>"$state/.lock"
+      flock 9
+
+      # A malformed history must never be treated as "everything is orphaned".
+      if ! jq -e 'type == "array"' "$hist" >/dev/null; then
+        echo "clipboard-gc: invalid history file, leaving images untouched" >&2
+        exit 1
+      fi
+
+      refs=$(mktemp)
+      tmp=$(mktemp)
+      trap 'rm -f "$refs" "$tmp"' EXIT
+
+      jq -r '.[]? | select(.type == "image") | .path // empty' "$hist" >"$refs"
+
+      removed_files=0
+      while IFS= read -r -d $'\0' file; do
+        if ! grep -qxF -- "$file" "$refs"; then
+          rm -f -- "$file"
+          removed_files=$((removed_files + 1))
+        fi
+      done < <(find "$images" -maxdepth 1 -type f -print0)
+
+      removed_entries=0
+      while :; do
+        total=$(du -sb "$images" | cut -f1)
+        [ "$total" -le "$max_bytes" ] && break
+
+        idx=$(jq -r 'to_entries | map(select((.value.pinned // false) != true and .value.type == "image")) | last | .key // empty' "$hist")
+        if [ -z "$idx" ]; then
+          echo "clipboard-gc: $((total / 1048576)) MiB used, over the limit only because of pinned entries" >&2
+          break
+        fi
+
+        path=$(jq -r --argjson i "$idx" '.[$i].path // empty' "$hist")
+        jq --argjson i "$idx" 'del(.[$i])' "$hist" >"$tmp"
+        mv "$tmp" "$hist"
+        removed_entries=$((removed_entries + 1))
+
+        if [ -n "$path" ]; then
+          still=$(jq -r --arg p "$path" '[.[]? | select(.type == "image" and .path == $p)] | length' "$hist")
+          case "$path" in
+            "$images"/*)
+              if [ "$still" = "0" ]; then rm -f -- "$path"; fi
+              ;;
+          esac
+        fi
+      done
+
+      remaining=$(( $(du -sb "$images" | cut -f1) / 1048576 ))
+      echo "clipboard-gc: removed ''${removed_files} orphan files, ''${removed_entries} old entries; ''${remaining} MiB remain"
+    '';
+  };
+
   lastShot = pkgs.writeShellApplication {
     name = "last-shot";
     runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.wl-clipboard pkgs.libnotify ];
@@ -178,6 +252,7 @@ in
     clipCapture
     clipCopy
     imageSize
+    clipGc
   ];
 
   # Два watcher'а: текст и PNG. Пишут в ~/.local/state/quickshell/clipboard.
@@ -207,6 +282,29 @@ in
       RestartSec = 2;
     };
     Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  systemd.user.services.clipboard-gc = {
+    Unit = {
+      Description = "Clipboard history garbage collection";
+    };
+    Service = {
+      Type = "oneshot";
+      ExecStart = "${clipGc}/bin/clipboard-gc";
+      Nice = 10;
+    };
+  };
+
+  systemd.user.timers.clipboard-gc = {
+    Unit = {
+      Description = "Daily clipboard history garbage collection";
+    };
+    Timer = {
+      OnCalendar = "daily";
+      Persistent = true;
+      RandomizedDelaySec = "10min";
+    };
+    Install.WantedBy = [ "timers.target" ];
   };
 
   xdg.configFile."gtklock/config.ini".text = ''

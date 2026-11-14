@@ -168,6 +168,7 @@
   "bluetooth.turnOnToScan": "Turn Bluetooth on to scan",
   "bluetooth.turnedOff": "Turned Off",
   "clipboard.deleteHistory": "Delete entire clipboard history?",
+  "clipboard.deleteUnpinned": "Delete unpinned clipboard history? Pinned entries stay.",
   "clipboard.empty": "Clipboard is empty",
   "clipboard.files": {
     "one": "%1 file",
