@@ -16,8 +16,8 @@ BarIconButton {
   // An indicator with nothing to turn on, such as a remote session, shows only
   // while it is active, never among the inactive ones a hover reveals.
   property bool revealWhenInactive: true
-  // Per-item opt-in to stay visible while inactive (the recording button does
-  // this so it is still a target before a recording starts).
+  // Set by a fixed indicator slot (the recording button) that lives outside
+  // the collapsible inactive area and must stay visible while idle.
   property bool alwaysShow: false
   readonly property bool effectiveActive: activeOverride === null || activeOverride === undefined ? active : activeOverride === true
   readonly property bool belongsInBlock: indicatorBlock === "active" ? effectiveActive : (indicatorBlock === "inactive" ? !effectiveActive && revealWhenInactive : true)

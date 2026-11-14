@@ -10,9 +10,9 @@ BarIndicator {
   property bool recording: false
   property bool menuOpen: false
 
-  // Keep the button visible while idle: before the first recording it opens
-  // the capture menu, during one it stops it.
-  alwaysShow: true
+  // The indicator widget mounts this button outside the collapsible inactive
+  // area so it is a target even before a recording exists.
+  alwaysShow: settings && settings.alwaysShow === true
 
   function close() { root.menuOpen = false }
 
