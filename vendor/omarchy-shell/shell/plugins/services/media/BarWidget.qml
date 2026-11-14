@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell
+import Quickshell.Services.Pipewire
 import qs.Ui
 import qs.Commons
 import qs.Commons as Commons
@@ -19,6 +20,62 @@ BarWidget {
   readonly property string artist: activePlayer ? (activePlayer.trackArtist || "") : ""
 
   property bool popupOpen: false
+
+  // MPRIS volume is not universal: Chromium exposes no Volume property at
+  // all. Fall back to the player's own PipeWire stream, then to the default
+  // sink, so the wheel always changes what you hear.
+  readonly property var audioNode: {
+    var player = root.activePlayer
+    if (!player) return null
+    var wanted = []
+    var identity = String(player.identity || "").toLowerCase()
+    var entry = String(player.desktopEntry || "").toLowerCase()
+    if (identity.length > 0) wanted.push(identity)
+    if (entry.length > 0 && wanted.indexOf(entry) < 0) wanted.push(entry)
+    if (wanted.length === 0) return null
+    var nodes = Pipewire.nodes ? Pipewire.nodes.values : []
+    for (var index = 0; index < nodes.length; index++) {
+      var node = nodes[index]
+      // Playback streams report isSink=true (the audio panel relies on the
+      // same quirk), so only isStream and a bound audio block matter.
+      if (!node || !node.isStream || !node.audio) continue
+      var properties = ({})
+      try {
+        properties = node.properties || ({})
+      } catch (error) {
+        properties = ({})
+      }
+      var app = String(properties["application.name"] || "").toLowerCase()
+      var binary = String(properties["application.process.binary"] || "").toLowerCase()
+      if (wanted.indexOf(app) >= 0 || wanted.indexOf(binary) >= 0) return node
+    }
+    return null
+  }
+
+  function adjustPlayerVolume(delta) {
+    var player = root.activePlayer
+    if (!player) return false
+    // Prefer the player's own PipeWire stream: Chromium advertises MPRIS
+    // Volume but ignores writes, while its stream volume always works.
+    var node = root.audioNode
+    if (node && node.audio) {
+      node.audio.volume = Math.max(0, Math.min(1.5, node.audio.volume + delta))
+      return true
+    }
+    if (player.volumeSupported) {
+      var current = Number(player.volume)
+      if (isFinite(current)) {
+        player.volume = Math.max(0, Math.min(1, current + delta))
+        return true
+      }
+    }
+    var sink = Pipewire.defaultAudioSink
+    if (sink && sink.audio) {
+      sink.audio.volume = Math.max(0, Math.min(1, sink.audio.volume + delta))
+      return true
+    }
+    return false
+  }
 
   // Same shape as the other bar panels, so `shell toggle omarchy.media` and
   // the bar's popout coordinator can drive it.
@@ -87,6 +144,41 @@ BarWidget {
     }
   }
 
+  // Scriptable volume, and the headless check for the pipewire fallback.
+  ShellIpc {
+    target: "omarchy.media"
+    function volumeUp(): void { root.adjustPlayerVolume(0.05) }
+    function volumeDown(): void { root.adjustPlayerVolume(-0.05) }
+    function volumeStatus(): string {
+      var node = root.audioNode
+      return JSON.stringify({
+        player: root.activePlayer ? String(root.activePlayer.identity || "") : "",
+        mprisVolume: root.activePlayer ? root.activePlayer.volumeSupported : false,
+        node: node ? String(node.name || "") : "",
+        nodeVolume: node && node.audio ? node.audio.volume : null,
+        playerVolume: root.activePlayer ? root.activePlayer.volume : null,
+        streams: (function() {
+          var list = []
+          var nodes = Pipewire.nodes ? Pipewire.nodes.values : []
+          for (var index = 0; index < nodes.length; index++) {
+            var node = nodes[index]
+            if (!node || !node.isStream) continue
+            var properties = ({})
+            try { properties = node.properties || ({}) } catch (error) { properties = ({}) }
+            list.push({
+              name: String(node.name || ""),
+              isSink: node.isSink === true,
+              hasAudio: !!node.audio,
+              app: String(properties["application.name"] || ""),
+              binary: String(properties["application.process.binary"] || "")
+            })
+          }
+          return list
+        })()
+      })
+    }
+  }
+
   MouseArea {
     anchors.fill: parent
     hoverEnabled: true
@@ -110,13 +202,7 @@ BarWidget {
       if (!root.activePlayer) return
       // The wheel is the player's volume. Players that do not expose MPRIS
       // volume keep the old track skipping, so the gesture is never dead.
-      if (root.activePlayer.volumeSupported) {
-        var step = wheel.angleDelta.y > 0 ? 0.05 : -0.05
-        var current = Number(root.activePlayer.volume)
-        if (isFinite(current))
-          root.activePlayer.volume = Math.max(0, Math.min(1, current + step))
-        return
-      }
+      if (root.adjustPlayerVolume(wheel.angleDelta.y > 0 ? 0.05 : -0.05)) return
       if (wheel.angleDelta.y > 0 && root.mediaService) root.mediaService.runAction("previous", false)
       else if (wheel.angleDelta.y < 0 && root.mediaService) root.mediaService.runAction("next", false)
     }
@@ -146,12 +232,8 @@ BarWidget {
       WheelHandler {
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
         onWheel: function(event) {
-          if (!root.activePlayer || !root.activePlayer.volumeSupported) return
-          var step = event.angleDelta.y > 0 ? 0.05 : -0.05
-          var current = Number(root.activePlayer.volume)
-          if (!isFinite(current)) return
-          root.activePlayer.volume = Math.max(0, Math.min(1, current + step))
-          event.accepted = true
+          if (root.adjustPlayerVolume(event.angleDelta.y > 0 ? 0.05 : -0.05))
+            event.accepted = true
         }
       }
 
