@@ -85,6 +85,11 @@ in
   home.activation.omarchyState = config.lib.dag.entryAfter [ "linkGeneration" ] ''
     run mkdir -p "${stateDir}/current"
     run mkdir -p "${stateDir}/agents/usage"
+    # Notification history and DND state, mode 0600. The shell writes these
+    # atomically; pre-creating them keeps the directory and file private.
+    run mkdir -p "${stateDir}/notifications"
+    run chmod 700 "${stateDir}/notifications"
+    run sh -c 'for f in history.json quiet.json; do p="${stateDir}/notifications/$f"; [ -e "$p" ] || : >"$p"; chmod 600 "$p"; done'
     run rm -rf "${stateDir}/current/theme"
     # theme-set generates colors.toml/shell.toml under the shared theme state.
     # Prefer that when present; the packaged static theme is only the initial

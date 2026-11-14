@@ -112,14 +112,17 @@ omarchy-ipc call notifications clear   # active -> history
 ```
 
 Check active cards, history (use the History "Clear" link to empty it), action
-labels, Escape, and click outside. DND drops new notifications; turn it off to
-test the normal path. History is in-memory, so a shell restart is expected to
-empty it.
+labels, Escape, and click outside. DND records new notifications in history
+instead of showing live cards; turn it off to test the normal path. History and
+DND are persisted, so a shell restart should keep both.
 
 ## Destructive-test safety
 
 - Back up `~/.local/state/quickshell/clipboard/history.json` before clearing
   the user's clipboard history; clearing does not remove image files until GC.
+- `~/.local/state/omarchy/notifications/history.json` is real notification
+  history, not a cache; `notifications clear` and the History "Clear" link
+  mutate it.
 - Do not run `clipboard-gc` with a custom state path that points at the live
   directory unless you intend to prune it.
 - Do not kill all `quickshell` processes; the calendar shell is separate.

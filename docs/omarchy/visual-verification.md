@@ -110,8 +110,8 @@ components may be separate. Check the process list first.
 - Niri state: `niri msg --json workspaces`, `niri msg --json windows`,
   `niri msg layers`, `niri msg focused-window`.
 - Notifications: `omarchy-notification-send` (or `notify-send` for a quick
-  test). Remember that our DND mode drops new notifications and that history
-  is in-memory for the current shell session.
+  test). Remember that DND records new notifications in history without a
+  live card, and that history and DND survive a shell restart.
 
 ## Themes and wallpapers
 

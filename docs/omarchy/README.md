@@ -23,7 +23,7 @@ Quickshell architecture and general UI rules.
 | `agents/skills/visual-verification.md` | [`visual-verification.md`](visual-verification.md) | `grim`/`wl-screenrec`, `wtype`, niri JSON commands, preview shell via `systemd-run`, ffmpeg through `nix shell`. |
 | `agents/skills/motion.md` | [`motion.md`](motion.md) | Same motion rules; no Hyprland animation toggle, so `Style.reduceMotion` is currently a manual flag. |
 | `docs/theming.md` | [`theming.md`](theming.md) | Our `theme-set`/`theme-install`, native palettes, Omarchy `colors.toml`, generated fragments and state links. |
-| `docs/notifications.md` | [`notifications.md`](notifications.md) | Our custom server/center: no toasts, in-session history, actions, DND, IPC, known limitations. |
+| `docs/notifications.md` | [`notifications.md`](notifications.md) | Our custom server/center: no toasts, persisted history, actions, DND, IPC, known limitations. |
 | `docs/i18n.md` | [`i18n.md`](i18n.md) | Our vendored `en`/`ru` catalogs, `I18n` usage and custom-panel literals. |
 | `docs/testing.md` | [`testing.md`](testing.md) | Nix build/switch, QML load checks, clipboard GC and theme tests; no upstream test suite in the vendor. |
 | `docs/omarchy-shell.md` | [`shell-dev.md`](shell-dev.md) | Condensed to the parts used by this port. |

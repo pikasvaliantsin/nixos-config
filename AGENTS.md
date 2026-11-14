@@ -109,8 +109,10 @@ first-party plugin. Both are kept enabled in `shell.json`:
 - see [`docs/omarchy/notifications.md`](docs/omarchy/notifications.md).
 
 The clipboard capture/copy/GC helpers use
-`~/.local/state/quickshell/clipboard/`. The notification history is currently
-in-memory for the shell session.
+`~/.local/state/quickshell/clipboard/`. Notification history and DND state are
+persisted under `~/.local/state/omarchy/notifications/` (`history.json`,
+`quiet.json`), mode `0600`; see the notifications notes before changing the
+schema.
 
 ## Visual verification
 

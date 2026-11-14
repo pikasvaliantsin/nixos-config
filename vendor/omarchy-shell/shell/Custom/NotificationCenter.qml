@@ -217,7 +217,7 @@ Item {
       property bool live: false
       property int historyIndex: -1
 
-      readonly property var actions: live && entry && entry.actions ? entry.actions : []
+      readonly property var actions: live && entry ? Notifications.actionsFor(entry) : []
       readonly property string timeLabel: {
         if (!entry || !entry.closedAt) return ""
         return Qt.formatDateTime(new Date(entry.closedAt), "HH:mm")
