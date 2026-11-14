@@ -29,12 +29,28 @@ function normalizeEntry(value) {
     return entry
   }
 
+  if (type === "video") {
+    var videoPath = String(value.path || "")
+    if (!videoPath) return null
+    var videoEntry = {
+      type: "video",
+      path: videoPath,
+      mime: String(value.mime || "video/mp4")
+    }
+    if (value.preview !== undefined && value.preview !== null && String(value.preview).length > 0)
+      videoEntry.preview = String(value.preview)
+    if (value.capturedAt !== undefined && value.capturedAt !== null)
+      videoEntry.capturedAt = String(value.capturedAt)
+    if (value.pinned === true) videoEntry.pinned = true
+    return videoEntry
+  }
+
   return null
 }
 
 function entryKey(entry) {
   if (!entry) return ""
-  if (entry.type === "image") return "image:" + String(entry.path || "")
+  if (entry.type === "image" || entry.type === "video") return entry.type + ":" + String(entry.path || "")
   return "text:" + String(entry.text || "")
 }
 
@@ -98,6 +114,7 @@ function parseEntryJson(line) {
 function searchableText(entry) {
   if (!entry) return ""
   if (entry.type === "image") return "image screenshot " + String(entry.mime || "") + " " + String(entry.capturedAt || "")
+  if (entry.type === "video") return "video " + fileName(entry.path) + " " + String(entry.mime || "") + " " + String(entry.capturedAt || "")
   return String(entry.text || "") + " " + fileEntryText(entry)
 }
 
@@ -162,9 +179,17 @@ function imagePreviewText(entry, tr) {
   return pattern.replace("%1", timestamp)
 }
 
+function videoPreviewText(entry, tr) {
+  var t = translator(tr)
+  var timestamp = String(entry && entry.capturedAt || "")
+  if (!timestamp) return t("clipboard.video", "Video")
+  return t("clipboard.videoFrom", "Video from %1").replace("%1", timestamp)
+}
+
 function previewText(entry, tr, trn, fmt) {
   if (!entry) return ""
   if (entry.type === "image") return imagePreviewText(entry, tr)
+  if (entry.type === "video") return videoPreviewText(entry, tr)
   var fileText = fileEntryText(entry, tr, trn, fmt)
   if (fileText) return fileText
   return String(entry.text || "").replace(/\s+/g, " ")
@@ -206,21 +231,24 @@ function displayRows(history, query, limit, tr, trn, fmt, tab) {
     var entry = cappedEntry(normalizeEntry(values[i]))
     if (!entry) continue
     if (filter === "text" && entry.type !== "text") continue
-    if (filter === "images" && entry.type !== "image") continue
+    if (filter === "images" && entry.type !== "image" && entry.type !== "video") continue
     if (filter === "pinned" && entry.pinned !== true) continue
     if (needle && searchableText(entry).toLowerCase().indexOf(needle) < 0) continue
 
     var paths = filePaths(entry)
     var isFile = paths.length > 0
     var isImage = entry.type === "image"
-    var previewPath = isImage ? String(entry.path || "") : (isFile && paths.length === 1 && isImagePath(paths[0]) ? paths[0] : "")
+    var isVideo = entry.type === "video"
+    var previewPath = isImage ? String(entry.path || "")
+      : (isVideo ? String(entry.preview || "")
+        : (isFile && paths.length === 1 && isImagePath(paths[0]) ? paths[0] : ""))
     rows.push({
       entryType: isFile ? "file" : entry.type,
-      fullText: isImage ? "" : fullText(entry),
+      fullText: isImage || isVideo ? "" : fullText(entry),
       previewText: previewText(entry, tr, trn, fmt),
       previewImage: previewPath,
-      path: isImage ? String(entry.path || "") : (isFile && paths.length === 1 ? paths[0] : ""),
-      mime: isImage ? String(entry.mime || "image/png") : "text/plain",
+      path: isImage || isVideo ? String(entry.path || "") : (isFile && paths.length === 1 ? paths[0] : ""),
+      mime: isImage ? String(entry.mime || "image/png") : (isVideo ? String(entry.mime || "video/mp4") : "text/plain"),
       pinned: entry.pinned === true,
       entryKey: entryKey(entry),
       capturedAt: String(entry.capturedAt || ""),
@@ -244,6 +272,7 @@ if (typeof module !== "undefined") {
     searchableText: searchableText,
     previewText: previewText,
     imagePreviewText: imagePreviewText,
+    videoPreviewText: videoPreviewText,
     filePaths: filePaths,
     fileEntryText: fileEntryText,
     fullText: fullText,

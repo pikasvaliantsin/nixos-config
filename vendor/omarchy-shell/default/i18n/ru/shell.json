@@ -192,6 +192,8 @@
   },
   "clipboard.image": "Изображение",
   "clipboard.imageFrom": "Изображение из %1",
+  "clipboard.video": "Видео",
+  "clipboard.videoFrom": "Видео из %1",
   "clipboard.screenshotFrom": "Снимок экрана из %1",
   "clipboard.search": "Поиск в буфере обмена…",
   "clock.backToToday": "К сегодняшнему дню",

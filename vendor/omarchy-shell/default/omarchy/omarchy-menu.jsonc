@@ -36,9 +36,35 @@
     "action": "omarchy-capture-screenshot screen"
   },
   "capture.record": {
-    "icon": "",
-    "label": "Record screen",
+    "icon": "",
+    "label": "Record",
+    "aliases": ["record", "screenrecord", "screen-record"]
+  },
+  "capture.record.stop": {
+    "icon": "",
+    "label": "Stop recording",
+    "when": "omarchy-capture-screenrecording --status",
+    "action": "omarchy-capture-screenrecording --stop-recording"
+  },
+  "capture.record.desktop": {
+    "icon": "",
+    "label": "Screen + desktop audio",
+    "action": "omarchy-capture-screenrecording --fullscreen --with-desktop-audio"
+  },
+  "capture.record.both": {
+    "icon": "",
+    "label": "Screen + desktop + mic",
+    "action": "omarchy-capture-screenrecording --fullscreen --with-desktop-audio --with-microphone-audio"
+  },
+  "capture.record.silent": {
+    "icon": "",
+    "label": "Screen without audio",
     "action": "omarchy-capture-screenrecording --fullscreen"
+  },
+  "capture.record.region": {
+    "icon": "",
+    "label": "Region + desktop audio",
+    "action": "omarchy-capture-screenrecording --region --with-desktop-audio"
   },
   "system": {
     "icon": "",

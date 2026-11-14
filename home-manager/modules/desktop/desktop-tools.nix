@@ -9,7 +9,7 @@ let
   # всё в JSON. Скрипт вызывается watcher'ами wl-paste.
   clipCapture = pkgs.writeShellApplication {
     name = "clip-capture";
-    runtimeInputs = [ pkgs.coreutils pkgs.jq pkgs.wl-clipboard pkgs.util-linux ];
+    runtimeInputs = [ pkgs.coreutils pkgs.ffmpeg pkgs.jq pkgs.wl-clipboard pkgs.util-linux ];
     text = ''
       set -euo pipefail
       mime="''${1:-}"
@@ -33,6 +33,43 @@ let
       hist="$state/history.json"
       [ -f "$hist" ] || printf '[]\n' > "$hist"
 
+      # Percent-decode a file:// URI without pulling in a language runtime.
+      uridecode() {
+        local s=$1 out="" i ch hex byte
+        for ((i = 0; i < ''${#s}; i++)); do
+          ch=''${s:i:1}
+          if [[ $ch == "%" && ''${s:i+1:2} =~ ^[0-9A-Fa-f]{2}$ ]]; then
+            hex=''${s:i+1:2}
+            printf -v byte '%b' "\\x$hex"
+            out+=$byte
+            ((i += 2))
+          else
+            out+=$ch
+          fi
+        done
+        printf '%s' "$out"
+      }
+
+      emit_video() {
+        local path=$1 hash preview mime at
+        [[ -f $path ]] || return 1
+        hash=$(printf '%s' "$path" | sha256sum | awk '{print $1}')
+        preview="$img/video-$hash.png"
+        mime=video/mp4
+        case "''${path,,}" in
+          *.webm) mime=video/webm ;;
+          *.mkv) mime=video/x-matroska ;;
+        esac
+        if [[ ! -f $preview ]]; then
+          ffmpeg -hide_banner -loglevel error -ss 0.1 -i "$path" -frames:v 1 -vf "scale=480:-2" -y "$preview" 2>/dev/null \
+            || ffmpeg -hide_banner -loglevel error -ss 0 -i "$path" -frames:v 1 -vf "scale=480:-2" -y "$preview" 2>/dev/null \
+            || return 1
+        fi
+        at=$(date +%H:%M)
+        jq -cn --arg mime "$mime" --arg path "$path" --arg preview "$preview" --arg at "$at" \
+          '{type:"video", mime:$mime, path:$path, preview:$preview, capturedAt:$at}'
+      }
+
       entry=""
       case "$mime" in
         image/*)
@@ -45,8 +82,35 @@ let
             '{type:"image", mime:$mime, path:$path, capturedAt:$at}')
           ;;
         text)
+          # wl-copy offers text/plain alongside text/uri-list. Let the file
+          # watcher own video URIs so history does not get a second text row.
+          if grep -qiE '^file://.*\.(mp4|m4v|mov|webm|mkv|avi)[[:space:]]*$' "$tmp"; then
+            exit 0
+          fi
           entry=$(jq -n --rawfile t "$tmp" --arg at "$(date +%H:%M)" \
             '{type:"text", text:$t, capturedAt:$at}')
+          ;;
+        text/uri-list)
+          first=""
+          while IFS= read -r line; do
+            line=''${line%$'\r'}
+            [[ $line == file://* ]] || continue
+            first=''${line#file://}
+            break
+          done <"$tmp"
+          [[ -n $first ]] || exit 0
+          first=''${first#localhost/}
+          path=$(uridecode "$first")
+          [[ -n $path && -f $path ]] || exit 0
+          case "''${path,,}" in
+            *.mp4|*.m4v|*.mov|*.webm|*.mkv|*.avi)
+              entry=$(emit_video "$path") || exit 0
+              ;;
+            *)
+              entry=$(jq -n --rawfile t "$tmp" --arg at "$(date +%H:%M)" \
+                '{type:"text", text:$t, capturedAt:$at}')
+              ;;
+          esac
           ;;
         *) exit 0 ;;
       esac
@@ -56,12 +120,14 @@ let
         jq --argjson e "$entry" '
           (first(.[] | select(
             if $e.type == "image" then (.type == "image" and .path == $e.path)
+            elif $e.type == "video" then (.type == "video" and .path == $e.path)
             else (.type == "text" and .text == $e.text)
             end
           ) | .pinned) // false) as $pinned
           | ([ ($e + (if $pinned then {pinned: true} else {} end)) ]
              + [ .[] | select(
                  if $e.type == "image" then (.type != "image" or .path != $e.path)
+                 elif $e.type == "video" then (.type != "video" or .path != $e.path)
                  else (.type != "text" or .text != $e.text)
                  end
                ) ]) as $merged
@@ -98,6 +164,14 @@ let
           path=$(jq -r --argjson i "$idx" '.[$i].path // empty' "$hist")
           [ -n "$path" ] && [ -f "$path" ] || exit 1
           wl-copy --type "$mime" < "$path"
+          ;;
+        video)
+          path=$(jq -r --argjson i "$idx" '.[$i].path // empty' "$hist")
+          [ -n "$path" ] && [ -f "$path" ] || exit 1
+          uri=$(jq -rn --arg p "$path" '$p|@uri')
+          uri=''${uri//%2F//}
+          uri=''${uri//%2f//}
+          printf 'file://%s\r\n' "$uri" | wl-copy --type text/uri-list
           ;;
         *) exit 1 ;;
       esac
@@ -154,7 +228,7 @@ let
       tmp=$(mktemp)
       trap 'rm -f "$refs" "$tmp"' EXIT
 
-      jq -r '.[]? | select(.type == "image") | .path // empty' "$hist" >"$refs"
+      jq -r '.[]? | if .type == "image" then (.path // empty) elif .type == "video" then (.preview // empty) else empty end' "$hist" >"$refs"
 
       removed_files=0
       while IFS= read -r -d $'\0' file; do
@@ -169,18 +243,29 @@ let
         total=$(du -sb "$images" | cut -f1)
         [ "$total" -le "$max_bytes" ] && break
 
-        idx=$(jq -r 'to_entries | map(select((.value.pinned // false) != true and .value.type == "image")) | last | .key // empty' "$hist")
+        idx=$(jq -r 'to_entries | map(select((.value.pinned // false) != true and (.value.type == "image" or .value.type == "video"))) | last | .key // empty' "$hist")
         if [ -z "$idx" ]; then
           echo "clipboard-gc: $((total / 1048576)) MiB used, over the limit only because of pinned entries" >&2
           break
         fi
 
+        kind=$(jq -r --argjson i "$idx" '.[$i].type // empty' "$hist")
         path=$(jq -r --argjson i "$idx" '.[$i].path // empty' "$hist")
+        preview=$(jq -r --argjson i "$idx" '.[$i].preview // empty' "$hist")
         jq --argjson i "$idx" 'del(.[$i])' "$hist" >"$tmp"
         mv "$tmp" "$hist"
         removed_entries=$((removed_entries + 1))
 
-        if [ -n "$path" ]; then
+        if [ "$kind" = "video" ]; then
+          if [ -n "$preview" ] && [ "$preview" != "$path" ]; then
+            still=$(jq -r --arg p "$preview" '[.[]? | select(.type == "video" and .preview == $p)] | length' "$hist")
+            case "$preview" in
+              "$images"/*)
+                if [ "$still" = "0" ]; then rm -f -- "$preview"; fi
+                ;;
+            esac
+          fi
+        elif [ -n "$path" ]; then
           still=$(jq -r --arg p "$path" '[.[]? | select(.type == "image" and .path == $p)] | length' "$hist")
           case "$path" in
             "$images"/*)
@@ -277,6 +362,20 @@ in
     };
     Service = {
       ExecStart = "${pkgs.wl-clipboard}/bin/wl-paste --type image/png --watch ${clipCapture}/bin/clip-capture image/png";
+      Restart = "on-failure";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
+  systemd.user.services.clipboard-files = {
+    Unit = {
+      Description = "Clipboard history: file URIs";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.wl-clipboard}/bin/wl-paste --type text/uri-list --watch ${clipCapture}/bin/clip-capture text/uri-list";
       Restart = "on-failure";
       RestartSec = 2;
     };

@@ -16,6 +16,7 @@
       "centerBegin": [
         {
           "id": "omarchy.indicators",
+          "alwaysShow": true,
           "items": [
             "PasswordlessSudo",
             "ScreenRecording",

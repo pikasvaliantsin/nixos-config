@@ -10,6 +10,10 @@ BarIndicator {
   property bool recording: false
   property bool menuOpen: false
 
+  // Keep the button visible while idle: before the first recording it opens
+  // the capture menu, during one it stops it.
+  alwaysShow: true
+
   function close() { root.menuOpen = false }
 
   active: recording
@@ -41,6 +45,16 @@ BarIndicator {
   }
 
   onPressed: function() {
+    if (root.recording) {
+      root.menuOpen = false
+      if (root.bar) root.bar.run("omarchy-capture-screenrecording --stop-recording")
+      root.recording = false
+      if (!statusProc.running) {
+        statusProc.command = ["omarchy-capture-screenrecording", "--status"]
+        statusProc.running = true
+      }
+      return
+    }
     root.menuOpen = !root.menuOpen
   }
 

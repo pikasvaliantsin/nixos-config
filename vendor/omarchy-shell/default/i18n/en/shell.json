@@ -176,6 +176,8 @@
   },
   "clipboard.image": "Image",
   "clipboard.imageFrom": "Image from %1",
+  "clipboard.video": "Video",
+  "clipboard.videoFrom": "Video from %1",
   "clipboard.screenshotFrom": "Screenshot from %1",
   "clipboard.search": "Search clipboard…",
   "clock.backToToday": "Back to today",

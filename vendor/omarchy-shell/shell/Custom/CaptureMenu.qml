@@ -11,6 +11,26 @@ KeyboardPanel {
   id: root
 
   property bool recording: false
+  property string audioMode: "desktop"
+
+  readonly property string audioModePath: Quickshell.env("HOME") + "/.local/state/omarchy/screenrecord-audio"
+
+  function loadAudioMode(raw) {
+    var value = String(raw || "").trim()
+    if (value === "none" || value === "desktop" || value === "both") root.audioMode = value
+  }
+
+  function setAudioMode(value) {
+    root.audioMode = value
+    audioModeFile.setText(value + "\n")
+  }
+
+  function recordCommand(region) {
+    var command = "omarchy-capture-screenrecording" + (region ? " --region" : " --fullscreen")
+    if (root.audioMode === "desktop") command += " --with-desktop-audio"
+    else if (root.audioMode === "both") command += " --with-desktop-audio --with-microphone-audio"
+    return command
+  }
 
   contentWidth: root.fittedContentWidth(Style.space(240))
   contentHeight: root.fittedContentHeight(menuColumn.implicitHeight)
@@ -67,10 +87,47 @@ KeyboardPanel {
     Button {
       width: parent.width
       leftAlign: true
+      text: "No audio"
+      iconText: root.audioMode === "none" ? "󰄬" : ""
+      active: root.audioMode === "none"
+      enabled: !root.recording
+      onClicked: root.setAudioMode("none")
+    }
+    Button {
+      width: parent.width
+      leftAlign: true
+      text: "Desktop audio"
+      iconText: root.audioMode === "desktop" ? "󰄬" : ""
+      active: root.audioMode === "desktop"
+      enabled: !root.recording
+      onClicked: root.setAudioMode("desktop")
+    }
+    Button {
+      width: parent.width
+      leftAlign: true
+      text: "Desktop + mic"
+      iconText: root.audioMode === "both" ? "󰄬" : ""
+      active: root.audioMode === "both"
+      enabled: !root.recording
+      onClicked: root.setAudioMode("both")
+    }
+
+    Rectangle {
+      width: parent.width
+      height: 1
+      color: Commons.Color.popups.border
+      opacity: 0.5
+    }
+
+    Button {
+      width: parent.width
+      leftAlign: true
       text: root.recording ? "Stop recording" : "Record screen"
       iconText: root.recording ? "󰓛" : "󰻂"
       active: root.recording
-      onClicked: root.run(root.recording ? "omarchy-capture-screenrecording --stop-recording" : "omarchy-capture-screenrecording --fullscreen")
+      onClicked: root.run(root.recording
+        ? "omarchy-capture-screenrecording --stop-recording"
+        : root.recordCommand(false))
     }
     Button {
       width: parent.width
@@ -78,7 +135,18 @@ KeyboardPanel {
       text: "Record region"
       iconText: "󰩫"
       enabled: !root.recording
-      onClicked: root.run("omarchy-capture-screenrecording --region")
+      onClicked: root.run(root.recordCommand(true))
     }
+  }
+
+  // A FileView is not an Item, so it must not become a child of the panel
+  // content. Declaring it as a property keeps it out of contentItem.
+  property FileView audioModeFile: FileView {
+    path: root.audioModePath
+    atomicWrites: true
+    blockLoading: true
+    printErrors: false
+    onLoaded: root.loadAudioMode(text())
+    onLoadFailed: root.loadAudioMode("")
   }
 }

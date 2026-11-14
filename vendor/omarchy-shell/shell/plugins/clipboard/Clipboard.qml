@@ -106,7 +106,7 @@ Item {
     ? displayModel.get(root.hoveredIndex) : null
   readonly property string hoveredImage: {
     var row = root.hoveredRow
-    if (!row || row.entryType !== "image") return ""
+    if (!row || (row.entryType !== "image" && row.entryType !== "video")) return ""
     if (row.historyIndex === root.pinHoverId) return ""
     return row.previewImage
   }
@@ -373,13 +373,13 @@ Item {
       root.hoverPendingIndex = -1
 
       var row = root.hoveredRow
-      if (!row || row.entryType !== "image" || !row.path) return
+      if (!row || (row.entryType !== "image" && row.entryType !== "video") || !row.previewImage) return
       if (row.historyIndex === root.pinHoverId) return
 
       root.hoverImageW = 0
       root.hoverImageH = 0
-      root.pendingSizePath = row.path
-      sizeProc.command = ["image-size", row.path]
+      root.pendingSizePath = row.previewImage
+      sizeProc.command = ["image-size", row.previewImage]
       sizeProc.running = true
     }
   }
@@ -390,7 +390,7 @@ Item {
       waitForEnd: true
       onStreamFinished: {
         var row = root.hoveredRow
-        if (!row || row.path !== root.pendingSizePath) return
+        if (!row || row.previewImage !== root.pendingSizePath) return
         var parts = String(text).trim().split(/\s+/)
         if (parts.length < 2) return
         var w = Number(parts[0])
@@ -668,7 +668,7 @@ Item {
 
               Item {
                 id: thumbArea
-                visible: row.entryType === "image"
+                visible: row.entryType === "image" || row.entryType === "video"
                 width: 44
                 height: 32
                 anchors.left: parent.left
@@ -682,6 +682,23 @@ Item {
                   url: row.previewImage
                   asynchronous: true
                   smooth: true
+                }
+
+                Rectangle {
+                  visible: row.entryType === "video"
+                  width: 14
+                  height: 14
+                  radius: 7
+                  color: Util.alpha(root.background, 0.82)
+                  anchors.right: parent.right
+                  anchors.bottom: parent.bottom
+
+                  Text {
+                    anchors.centerIn: parent
+                    text: "▶"
+                    color: root.foreground
+                    font.pixelSize: 6
+                  }
                 }
 
                 HoverHandler {

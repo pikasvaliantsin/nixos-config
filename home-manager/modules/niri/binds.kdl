@@ -37,17 +37,16 @@ binds {
     Mod+Shift+Tab repeat=false { spawn "bg-next"; }
     Mod+Alt+Tab repeat=false { spawn "bg-prev"; }
     Mod+Y hotkey-overlay-title="Обои" { spawn "waypaper"; }
-    Print { screenshot; }
     XF86Launch1 { screenshot; }
     Super+Shift+S hotkey-overlay-title="Скриншот: область" { screenshot; }
+    Mod+Ctrl+S hotkey-overlay-title="Скриншот: экран" { screenshot-screen; }
+    Mod+Ctrl+Shift+S hotkey-overlay-title="Скриншот: окно" { screenshot-window; }
     Ctrl+Shift+S hotkey-overlay-title="Последний скриншот → буфер" { spawn "last-shot"; }
     Ctrl+Alt+S hotkey-overlay-title="Скриншот → путь в буфер" { spawn "shot-path"; }
-    Ctrl+Print { screenshot-screen; }
     Ctrl+XF86Launch1 { screenshot-screen; }
-    Alt+Print hotkey-overlay-title="Запись экрана" { spawn "omarchy-capture-screenrecording" "--fullscreen"; }
-    Alt+Shift+Print hotkey-overlay-title="Запись области" { spawn "omarchy-capture-screenrecording" "--region"; }
-    Ctrl+Alt+Print { screenshot-window; }
     Alt+XF86Launch1 { screenshot-window; }
+    Alt+R hotkey-overlay-title="Запись экрана" { spawn "omarchy-capture-screenrecording" "--fullscreen" "--with-desktop-audio"; }
+    Alt+Shift+R hotkey-overlay-title="Запись области" { spawn "omarchy-capture-screenrecording" "--region" "--with-desktop-audio"; }
 
     // --- воркспейсы -------------------------------------------------------
     Mod+1 { focus-workspace 1; }

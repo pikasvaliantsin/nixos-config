@@ -1,7 +1,9 @@
 #!/bin/bash
-# Minimal niri screen recorder. No OBS, no webcam, no portal picker.
+# Minimal niri screen recorder with audio. No OBS, no webcam, no portal picker.
 # Backends: wl-screenrec (VAAPI) first, wf-recorder as fallback.
-# Usage: omarchy-capture-screenrecording [--fullscreen|--region|--stop-recording|--status]
+# Usage: omarchy-capture-screenrecording [--fullscreen|--region]
+#          [--with-desktop-audio] [--with-microphone-audio]
+#          [--stop-recording|--status]
 
 set -euo pipefail
 
@@ -9,6 +11,18 @@ runtime="${XDG_RUNTIME_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/omarchy}"
 mkdir -p "$runtime"
 pid_file="$runtime/omarchy-screenrecord.pid"
 file_file="$runtime/omarchy-screenrecord.file"
+mode_file="$runtime/omarchy-screenrecord.mode"
+pa_module_file="$runtime/omarchy-screenrecord-pa-modules"
+
+desktop_audio=false
+mic_audio=false
+
+for arg in "$@"; do
+  case "$arg" in
+  --with-desktop-audio) desktop_audio=true ;;
+  --with-microphone-audio) mic_audio=true ;;
+  esac
+done
 
 status() {
   [[ -f $pid_file ]] || return 1
@@ -18,23 +32,97 @@ status() {
   kill -0 "$pid" 2>/dev/null
 }
 
+cleanup_audio() {
+  [[ -f $pa_module_file ]] || return 0
+  local module
+  while IFS= read -r module; do
+    [[ $module =~ ^[0-9]+$ ]] && pactl unload-module "$module" 2>/dev/null || true
+  done <"$pa_module_file"
+  rm -f "$pa_module_file"
+}
+
+# Copy the finished video as a file URI. The clipboard history watcher turns
+# that into a video entry with a first-frame thumbnail.
+copy_video() {
+  local file=$1
+  [[ -f $file ]] || return 1
+  command -v wl-copy >/dev/null 2>&1 || return 1
+  command -v jq >/dev/null 2>&1 || return 1
+  local uri
+  uri=$(jq -rn --arg path "$file" '$path|@uri') || return 1
+  # jq's @uri escapes path separators too; a file URI must keep them intact.
+  uri=''${uri//%2F//}
+  uri=''${uri//%2f//}
+  printf 'file://%s\r\n' "$uri" | wl-copy --type text/uri-list 2>/dev/null
+}
+
 stop_recording() {
-  status || return 1
-  local pid
+  local pid file
+  if ! status; then
+    cleanup_audio
+    rm -f "$pid_file" "$file_file" "$mode_file"
+    return 1
+  fi
+
   pid=$(cat "$pid_file")
   # SIGINT is required for both backends to finalize the MP4.
   kill -INT "$pid" 2>/dev/null || true
-  for _ in $(seq 1 50); do
+  for _ in $(seq 1 80); do
     kill -0 "$pid" 2>/dev/null || break
     sleep 0.1
   done
   kill -0 "$pid" 2>/dev/null && kill -KILL "$pid" 2>/dev/null || true
-  rm -f "$pid_file"
-  local file=""
+
+  cleanup_audio
+
+  file=""
   [[ -f $file_file ]] && file=$(cat "$file_file")
-  rm -f "$file_file"
-  if [[ -n $file ]]; then
-    notify-send -a "Screen recording" "Recording saved" "$file" 2>/dev/null || true
+  rm -f "$pid_file" "$file_file" "$mode_file"
+
+  if [[ -n $file && -f $file ]]; then
+    if copy_video "$file"; then
+      notify-send -a "Screen recording" "Recording saved (copied to clipboard)" "$file" 2>/dev/null || true
+    else
+      notify-send -a "Screen recording" "Recording saved" "$file" 2>/dev/null || true
+    fi
+  fi
+}
+
+# Resolve the Pulse/PipeWire source to record. Desktop audio means the default
+# sink monitor, microphone means the default source. Both go through a
+# throwaway null sink so one track carries the mix.
+audio_device() {
+  local sink="" source="" module
+  [[ $desktop_audio == "true" ]] && sink=$(pactl get-default-sink 2>/dev/null || true)
+  [[ $mic_audio == "true" ]] && source=$(pactl get-default-source 2>/dev/null || true)
+
+  if [[ -n $sink && -n $source ]]; then
+    if module=$(pactl load-module module-null-sink sink_name=omarchy_screenrec sink_properties=device.description=omarchy_screenrec 2>/dev/null); then
+      echo "$module" >"$pa_module_file"
+      if module=$(pactl load-module module-loopback source="${sink}.monitor" sink=omarchy_screenrec latency_msec=20 2>/dev/null); then
+        echo "$module" >>"$pa_module_file"
+      else
+        sink=""
+      fi
+      if module=$(pactl load-module module-loopback source="$source" sink=omarchy_screenrec latency_msec=20 2>/dev/null); then
+        echo "$module" >>"$pa_module_file"
+      else
+        source=""
+      fi
+      if [[ -n $sink && -n $source ]]; then
+        echo "omarchy_screenrec.monitor"
+        return
+      fi
+      cleanup_audio
+    else
+      source=""
+    fi
+  fi
+
+  if [[ -n $sink ]]; then
+    echo "${sink}.monitor"
+  elif [[ -n $source ]]; then
+    echo "$source"
   fi
 }
 
@@ -44,6 +132,7 @@ start_recording() {
   mkdir -p "$dir"
   local file="$dir/screenrecording-$(date +'%Y-%m-%d_%H-%M-%S').mp4"
   local geom=""
+
   if [[ $mode == "region" ]]; then
     geom=$(slurp) || exit 0
     [[ -n $geom ]] || exit 0
@@ -52,33 +141,57 @@ start_recording() {
   local output=""
   output=$(niri msg --json focused-output 2>/dev/null | jq -r '.name // empty' 2>/dev/null || true)
 
-  local -a args=(-f "$file")
-  if [[ -n $geom ]]; then
-    args+=(-g "$geom")
-  elif [[ -n $output ]]; then
-    args+=(-o "$output")
+  cleanup_audio
+
+  local device=""
+  if [[ $desktop_audio == "true" || $mic_audio == "true" ]]; then
+    device=$(audio_device)
   fi
 
-  local pid
+  local -a base=(-f "$file")
+  if [[ -n $geom ]]; then
+    base+=(-g "$geom")
+  elif [[ -n $output ]]; then
+    base+=(-o "$output")
+  fi
+
+  local -a wargs=("${base[@]}")
+  local -a fargs=("${base[@]}")
+  if [[ -n $device ]]; then
+    wargs+=(--audio --audio-device "$device" --audio-codec aac)
+    fargs+=("--audio=$device")
+  fi
+
+  local pid=""
+  local launched=""
+  launch() {
+    "$@" >/dev/null 2>&1 &
+    launched=$!
+    sleep 1
+    kill -0 "$launched" 2>/dev/null
+  }
+
   if command -v wl-screenrec >/dev/null 2>&1; then
-    wl-screenrec "${args[@]}" >/dev/null 2>&1 &
-    pid=$!
+    if launch wl-screenrec "${wargs[@]}"; then
+      pid=$launched
+    elif command -v wf-recorder >/dev/null 2>&1; then
+      rm -f "$file"
+      if launch wf-recorder "${fargs[@]}"; then pid=$launched; fi
+    fi
   elif command -v wf-recorder >/dev/null 2>&1; then
-    wf-recorder "${args[@]}" >/dev/null 2>&1 &
-    pid=$!
-  else
-    notify-send -u critical "Screen recording" "wl-screenrec/wf-recorder not found" 2>/dev/null || true
+    if launch wf-recorder "${fargs[@]}"; then pid=$launched; fi
+  fi
+
+  if [[ -z $pid ]]; then
+    cleanup_audio
+    rm -f "$file"
+    notify-send -u critical "Screen recording" "wl-screenrec/wf-recorder could not start" 2>/dev/null || true
     exit 1
   fi
 
   echo "$pid" >"$pid_file"
   echo "$file" >"$file_file"
-  sleep 1
-  if ! kill -0 "$pid" 2>/dev/null; then
-    rm -f "$pid_file" "$file_file"
-    notify-send -u critical "Screen recording" "Recorder exited immediately" 2>/dev/null || true
-    exit 1
-  fi
+  echo "$mode" >"$mode_file"
   notify-send -a "Screen recording" "Recording started" "$file" 2>/dev/null || true
 }
 
@@ -96,7 +209,7 @@ case "${1:-}" in
     if status; then stop_recording; else start_recording fullscreen; fi
     ;;
   *)
-    echo "Usage: omarchy-capture-screenrecording [--fullscreen|--region|--stop-recording|--status]" >&2
+    echo "Usage: omarchy-capture-screenrecording [--fullscreen|--region] [--with-desktop-audio] [--with-microphone-audio] [--stop-recording|--status]" >&2
     exit 2
     ;;
 esac
