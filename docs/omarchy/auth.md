@@ -1,14 +1,15 @@
 # Graphical sudo authentication
 
-`sudo` uses the normal PAM service `sudo`. This port inserts a `pam_exec`
-rule before `pam_fprintd` and `pam_unix`; it asks the Quickshell auth dialog for
-a password or fingerprint and verifies the answer itself.
+`sudo` uses the normal PAM service `sudo`. This port inserts a small
+`pam_omarchy` module before `pam_fprintd` and `pam_unix`; it asks the
+Quickshell auth dialog for a password or fingerprint and verifies the answer
+itself.
 
 ## Flow
 
 1. A terminal `sudo`, or `omarchy-sudo-passwordless` from the bar menu, starts
    authentication.
-2. `pam_exec` runs `omarchy-pam-auth` as root.
+2. `pam_omarchy.so` runs `omarchy-pam-auth` as root.
 3. The helper connects to `$XDG_RUNTIME_DIR/omarchy-auth.sock` (derived from
    `PAM_USER`'s UID) and sends an `auth_request`.
 4. `AuthAgent` shows one modal dialog on the focused output with:
@@ -28,17 +29,21 @@ fingerprint.
 ## PAM order
 
 ```pam
-auth [success=done auth_err=die default=ignore] pam_exec.so /nix/store/...-omarchy-pam-auth
+auth [success=done auth_err=die ignore=ignore default=ignore] pam_omarchy.so /nix/store/...-omarchy-pam-auth
 auth sufficient pam_fprintd.so
 auth sufficient pam_unix.so likeauth try_first_pass
 auth required pam_deny.so
 ```
 
-- success: stop, sudo proceeds;
-- `auth_err` (Cancel): deny immediately, do not fall back to a terminal
+- helper exit 0 → `PAM_SUCCESS`: stop, sudo proceeds;
+- helper exit 5 (Cancel) → `PAM_AUTH_ERR`: deny immediately, no terminal
   fingerprint prompt;
-- other errors (no graphical session, helper could not start): ignore and let
-  the normal fprintd/password stack handle it.
+- helper exit 1 (no graphical session) → `PAM_IGNORE`: let the normal
+  fprintd/password stack handle it;
+- other failures → ignore/fallback.
+
+`pam_exec` could not do this: it collapses every non-zero helper exit into
+`PAM_SYSTEM_ERR`, so Cancel was indistinguishable from a missing GUI.
 
 The password check uses a separate PAM service, `omarchy-password`, with only
 `pam_unix`. It must never include `pam_fprintd`, otherwise a password choice
@@ -46,7 +51,9 @@ would invoke the sequential fingerprint prompt this feature is meant to avoid.
 
 ## Files
 
-- `hosts/asus-expertbook/system/omarchy-sudo.nix` — PAM rules, helper wrapper.
+- `hosts/asus-expertbook/system/omarchy-sudo.nix` — PAM rules, helper wrapper,
+  `pam_omarchy` package.
+- `hosts/asus-expertbook/system/pam_omarchy.c` — exit-code bridge for PAM.
 - `hosts/asus-expertbook/system/omarchy-pam-auth.py` — root-side helper.
 - `vendor/omarchy-shell/shell/Custom/AuthAgent.qml` — socket server and dialog.
 - `vendor/omarchy-shell/shell/Custom/SudoMenu.qml` — starts
@@ -71,7 +78,8 @@ The dialog should open. Check:
 - a wrong password shows `Wrong password` and keeps the dialog;
 - a failed fingerprint keeps the dialog;
 - Cancel closes the dialog and makes `pamtester` exit non-zero without starting
-  a terminal fingerprint prompt.
+  a terminal fingerprint prompt. This is the regression that the custom module
+  fixes: `pam_exec` used to fall through to `pam_fprintd` after Cancel.
 
 Do UI checks only when the desktop is on a safe workspace; do not send test
 keys while a game or another full-screen app is focused.
