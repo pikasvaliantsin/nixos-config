@@ -140,7 +140,7 @@
       "type": "command",
       "key": "󱦟 OS Age",
       "keyColor": "magenta",
-      "text": "created=$(stat -c %W /nix/var/nix/profiles/system 2>/dev/null || echo 0); now=$(date +%s); if [ \"$created\" -gt 0 ]; then days=$(( (now - created) / 86400 )); else days=0; fi; printf '%s days' \"$days\""
+      "text": "created=$(stat -c %W / 2>/dev/null || echo 0); [ \"$created\" -gt 0 ] || created=$(stat -c %W /etc/machine-id 2>/dev/null || echo 0); [ \"$created\" -gt 0 ] || created=$(stat -c %Y /nix 2>/dev/null || echo 0); now=$(date +%s); if [ \"$created\" -gt 0 ]; then days=$(( (now - created) / 86400 )); else days=0; fi; printf '%s days' \"$days\""
     },
     {
       "type": "uptime",
@@ -151,7 +151,7 @@
       "type": "command",
       "key": " Generation",
       "keyColor": "magenta",
-      "text": "link=$(readlink /nix/var/nix/profiles/system 2>/dev/null); echo \"$link\" | sed -E 's/^system-([0-9]+)-link$/generation \\1/'"
+      "text": "link=$(readlink /nix/var/nix/profiles/system 2>/dev/null); gen=$(echo \"$link\" | sed -E 's/^system-([0-9]+)-link$/\\1/'); gen=${gen:-?}; created=$(stat -c %W /nix/var/nix/profiles/system 2>/dev/null || echo 0); [ \"$created\" -gt 0 ] || created=$(stat -c %Y /nix/var/nix/profiles/system 2>/dev/null || echo 0); now=$(date +%s); if [ \"$created\" -gt 0 ]; then days=$(( (now - created) / 86400 )); else days=0; fi; printf 'generation %s · updated %s days ago' \"$gen\" \"$days\""
     },
     {
       "type": "custom",
