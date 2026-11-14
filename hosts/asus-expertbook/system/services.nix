@@ -110,8 +110,9 @@
         support32Bit = true;
       };
 
-      # Human name for the built-in analog output (ALC256). This only renames
-      # the node: routing, profiles and the default sink are untouched.
+      # Human name for the built-in analog output (ALC256), shared by the
+      # speakers and the 3.5 mm jack. This only renames the node: routing,
+      # profiles and the default sink are untouched.
       wireplumber.extraConfig."51-device-names" = {
         "monitor.alsa.rules" = [
           {
@@ -120,8 +121,8 @@
             ];
             actions = {
               "update-props" = {
-                "node.description" = "Laptop Speakers";
-                "node.nick" = "Laptop Speakers";
+                "node.description" = "Laptop Audio";
+                "node.nick" = "Laptop Audio";
               };
             };
           }
