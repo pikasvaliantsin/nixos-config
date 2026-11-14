@@ -94,17 +94,29 @@ BarWidget {
     acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
 
     onClicked: function(mouse) {
-      if (!root.activePlayer) return
+      if (!root.activePlayer && mouse.button !== Qt.LeftButton) return
       if (mouse.button === Qt.MiddleButton) {
         if (root.mediaService) root.mediaService.runAction("next", false)
       } else if (mouse.button === Qt.RightButton) {
-        root.popupOpen = !root.popupOpen
-      } else {
+        // Right click is the transport click: pause/resume without opening
+        // the panel. The panel has its own pause button for the same job.
         if (root.mediaService) root.mediaService.runAction("playPause", false)
+      } else {
+        root.toggle()
       }
     }
     onWheel: function(wheel) {
+      wheel.accepted = true
       if (!root.activePlayer) return
+      // The wheel is the player's volume. Players that do not expose MPRIS
+      // volume keep the old track skipping, so the gesture is never dead.
+      if (root.activePlayer.volumeSupported) {
+        var step = wheel.angleDelta.y > 0 ? 0.05 : -0.05
+        var current = Number(root.activePlayer.volume)
+        if (isFinite(current))
+          root.activePlayer.volume = Math.max(0, Math.min(1, current + step))
+        return
+      }
       if (wheel.angleDelta.y > 0 && root.mediaService) root.mediaService.runAction("previous", false)
       else if (wheel.angleDelta.y < 0 && root.mediaService) root.mediaService.runAction("next", false)
     }
@@ -128,6 +140,20 @@ BarWidget {
       id: column
       anchors.fill: parent
       spacing: Style.space(10)
+
+      // Wheel over the panel is the player volume too, not a scroll of the
+      // card. A handler rather than a MouseArea keeps the controls clickable.
+      WheelHandler {
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+        onWheel: function(event) {
+          if (!root.activePlayer || !root.activePlayer.volumeSupported) return
+          var step = event.angleDelta.y > 0 ? 0.05 : -0.05
+          var current = Number(root.activePlayer.volume)
+          if (!isFinite(current)) return
+          root.activePlayer.volume = Math.max(0, Math.min(1, current + step))
+          event.accepted = true
+        }
+      }
 
       Row {
         spacing: Style.space(10)
