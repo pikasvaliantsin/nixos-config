@@ -1,27 +1,37 @@
+import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Wayland
-import QtQuick
 import qs.Commons
 import qs.Commons as Commons
 import qs.Ui
 import "ClipboardHistory.js" as ClipboardHistory
 
+// Clipboard history overlay. Compact card, three permanent tabs (All/Text/
+// Images) plus a Pinned tab that only exists while something is pinned.
+// Images keep the panel small: the right column shows a modest preview and a
+// floating 480x320 preview follows the hovered row.
 Item {
   id: root
 
   property string omarchyPath: Quickshell.env("OMARCHY_PATH")
   property bool opened: false
   property string filterText: ""
+  property string tab: "all"
   property int selectedIndex: 0
   property bool cursorActive: false
   property bool clearConfirmOpen: false
   property var history: []
+  property int hoveredIndex: -1
+  property int hoverPendingIndex: -1
+  property int pinHoverId: -1
+  property real hoverRowY: 0
 
   property string historyPath: Quickshell.env("HOME") + "/.local/state/quickshell/clipboard/history.json"
-  // Shares the [menu] surface tokens — themes that style the menu also
-  // style the clipboard. Selected-row colors composed in the
-  // singleton so consumers drop them straight into Rectangle bindings.
+  property int historyLimit: 500
+
+  // Surface colors come from the [menu] theme tokens, so the clipboard matches
+  // the other Omarchy panels.
   property color background: Commons.Color.menu.background
   property color foreground: Commons.Color.menu.text
   property color border: Commons.Color.menu.border
@@ -31,40 +41,93 @@ Item {
   property color selectedText: Commons.Color.menu.selectedText
   readonly property int cornerRadius: Style.cornerRadius
   property string fontFamily: Style.font.menuFamily
-  property int contentMargin: Style.spacing.panelPadding
-  property int headerHeight: Math.max(Style.space(34), Style.font.title + Style.spacing.controlPaddingY * 2)
-  property int contentSpacing: Style.spacing.md
-  property int cardWidth: Math.min(Style.space(875), panel.width - Style.gapsOut * 2)
-  property int cardHeight: Math.min(Style.space(600), panel.height - Style.gapsOut * 2)
-  property int rowHeight: Math.max(Style.space(50), Style.font.body + Style.font.caption + Style.spacing.rowPaddingX * 2)
-  property int historyLimit: 500
+
+  // Panel geometry is intentionally in raw logical pixels: the chosen 640px
+  // compact card should stay compact even when the user sets a larger shell
+  // font. Text still follows Style.font.
+  readonly property int contentMargin: 14
+  readonly property int rowHeight: 38
+  readonly property int listSpacing: 2
+  readonly property int headerHeight: 56
+  readonly property int footerHeight: 16
+  readonly property int contentGap: 8
+  readonly property int emptyHeight: 120
+  readonly property int minCardHeight: 340
+  readonly property int maxCardHeight: 470
+  readonly property int cardWidth: Math.min(640, Math.max(520, panel.width - 48))
+
+  // Eight rows fit the compact card; the ListView scrolls the rest. Shorter
+  // histories shrink the card instead of leaving empty space.
+  readonly property int cardHeight: {
+    var rows = Math.min(displayModel.count, 8)
+    var listHeight = rows > 0 ? rows * rowHeight + (rows - 1) * listSpacing : emptyHeight
+    return Math.min(maxCardHeight, Math.max(minCardHeight,
+      contentMargin * 2 + headerHeight + footerHeight + contentGap * 2 + listHeight))
+  }
+
+  readonly property int hoverPreviewWidth: Math.min(
+    480, Math.max(240, (panel.width - cardWidth) / 2 - 24))
+  readonly property int hoverPreviewHeight: Math.round(hoverPreviewWidth * 2 / 3)
+
+  readonly property bool hasPinned: {
+    for (var i = 0; i < root.history.length; i++) {
+      if (root.history[i] && root.history[i].pinned === true) return true
+    }
+    return false
+  }
+  readonly property var tabs: root.hasPinned
+    ? ["all", "text", "images", "pinned"]
+    : ["all", "text", "images"]
+
+  readonly property var activeRow: (root.selectedIndex >= 0 && root.selectedIndex < displayModel.count)
+    ? displayModel.get(root.selectedIndex) : null
+  readonly property var hoveredRow: (root.hoveredIndex >= 0 && root.hoveredIndex < displayModel.count)
+    ? displayModel.get(root.hoveredIndex) : null
+  readonly property string hoveredImage: {
+    var row = root.hoveredRow
+    if (!row || row.entryType !== "image") return ""
+    if (row.historyIndex === root.pinHoverId) return ""
+    return row.previewImage
+  }
+
+  function tabLabel(id) {
+    if (id === "text") return "Text"
+    if (id === "images") return "Images"
+    if (id === "pinned") return "Pinned"
+    return "All"
+  }
+
+  function normalizeEntry(value) { return ClipboardHistory.normalizeEntry(value) }
+  function entryKey(entry) { return ClipboardHistory.entryKey(entry) }
 
   function open(payloadJson) {
     root.opened = true
     root.filterText = ""
+    root.tab = "all"
     root.selectedIndex = 0
     root.cursorActive = true
-    root.disarmPointer()
+    root.clearConfirmOpen = false
+    root.hoveredIndex = -1
+    root.hoverPendingIndex = -1
+    root.pinHoverId = -1
+    hoverTimer.stop()
     root.rebuildDisplay()
+    historyFile.reload()
     Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
   function close() {
     root.cancelClearHistory()
     root.opened = false
+    root.hoveredIndex = -1
+    root.hoverPendingIndex = -1
+    root.pinHoverId = -1
+    hoverTimer.stop()
   }
 
   function toggle() {
     if (root.opened) root.close()
     else root.open("{}")
-  }
-
-  function normalizeEntry(value) {
-    return ClipboardHistory.normalizeEntry(value)
-  }
-
-  function entryKey(entry) {
-    return ClipboardHistory.entryKey(entry)
   }
 
   function loadHistory(raw) {
@@ -76,62 +139,52 @@ Item {
     historyFile.setText(JSON.stringify(root.history.slice(0, root.historyLimit), null, 2) + "\n")
   }
 
-  function addClipboardEntry(entry) {
-    var normalized = ClipboardHistory.normalizeEntry(entry)
-    if (!normalized) return
-
-    root.history = ClipboardHistory.addEntry(root.history, normalized, root.historyLimit)
-    root.saveHistory()
-    if (root.opened) root.rebuildDisplay()
+  function entryTextStats(index) {
+    var entry = root.history[index]
+    if (!entry || entry.type !== "text") return ""
+    var text = String(entry.text || "")
+    var lines = text.split("\n").length
+    return text.length + " chars · " + lines + (lines === 1 ? " line" : " lines")
   }
 
-  function addClipboardJson(line) {
-    root.addClipboardEntry(ClipboardHistory.parseEntryJson(line))
-  }
-
-  function requestClearHistory() {
-    if (root.history.length === 0) return
-    clearConfirm.selectedIndex = 1
-    root.clearConfirmOpen = true
-  }
-
-  function cancelClearHistory() {
-    root.clearConfirmOpen = false
-    root.disarmPointer()
-    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
-  }
-
-  function confirmClearHistory() {
-    root.history = ClipboardHistory.clearHistory()
-    root.saveHistory()
+  function setFilter(next) {
+    root.filterText = next
     root.selectedIndex = 0
-    root.cursorActive = false
-    root.disarmPointer()
-    root.clearConfirmOpen = false
+    root.cursorActive = true
+    root.hoveredIndex = -1
+    root.hoverPendingIndex = -1
+    hoverTimer.stop()
     root.rebuildDisplay()
-    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
   }
 
-  function removeDisplayIndex(index) {
-    if (index < 0 || index >= displayModel.count) return
-
-    var row = displayModel.get(index)
-    root.history = ClipboardHistory.removeEntryAt(root.history, row.historyIndex)
-    root.saveHistory()
-
-    if (displayModel.count <= 1) {
-      root.selectedIndex = 0
-      root.cursorActive = false
-    } else if (root.selectedIndex >= displayModel.count - 1) {
-      root.selectedIndex = displayModel.count - 2
-    }
-
-    root.disarmPointer()
+  function setTab(next) {
+    if (root.tab === next) return
+    root.tab = next
+    root.selectedIndex = 0
+    root.cursorActive = true
+    root.hoveredIndex = -1
+    root.hoverPendingIndex = -1
+    hoverTimer.stop()
     root.rebuildDisplay()
+  }
+
+  function cycleTab(delta) {
+    var list = root.tabs
+    var index = list.indexOf(root.tab)
+    if (index < 0) index = 0
+    root.setTab(list[(index + delta + list.length) % list.length])
   }
 
   function rebuildDisplay() {
-    var rows = ClipboardHistory.displayRows(root.history, root.filterText, 50, Commons.I18n.t, Commons.I18n.tn, Commons.I18n.formatNumber)
+    if (root.tab === "pinned" && !root.hasPinned) root.tab = "all"
+    root.hoveredIndex = -1
+    root.hoverPendingIndex = -1
+    root.pinHoverId = -1
+    hoverTimer.stop()
+
+    var rows = ClipboardHistory.displayRows(
+      root.history, root.filterText, 50,
+      Commons.I18n.t, Commons.I18n.tn, Commons.I18n.formatNumber, root.tab)
 
     displayModel.clear()
     for (var i = 0; i < rows.length; i++) {
@@ -150,96 +203,37 @@ Item {
       })
     }
 
-    if (displayModel.count === 0) selectedIndex = 0
-    else if (selectedIndex >= displayModel.count) selectedIndex = displayModel.count - 1
-    else if (selectedIndex < 0) selectedIndex = 0
+    if (displayModel.count === 0) {
+      root.selectedIndex = 0
+      root.cursorActive = false
+    } else {
+      root.selectedIndex = Math.max(0, Math.min(root.selectedIndex, displayModel.count - 1))
+      root.cursorActive = true
+    }
 
     Qt.callLater(function() {
       if (displayModel.count > 0) resultList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
     })
   }
 
-  // Preview text is composed imperatively, so rebuild it when the
-  // language (and with it the string catalog) changes under an open panel.
-  Connections {
-    target: Commons.I18n
-    function onStringsChanged() { if (root.opened) root.rebuildDisplay() }
-  }
-
   function select(delta) {
     if (displayModel.count === 0) return
-    root.disarmPointer()
-    if (!cursorActive) {
-      cursorActive = true
-      selectedIndex = delta < 0 ? displayModel.count - 1 : 0
+    if (!root.cursorActive) {
+      root.cursorActive = true
+      root.selectedIndex = delta < 0 ? displayModel.count - 1 : 0
     } else {
-      selectedIndex = (selectedIndex + delta + displayModel.count) % displayModel.count
+      root.selectedIndex = (root.selectedIndex + delta + displayModel.count) % displayModel.count
     }
-    resultList.positionViewAtIndex(selectedIndex, ListView.Contain)
+    root.hoveredIndex = -1
+    resultList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
   }
 
   function selectAbsolute(index) {
     if (displayModel.count === 0) return
-    root.disarmPointer()
     root.cursorActive = true
     root.selectedIndex = Math.max(0, Math.min(index, displayModel.count - 1))
+    root.hoveredIndex = -1
     resultList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
-  }
-
-  function setFilter(nextFilter) {
-    root.filterText = nextFilter
-    root.selectedIndex = 0
-    root.cursorActive = true
-    root.disarmPointer()
-    root.rebuildDisplay()
-  }
-
-  function disarmPointer() {
-    pointerGate.reset()
-  }
-
-  function selectFromPointer(index, item, mouse) {
-    if (!pointerGate.moved(item, mouse)) return
-    root.cursorActive = true
-    root.selectedIndex = index
-  }
-
-  function activateIndex(index) {
-    if (index < 0 || index >= displayModel.count) return
-    var row = displayModel.get(index)
-    root.applySelected(row)
-  }
-
-  function copyIndex(index) {
-    if (index < 0 || index >= displayModel.count) return
-    var row = displayModel.get(index)
-    root.copySelected(row)
-  }
-
-  function openIndex(index) {
-    if (index < 0 || index >= displayModel.count) return
-    var row = displayModel.get(index)
-    root.openSelected(row)
-  }
-
-  function copyRow(row) {
-    if (!row) return
-    root.opened = false
-    // The history index keeps long entries intact: row.fullText is capped
-    // for rendering, while clipboard-copy reads the full value from JSON.
-    Quickshell.execDetached(["clipboard-copy", String(row.historyIndex)])
-  }
-
-  function applySelected(row) {
-    root.copyRow(row)
-  }
-
-  function copySelected(row) {
-    root.copyRow(row)
-  }
-
-  function openSelected(row) {
-    root.copyRow(row)
   }
 
   function selectByKey(key) {
@@ -253,6 +247,39 @@ Item {
     }
   }
 
+  function removeDisplayIndex(index) {
+    if (index < 0 || index >= displayModel.count) return
+    var row = displayModel.get(index)
+    root.history = ClipboardHistory.removeEntryAt(root.history, row.historyIndex)
+    root.saveHistory()
+    root.hoveredIndex = -1
+    root.rebuildDisplay()
+    if (displayModel.count === 0) root.cursorActive = false
+    root.selectedIndex = Math.min(index, Math.max(0, displayModel.count - 1))
+    if (displayModel.count > 0) resultList.positionViewAtIndex(root.selectedIndex, ListView.Contain)
+  }
+
+  function requestClearHistory() {
+    if (root.history.length === 0) return
+    clearConfirm.selectedIndex = 1
+    root.clearConfirmOpen = true
+  }
+
+  function cancelClearHistory() {
+    root.clearConfirmOpen = false
+    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+  }
+
+  function confirmClearHistory() {
+    root.history = ClipboardHistory.clearHistory()
+    root.saveHistory()
+    root.selectedIndex = 0
+    root.cursorActive = false
+    root.clearConfirmOpen = false
+    root.rebuildDisplay()
+    Qt.callLater(function() { keyCatcher.forceActiveFocus() })
+  }
+
   function togglePin(index) {
     if (index < 0 || index >= displayModel.count) return
     var row = displayModel.get(index)
@@ -261,6 +288,7 @@ Item {
 
     var key = root.entryKey(root.normalizeEntry(entry))
     entry.pinned = entry.pinned !== true
+
     var pinned = []
     var rest = []
     for (var i = 0; i < root.history.length; i++) {
@@ -270,20 +298,46 @@ Item {
     }
     root.history = pinned.concat(rest)
     root.saveHistory()
+    root.pinHoverId = -1
     root.rebuildDisplay()
+
+    if (root.tab === "pinned" && !root.hasPinned) return
     root.selectByKey(key)
     root.cursorActive = true
   }
 
-  ListModel { id: displayModel }
-
-  PointerMoveGate {
-    id: pointerGate
-    referenceItem: card
+  function copyRow(row) {
+    if (!row) return
+    root.opened = false
+    Quickshell.execDetached(["clipboard-copy", String(row.historyIndex)])
   }
 
-  // Capture stays in the systemd wl-paste watchers (clipboard-text and
-  // clipboard-image), which own the history file; the panel only renders it.
+  function copyIndex(index) {
+    if (index < 0 || index >= displayModel.count) return
+    root.copyRow(displayModel.get(index))
+  }
+
+  // Preview text is composed imperatively, so rebuild it when the language
+  // changes under an open panel.
+  Connections {
+    target: Commons.I18n
+    function onStringsChanged() { if (root.opened) root.rebuildDisplay() }
+  }
+
+  ListModel { id: displayModel }
+
+  Timer {
+    id: hoverTimer
+    interval: 140
+    repeat: false
+    onTriggered: {
+      if (root.hoverPendingIndex >= 0) {
+        root.hoveredIndex = root.hoverPendingIndex
+        root.hoverPendingIndex = -1
+      }
+    }
+  }
+
   FileView {
     id: historyFile
     path: root.historyPath
@@ -302,6 +356,7 @@ Item {
     WlrLayershell.namespace: "omarchy-clipboard"
 
     Rectangle {
+      id: surface
       anchors.fill: parent
       color: root.scrim
     }
@@ -315,8 +370,8 @@ Item {
       id: card
       width: root.cardWidth
       height: root.cardHeight
-      radius: root.cornerRadius
       anchors.centerIn: parent
+      radius: root.cornerRadius
       color: root.background
       borderSpec: root.borderSpec
       padding: root.contentMargin
@@ -326,7 +381,6 @@ Item {
       Item {
         id: keyCatcher
         anchors.fill: parent
-        z: root.clearConfirmOpen ? 20 : 0
         focus: true
 
         Keys.priority: Keys.BeforeItem
@@ -350,6 +404,12 @@ Item {
           } else if (event.key === Qt.Key_P && (event.modifiers & Qt.ControlModifier)) {
             root.togglePin(root.selectedIndex)
             event.accepted = true
+          } else if (event.key === Qt.Key_Left) {
+            root.cycleTab(-1)
+            event.accepted = true
+          } else if (event.key === Qt.Key_Right) {
+            root.cycleTab(1)
+            event.accepted = true
           } else if (event.key === Qt.Key_Up) {
             root.select(-1)
             event.accepted = true
@@ -369,12 +429,11 @@ Item {
             root.selectAbsolute(displayModel.count - 1)
             event.accepted = true
           } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            if (root.cursorActive && (event.modifiers & Qt.AltModifier)) root.openIndex(root.selectedIndex)
-            else if (root.cursorActive && (event.modifiers & Qt.ShiftModifier)) root.copyIndex(root.selectedIndex)
-            else if (root.cursorActive) root.activateIndex(root.selectedIndex)
-            else if (displayModel.count > 0) root.cursorActive = true
+            if (root.cursorActive) root.copyIndex(root.selectedIndex)
             event.accepted = true
-          } else if (event.text && event.text.length === 1 && event.text.charCodeAt(0) >= 32 && event.text.charCodeAt(0) !== 127) {
+          } else if (event.text && event.text.length === 1
+                     && event.text.charCodeAt(0) >= 32
+                     && event.text.charCodeAt(0) !== 127) {
             root.setFilter(root.filterText + event.text)
             event.accepted = true
           }
@@ -400,209 +459,404 @@ Item {
         }
       }
 
-      Column {
-        anchors.fill: parent
-        anchors.topMargin: card.contentTopInset
-        anchors.rightMargin: card.contentRightInset
-        anchors.bottomMargin: card.contentBottomInset
+      Item {
+        id: header
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
         anchors.leftMargin: card.contentLeftInset
-        spacing: root.contentSpacing
+        anchors.rightMargin: card.contentRightInset
+        anchors.topMargin: card.contentTopInset
+        height: root.headerHeight
 
-        Rectangle {
-          width: parent.width
-          height: root.headerHeight
-          radius: root.cornerRadius
-          color: "transparent"
-
-          Text {
-            id: hints
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            text: "↑↓ move · Enter copy · Ctrl+P pin · Del delete · Esc close"
-            color: root.foreground
-            opacity: 0.42
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.caption
-          }
-
-          Text {
-            textFormat: Text.PlainText
-            anchors.left: parent.left
-            anchors.right: hints.left
-            anchors.rightMargin: Style.space(12)
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.filterText || Commons.I18n.t("clipboard.search")
-            color: root.foreground
-            opacity: root.filterText ? 1 : 0.58
-            font.family: root.fontFamily
-            font.pixelSize: Style.font.heading
-            elide: Text.ElideRight
-          }
+        Text {
+          id: search
+          textFormat: Text.PlainText
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.top: parent.top
+          height: 30
+          text: root.filterText || Commons.I18n.t("clipboard.search")
+          color: root.foreground
+          opacity: root.filterText ? 1 : 0.55
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.title
+          elide: Text.ElideRight
+          verticalAlignment: Text.AlignVCenter
         }
 
-        Item {
-          width: parent.width
-          height: parent.height - root.headerHeight - root.contentSpacing
+        Row {
+          id: tabRow
+          anchors.left: parent.left
+          anchors.right: parent.right
+          anchors.top: search.bottom
+          anchors.topMargin: 4
+          height: 22
+          spacing: 14
 
-          Row {
-            anchors.fill: parent
-            spacing: 0
+          Repeater {
+            model: root.tabs
 
-            Item {
-              width: parent.width / 2
-              height: parent.height
-              clip: true
+            delegate: Item {
+              required property var modelData
+              width: tabText.implicitWidth
+              height: tabRow.height
 
-              ListView {
-                id: resultList
+              Text {
+                id: tabText
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.tabLabel(modelData)
+                color: root.tab === modelData ? root.selectedText : root.foreground
+                opacity: root.tab === modelData ? 1 : 0.55
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
+              }
+
+              Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                height: 2
+                radius: height / 2
+                color: root.tab === modelData ? root.selectedText : "transparent"
+              }
+
+              MouseArea {
                 anchors.fill: parent
-                anchors.rightMargin: root.contentMargin
-                model: displayModel
-                clip: true
-                spacing: Style.space(4)
-                boundsBehavior: Flickable.StopAtBounds
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.setTab(modelData)
+              }
+            }
+          }
+        }
+      }
 
-                delegate: Rectangle {
-                  id: row
-                  required property int index
-                  required property string entryType
-                  required property string previewText
-                  required property string fullText
-                  required property string previewImage
+      Item {
+        id: contentArea
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: header.bottom
+        anchors.bottom: footer.top
+        anchors.leftMargin: card.contentLeftInset
+        anchors.rightMargin: card.contentRightInset
+        anchors.topMargin: root.contentGap
+        anchors.bottomMargin: root.contentGap
 
-                  readonly property bool hasCursor: root.cursorActive && index === root.selectedIndex
+        Row {
+          anchors.fill: parent
+          spacing: 0
 
-                  width: ListView.view.width
-                  height: root.rowHeight
-                  radius: root.cornerRadius
-                  color: hasCursor ? root.selectedBackground : "transparent"
+          Item {
+            id: listPane
+            width: root.tab === "images" ? parent.width : Math.round(parent.width / 2)
+            height: parent.height
+            clip: true
 
-                  Row {
-                    anchors.fill: parent
-                    anchors.leftMargin: Style.space(12)
-                    anchors.rightMargin: Style.space(12)
-                    anchors.topMargin: Style.space(8)
-                    anchors.bottomMargin: Style.space(8)
-                    spacing: Style.space(10)
+            ListView {
+              id: resultList
+              anchors.fill: parent
+              anchors.rightMargin: root.tab === "images" ? 0 : root.contentGap
+              model: displayModel
+              clip: true
+              spacing: root.listSpacing
+              boundsBehavior: Flickable.StopAtBounds
 
-                    SizedImage {
-                      visible: parent.parent.previewImage.length > 0
-                      width: visible ? parent.height : 0
-                      height: parent.height
-                      url: parent.parent.previewImage
-                      asynchronous: true
-                      smooth: true
+              delegate: Rectangle {
+                id: row
+                required property int index
+                required property string entryType
+                required property string previewText
+                required property string fullText
+                required property string previewImage
+                required property bool pinned
+                required property string capturedAt
+                required property int historyIndex
+
+                readonly property bool selected: root.cursorActive && index === root.selectedIndex
+                readonly property bool hovered: rowHover.hovered
+
+                width: ListView.view.width
+                height: root.rowHeight
+                radius: 8
+                color: selected ? root.selectedBackground
+                  : (hovered ? Util.alpha(root.foreground, 0.05) : "transparent")
+
+                HoverHandler {
+                  id: rowHover
+                  onHoveredChanged: {
+                    if (rowHover.hovered) {
+                      root.hoverPendingIndex = row.index
+                      root.hoverRowY = row.mapToItem(surface, 0, 0).y
+                      hoverTimer.restart()
+                    } else {
+                      hoverTimer.stop()
+                      if (root.hoverPendingIndex === row.index) root.hoverPendingIndex = -1
+                      if (root.hoveredIndex === row.index) root.hoveredIndex = -1
                     }
+                  }
+                }
 
-                    Text {
-                      textFormat: Text.PlainText
-                      width: parent.width - (parent.parent.previewImage.length > 0 ? parent.height + parent.spacing : 0)
-                      height: parent.height
-                      text: parent.parent.previewText
-                      color: parent.parent.hasCursor ? root.selectedText : root.foreground
-                      font.family: root.fontFamily
-                      font.pixelSize: Style.font.title
-                      opacity: parent.parent.entryType === "image" || parent.parent.entryType === "file" ? 0.72 : 1.0
-                      elide: Text.ElideRight
-                      wrapMode: Text.NoWrap
-                      verticalAlignment: Text.AlignVCenter
-                    }
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    root.selectAbsolute(row.index)
+                    root.copyIndex(row.index)
+                  }
+                }
+
+                Item {
+                  anchors.left: parent.left
+                  anchors.leftMargin: 10
+                  anchors.right: pinButton.left
+                  anchors.rightMargin: 4
+                  anchors.top: parent.top
+                  anchors.bottom: parent.bottom
+
+                  SizedImage {
+                    id: thumb
+                    visible: row.entryType === "image"
+                    width: 28
+                    height: 28
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    url: row.previewImage
+                    asynchronous: true
+                    smooth: true
+                  }
+
+                  Text {
+                    textFormat: Text.PlainText
+                    anchors.left: thumb.visible ? thumb.right : parent.left
+                    anchors.leftMargin: thumb.visible ? 8 : 0
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: row.previewText
+                    color: row.selected ? root.selectedText : root.foreground
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
+                    elide: Text.ElideRight
+                    wrapMode: Text.NoWrap
+                  }
+                }
+
+                Item {
+                  id: pinButton
+                  width: 24
+                  height: 24
+                  anchors.right: parent.right
+                  anchors.rightMargin: 4
+                  anchors.verticalCenter: parent.verticalCenter
+
+                  Text {
+                    anchors.centerIn: parent
+                    text: "\uf08d"
+                    color: row.pinned ? root.selectedText : root.foreground
+                    opacity: row.pinned ? 0.95 : (row.hovered && root.pinHoverId !== row.historyIndex ? 0.55 : 0)
+                    font.family: root.fontFamily
+                    font.pixelSize: Style.font.body
                   }
 
                   MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onPositionChanged: function(mouse) {
-                      root.selectFromPointer(row.index, row, mouse)
-                    }
-                    onClicked: {
-                      root.cursorActive = true
-                      root.selectedIndex = row.index
-                      root.activateIndex(row.index)
+                    onPressed: function(mouse) { mouse.accepted = true }
+                    onClicked: root.togglePin(row.index)
+                    onEntered: root.pinHoverId = row.historyIndex
+                    onExited: {
+                      if (root.pinHoverId === row.historyIndex) root.pinHoverId = -1
                     }
                   }
                 }
               }
             }
 
-            Item {
-              width: parent.width / 2
-              height: parent.height
-              clip: true
-
-              property var activeRow: displayModel.count > 0 && root.selectedIndex >= 0 && root.selectedIndex < displayModel.count ? displayModel.get(root.selectedIndex) : null
-
-              Rectangle {
-                visible: displayModel.count > 0
-                anchors.left: parent.left
-                anchors.top: parent.top
-                anchors.bottom: parent.bottom
-                width: Style.normalBorderWidth
-                color: Util.alpha(root.border, 0.28)
-              }
-
-              Text {
-                textFormat: Text.PlainText
-                visible: parent.activeRow && !parent.activeRow.previewImage
-                anchors.fill: parent
-                anchors.leftMargin: root.contentMargin
-                anchors.rightMargin: 0
-                anchors.topMargin: 0
-                anchors.bottomMargin: 0
-                text: parent.activeRow ? parent.activeRow.fullText : ""
-                color: root.foreground
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.title
-                wrapMode: Text.WrapAnywhere
-                elide: Text.ElideRight
-                verticalAlignment: Text.AlignTop
-              }
-
-              SizedImage {
-                visible: parent.activeRow && parent.activeRow.previewImage
-                anchors.fill: parent
-                anchors.leftMargin: root.contentMargin
-                anchors.rightMargin: 0
-                anchors.topMargin: 0
-                anchors.bottomMargin: 0
-                url: parent.activeRow ? parent.activeRow.previewImage : ""
-                verticalAlignment: Image.AlignTop
-                asynchronous: true
-                smooth: true
-              }
-            }
-          }
-
-          Column {
-            anchors.centerIn: parent
-            width: parent.width - 2 * root.contentMargin
-            spacing: Style.space(8)
-            visible: displayModel.count === 0
-
             Text {
-              text: "󰅌"
-              color: root.selectedText
-              opacity: 0.8
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.displayLarge
+              visible: displayModel.count === 0
+              anchors.centerIn: parent
+              width: parent.width - Style.space(24)
               horizontalAlignment: Text.AlignHCenter
-              anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-            Text {
               textFormat: Text.PlainText
-              text: root.history.length === 0 ? Commons.I18n.t("clipboard.empty") : Commons.I18n.t("common.noMatchesFor").arg(root.filterText)
+              text: root.history.length === 0
+                ? Commons.I18n.t("clipboard.empty")
+                : root.filterText
+                  ? Commons.I18n.t("common.noMatchesFor").arg(root.filterText)
+                  : root.tab === "images" ? "No images"
+                  : root.tab === "text" ? "No text clips"
+                  : root.tab === "pinned" ? "No pinned clips"
+                  : "No clips"
               color: root.foreground
               opacity: 0.7
               font.family: root.fontFamily
-              font.pixelSize: Style.font.title
+              font.pixelSize: Style.font.body
+              wrapMode: Text.WordWrap
+            }
+          }
+
+          Item {
+            id: previewPane
+            visible: root.tab !== "images"
+            width: visible ? parent.width - listPane.width : 0
+            height: parent.height
+            clip: true
+
+            readonly property var row: root.activeRow
+            readonly property bool isImage: !!row && row.entryType === "image"
+
+            Rectangle {
+              anchors.left: parent.left
+              anchors.top: parent.top
+              anchors.bottom: parent.bottom
+              width: 1
+              color: Util.alpha(root.border, 0.28)
+            }
+
+            Text {
+              visible: !previewPane.row
+              anchors.centerIn: parent
+              width: parent.width - Style.space(24)
               horizontalAlignment: Text.AlignHCenter
-              width: parent.width
+              textFormat: Text.PlainText
+              text: "Select an entry"
+              color: root.foreground
+              opacity: 0.5
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.body
+            }
+
+            Flickable {
+              id: textFlick
+              visible: !!previewPane.row && !previewPane.isImage
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              anchors.bottom: meta.top
+              anchors.leftMargin: root.contentGap
+              anchors.bottomMargin: root.contentGap
+              clip: true
+              contentWidth: width
+              contentHeight: textPreview.implicitHeight
+
+              Text {
+                id: textPreview
+                width: textFlick.width
+                textFormat: Text.PlainText
+                text: previewPane.row ? previewPane.row.fullText : ""
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.body
+                wrapMode: Text.WrapAnywhere
+              }
+            }
+
+            Item {
+              id: imagePane
+              visible: !!previewPane.row && previewPane.isImage
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.top: parent.top
+              anchors.leftMargin: root.contentGap
+              height: Math.round(width * 9 / 16)
+
+              Image {
+                anchors.fill: parent
+                source: previewPane.isImage ? previewPane.row.previewImage : ""
+                fillMode: Image.PreserveAspectFit
+                asynchronous: true
+                smooth: true
+                sourceSize.width: 700
+                sourceSize.height: 500
+              }
+            }
+
+            Text {
+              id: meta
+              anchors.left: parent.left
+              anchors.right: parent.right
+              anchors.bottom: parent.bottom
+              anchors.leftMargin: root.contentGap
+              height: root.footerHeight
+              textFormat: Text.PlainText
+              text: {
+                var row = root.activeRow
+                if (!row) return ""
+                var parts = []
+                if (row.capturedAt) parts.push(row.capturedAt)
+                if (row.entryType === "image") parts.push(row.mime || "image")
+                else {
+                  var stats = root.entryTextStats(row.historyIndex)
+                  if (stats) parts.push(stats)
+                }
+                return parts.join(" · ")
+              }
+              color: root.foreground
+              opacity: 0.55
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
               elide: Text.ElideRight
+              verticalAlignment: Text.AlignVCenter
             }
           }
         }
+      }
+
+      Text {
+        id: footer
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.leftMargin: card.contentLeftInset
+        anchors.rightMargin: card.contentRightInset
+        anchors.bottomMargin: card.contentBottomInset
+        height: root.footerHeight
+        textFormat: Text.PlainText
+        text: "←→ tabs · ↑↓ move · Enter copy · Ctrl+P pin · Del delete · Esc close"
+        color: root.foreground
+        opacity: 0.45
+        font.family: root.fontFamily
+        font.pixelSize: Style.font.caption
+        elide: Text.ElideRight
+        verticalAlignment: Text.AlignVCenter
+      }
+    }
+
+    // Floating image preview: outside the card, so it can be large without
+    // making the panel grow. The full image is only decoded while hovered.
+    Rectangle {
+      id: hoverPreview
+      visible: root.opened && root.hoveredImage !== ""
+      width: root.hoverPreviewWidth
+      height: root.hoverPreviewHeight
+      z: 50
+      radius: root.cornerRadius
+      color: root.background
+      border.width: 1
+      border.color: Util.alpha(root.border, 0.6)
+
+      readonly property bool fitsRight:
+        card.x + card.width + 16 + width <= surface.width - 12
+      readonly property bool fitsLeft:
+        card.x - 16 - width >= 12
+
+      x: fitsRight
+        ? card.x + card.width + 16
+        : fitsLeft
+          ? card.x - 16 - width
+          : Math.max(12, (surface.width - width) / 2)
+      y: Math.max(12,
+        Math.min(surface.height - height - 12,
+          root.hoverRowY + root.rowHeight / 2 - height / 2))
+
+      Image {
+        anchors.fill: parent
+        anchors.margins: 8
+        source: root.hoveredImage
+        fillMode: Image.PreserveAspectFit
+        asynchronous: true
+        smooth: true
+        sourceSize.width: 960
+        sourceSize.height: 640
       }
     }
   }

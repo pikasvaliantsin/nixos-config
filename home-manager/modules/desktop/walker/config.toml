@@ -34,10 +34,6 @@ prefix = "="
 provider = "calc"
 
 [[providers.prefixes]]
-prefix = ":"
-provider = "clipboard"
-
-[[providers.prefixes]]
 prefix = "$"
 provider = "windows"
 

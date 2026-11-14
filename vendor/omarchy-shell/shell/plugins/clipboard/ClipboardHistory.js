@@ -191,9 +191,10 @@ function cappedEntry(entry) {
   return { type: "text", text: entry.text.slice(0, cut > 0 ? cut : displayTextLimit) }
 }
 
-function displayRows(history, query, limit, tr, trn, fmt) {
+function displayRows(history, query, limit, tr, trn, fmt, tab) {
   var values = Array.isArray(history) ? history : []
   var needle = String(query || "").trim().toLowerCase()
+  var filter = String(tab || "all")
   var max = limit === undefined || limit === null ? 50 : Number(limit)
   if (isNaN(max)) max = 50
   max = Math.max(0, max)
@@ -204,6 +205,9 @@ function displayRows(history, query, limit, tr, trn, fmt) {
   for (var i = 0; i < values.length; i++) {
     var entry = cappedEntry(normalizeEntry(values[i]))
     if (!entry) continue
+    if (filter === "text" && entry.type !== "text") continue
+    if (filter === "images" && entry.type !== "image") continue
+    if (filter === "pinned" && entry.pinned !== true) continue
     if (needle && searchableText(entry).toLowerCase().indexOf(needle) < 0) continue
 
     var paths = filePaths(entry)
@@ -213,7 +217,7 @@ function displayRows(history, query, limit, tr, trn, fmt) {
     rows.push({
       entryType: isFile ? "file" : entry.type,
       fullText: isImage ? "" : fullText(entry),
-      previewText: (entry.pinned ? "★ " : "") + previewText(entry, tr, trn, fmt),
+      previewText: previewText(entry, tr, trn, fmt),
       previewImage: previewPath,
       path: isImage ? String(entry.path || "") : (isFile && paths.length === 1 ? paths[0] : ""),
       mime: isImage ? String(entry.mime || "image/png") : "text/plain",
