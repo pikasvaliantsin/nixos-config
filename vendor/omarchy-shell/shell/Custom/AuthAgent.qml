@@ -29,6 +29,7 @@ Item {
   property int parentPid: 0
   property bool opened: false
   property bool checking: false
+  property bool cancelling: false
   property bool fingerprintActive: false
   property bool statusError: false
   property string status: ""
@@ -71,6 +72,7 @@ Item {
       root.parentPid = Number(message.parent_pid || 0)
       root.opened = true
       root.checking = false
+      root.cancelling = false
       root.fingerprintActive = false
       root.statusError = false
       root.status = I18n.t("auth.touch", "Touch the sensor or type your password")
@@ -115,7 +117,7 @@ Item {
   }
 
   function startFingerprint() {
-    if (!root.opened) return
+    if (!root.opened || root.cancelling) return
     root.statusError = false
     root.fingerprintActive = true
     root.status = I18n.t("auth.waiting", "Touch the fingerprint sensor…")
@@ -123,7 +125,7 @@ Item {
   }
 
   function submitPassword() {
-    if (!root.opened || root.checking) return
+    if (!root.opened || root.checking || root.cancelling) return
     var password = passwordInput.text
     if (password.length === 0) return
     root.checking = true
@@ -139,13 +141,23 @@ Item {
   }
 
   function cancel() {
-    if (root.client) root.send({ action: "cancel" })
-    root.finish()
+    if (root.cancelling) return
+    if (!root.client) {
+      root.finish()
+      return
+    }
+    root.cancelling = true
+    root.statusError = false
+    root.status = I18n.t("auth.cancelling", "Cancelling…")
+    // Keep the socket open until the helper acknowledges. Closing here can
+    // make the helper see EOF, return "no GUI", and fall through to pam_unix.
+    if (!root.send({ action: "cancel" })) root.finish()
   }
 
   function finish() {
     root.opened = false
     root.checking = false
+    root.cancelling = false
     root.fingerprintActive = false
     root.statusError = false
     root.status = ""

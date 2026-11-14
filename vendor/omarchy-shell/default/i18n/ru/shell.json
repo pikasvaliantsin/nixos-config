@@ -443,6 +443,7 @@
   "auth.fingerprint": "Отпечаток",
   "auth.touch": "Приложите палец или введите пароль",
   "auth.waiting": "Приложите палец к сканеру…",
+  "auth.cancelling": "Отмена…",
   "auth.checking": "Проверка…",
   "auth.passwordFailed": "Неверный пароль",
   "auth.fingerprintFailed": "Отпечаток не распознан",

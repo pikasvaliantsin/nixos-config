@@ -419,6 +419,7 @@
   "auth.fingerprint": "Fingerprint",
   "auth.touch": "Touch the sensor or type your password",
   "auth.waiting": "Touch the fingerprint sensor…",
+  "auth.cancelling": "Cancelling…",
   "auth.checking": "Checking…",
   "auth.passwordFailed": "Wrong password",
   "auth.fingerprintFailed": "Fingerprint not recognized",
