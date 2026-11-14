@@ -20,7 +20,12 @@ BarWidget {
 
   property bool popupOpen: false
 
+  // Same shape as the other bar panels, so `shell toggle omarchy.media` and
+  // the bar's popout coordinator can drive it.
+  readonly property bool opened: popupOpen
+  function open() { popupOpen = true }
   function close() { popupOpen = false }
+  function toggle() { popupOpen = !popupOpen }
   property real maxLabelWidth: 180
 
   visible: hasMedia
@@ -107,7 +112,10 @@ BarWidget {
     onExited: if (root.bar) root.bar.hideTooltip(root)
   }
 
-  PopupCard {
+  // KeyboardPanel rather than PopupCard: the popup needs Escape and
+  // outside-click dismissal, and only the keyboard-panel surface takes
+  // keyboard focus while a fullscreen app is in front.
+  KeyboardPanel {
     id: popup
     anchorItem: root
     bar: root.bar
