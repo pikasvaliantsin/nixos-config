@@ -31,21 +31,47 @@ omarchy-capture-screenshot screen
 omarchy-capture-screenshot window
 ```
 
-They save under `~/Pictures/Screenshots` and copy the result.
+They save under `~/Pictures/Screenshots` and copy the result. On a 75% keyboard
+without `Print`, use `Super+Shift+S` (region), `Mod+Ctrl+S` (screen) and
+`Mod+Ctrl+Shift+S` (window).
 
 ## Recording
 
 Use the repo's recorder (wl-screenrec, wf-recorder fallback):
 
 ```bash
-omarchy-capture-screenrecording --fullscreen
+omarchy-capture-screenrecording --fullscreen --with-desktop-audio
 # exercise the behaviour
 omarchy-capture-screenrecording --stop-recording
 ```
 
+Audio modes: no audio, desktop audio (`pactl get-default-sink` monitor), and
+desktop + the system default microphone (`pactl get-default-source`). Flags are
+`--with-desktop-audio` and `--with-microphone-audio`; both use a temporary
+`omarchy_screenrec` null sink and loopbacks that must be gone after stop:
+
+```bash
+pactl list short modules | grep omarchy_screenrec   # empty when idle
+```
+
+Bindings are `Alt+R` (screen) and `Alt+Shift+R` (region), both with desktop
+audio by default. The bar recording indicator is also a button: while
+recording it stops, otherwise it opens the capture menu with the audio mode.
+The mode is stored in `~/.local/state/omarchy/screenrecord-audio`.
+
 Recording files land in `~/Videos/Screencasts/` (override with
-`OMARCHY_SCREENRECORD_DIR`) for both backends. The saved path is shown in the
-stop notification. Keep recordings short and focused.
+`OMARCHY_SCREENRECORD_DIR`) for both backends. After stop every recording is
+copied to the clipboard as a `file://` URI; the clipboard watcher adds a
+`video` history entry with a first-frame thumbnail (copying that entry puts the
+video file back on the clipboard). Check the audio track and the clipboard:
+
+```bash
+nix shell nixpkgs#ffmpeg -c ffprobe -v error \
+  -show_entries stream=codec_type,codec_name -of compact=p=0 "$file"
+wl-paste --type text/uri-list
+```
+
+Keep recordings short and focused.
 
 To inspect frames, use ffmpeg from nixpkgs (ffmpeg is not installed globally):
 
