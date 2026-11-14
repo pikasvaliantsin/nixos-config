@@ -163,7 +163,10 @@ components may be separate. Check the process list first.
   format JSON with sorting, decode a JWT, convert a timestamp and a colour,
   run a regex, diff two texts and check chmod 4755. Escape and a click outside
   close it. Paste >32 KiB into Base64 and confirm the footer says it is using
-  `base64`, and that the output still decodes back.
+  `base64`, and that the output still decodes back. Copy a generated password
+  and check `wl-paste --list-types` includes `x-kde-passwordManagerHint`, and
+  that it does not appear in the clipboard history; a UUID copy must not carry
+  the hint.
 - Port forwarding: the right-side widget reads
   `~/.config/omarchy/port-forwards.json`. Add a forward, turn it on, confirm the
   `omarchy-pf-<id>.service` transient unit and the listening local port, then

@@ -484,7 +484,12 @@ Item {
 
   function copyOutput() {
     if (root.outputText.length === 0) return
-    Quickshell.execDetached(["wl-copy", root.outputText])
+    // Mark generated passwords with the standard x-kde-passwordManagerHint so
+    // the clipboard history watcher skips them (capture.sh checks that type).
+    var command = ["wl-copy"]
+    if (root.toolId === "password") command.push("--sensitive")
+    command.push(root.outputText)
+    Quickshell.execDetached(command)
     root.copied = true
     copiedTimer.restart()
   }
@@ -585,6 +590,7 @@ Item {
       else if (value === "false") normalized = false
       root.setOption(id, normalized)
     }
+    function copy(): void { root.copyOutput() }
     function compare(original: string, modified: string): void {
       root.originalText = original
       root.modifiedText = modified

@@ -31,7 +31,7 @@ response); use `outputSize`, `outputStart` or `load` for scripted checks.
 | id | Tool | Notes |
 |---|---|---|
 | `uuid` | UUID generator | v4 and v7 (time-ordered), count 1/5/10, uppercase, no hyphens |
-| `password` | Password generator | per-class characters, unbiased rejection sampling, ambiguity filter |
+| `password` | Password generator | per-class characters, unbiased rejection sampling, ambiguity filter; Copy marks the clipboard as sensitive |
 | `json` | JSON formatter | 2/4 spaces, tab, minify, key sorting, validation errors |
 | `base64` | Base64 | encode/decode, URL-safe |
 | `url` | URL codec | whole URL or a single component |
@@ -65,6 +65,14 @@ No shell string is ever built; commands are argv arrays. This is also why there
 is no Rust helper: a separate binary would cost 2–5 ms of process start per
 call, which is more than every in-process tool except the large-input paths,
 and those are already covered by coreutils and jq.
+
+## Secrets
+
+`Copy` for the password tool runs `wl-copy --sensitive`, which publishes the
+standard `x-kde-passwordManagerHint` type. The clipboard watcher
+(`plugins/clipboard/capture.sh`) skips exactly that type, so a generated
+password never reaches `history.json`. UUIDs and other outputs are copied
+normally and do get recorded.
 
 ## Secure random
 
