@@ -135,12 +135,10 @@ IPC. If the shell is a preview instance, `omarchy-ipc` should find it.
   Check active cards, history after `clear`/dismiss, Escape, click outside,
   actions and DND.
 
-The clipboard is one full-screen overlay with its own scrim, so it closes on
-the first outside click. The notification center currently uses a small panel
-plus a separate full-screen dismiss layer; a two-click outside close there is
-the known defect described in [`notifications.md`](notifications.md), not
-expected behaviour. After the center is moved to one `OverlayWindow`, both
-should close outside in one click.
+The clipboard and the notification center are each one full-screen overlay
+with their own scrim, so both close on the first outside click. If either
+takes two clicks, the scrim, card and key catcher have drifted into separate
+surfaces again; see [`notifications.md`](notifications.md).
 
 ## Finish
 

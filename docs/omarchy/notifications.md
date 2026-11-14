@@ -10,10 +10,8 @@ notification server and center under `shell/Custom/`, with no toast popups.
   DND flag.
 - `shell/Custom/NotificationUi.qml` — open/close state and the `notifications`
   IPC target.
-- `shell/Custom/NotificationCenter.qml` — the per-output center/card, active
-  list, history section, action buttons and Escape handling.
-- `shell/Custom/NotificationDismiss.qml` — full-screen click-catcher layer,
-  instantiated per screen in `shell/shell.qml`.
+- `shell/Custom/NotificationCenter.qml` — the center overlay, active list,
+  history section, action buttons and Escape handling.
 - `shell/plugins/bar/widgets/NotificationBell.qml` — `local.notifications` bar
   button; toggles the center.
 - `shell/plugins/bar/indicators/Dnd.qml` — Do Not Disturb indicator.
@@ -73,21 +71,16 @@ means in that mode.
 
 ## Center layout
 
-- one instance per screen (`Variants` over `Quickshell.screens`);
-- `visible` is set imperatively by `syncVisible()` when
-  `NotificationUi.notificationsOpen` changes or niri emits an event; this
-  avoids a binding loop on `screen`/`Niri.focusedOutput`;
-- the center card is a small `PanelWindow` at the top-right;
-- `NotificationDismiss` is a separate full-screen layer per screen with a
-  click-catcher;
-- `WlrLayershell.keyboardFocus` is `OnDemand` while visible; `Escape` closes
-  the center from an item-level key catcher.
-
-Known issue: with two separate layer surfaces, an outside click can take two
-clicks because focus/layer ordering consumes the first one. The intended fix is
-to consolidate the center into one full-screen `OverlayWindow` with a scrim
-MouseArea, as the clipboard does. Do not add more dismiss layers as a
-workaround.
+- one `NotificationCenter` instance in `shell.qml`;
+- the center is one full-screen `OverlayWindow` on the focused output, like
+  the clipboard. Its scrim `MouseArea` catches an outside click, the card at
+  the top-right stops clicks from reaching the scrim, and an item-level key
+  catcher closes on `Escape`;
+- `WlrLayershell.keyboardFocus` is `OnDemand` while open; the key catcher
+  receives focus when the overlay is shown;
+- because the scrim, card and key catcher are one layer surface, an outside
+  click closes the center on the first click. Do not add a separate dismiss
+  layer; that was the old two-surface design and swallowed the first click.
 
 ## IPC
 

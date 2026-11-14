@@ -75,9 +75,9 @@ systemctl --user restart omarchy-shell
   `KeyboardPanel` contracts. New `KeyboardPanel`-based panels should put the
   card in `content: PanelKeyCatcher { ... }` and keep timers, IPC and data
   outside the content.
-- Use the upstream `OverlayWindow` for full-screen overlays (clipboard uses
-  it); a small `PanelWindow` plus a separate dismiss layer can produce
-  focus/layer-click surprises.
+- Use the upstream `OverlayWindow` for full-screen overlays (the clipboard and
+  the notification center use it); a small `PanelWindow` plus a separate
+  dismiss layer can produce focus/layer-click surprises.
 - Do not poll when a signal, `FileView(watchChanges)`, native Quickshell
   service or IPC push exists. Gate any remaining timer on the panel being
   open, and keep the timer in one shared service, not per monitor.

@@ -101,8 +101,9 @@ Never poll a privileged probe. `sudo -n` writes to the auth log.
   global and non-contiguous).
 - Workspace lists are sorted by `idx` in `NiriModel.workspaceItems`.
 - For layer-shell surfaces prefer the upstream `OverlayWindow` (as the
-  clipboard does) or `KeyboardPanel` (as bar popups do). A `PanelWindow` plus a
-  separate dismiss layer can introduce focus/click ordering problems.
+  clipboard and notification center do) or `KeyboardPanel` (as bar popups do).
+  A `PanelWindow` plus a separate dismiss layer can introduce focus/click
+  ordering problems.
 - Niri has no Hyprland animation toggle; `Style.reduceMotion` exists but is not
   currently wired to a niri setting.
 

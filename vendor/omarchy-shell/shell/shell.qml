@@ -281,26 +281,12 @@ ShellRoot {
   // Custom replacement for the upstream notification deck. The server and
   // center live in qs.Custom; the upstream omarchy.notifications plugin is
   // disabled in shell.json, so this is the only owner of the D-Bus name.
+  //
+  // One full-screen OverlayWindow covers the focused output. The scrim, card
+  // and key catcher share a surface, so an outside click closes it in one
+  // click, the same way the clipboard overlay does.
 
-  Variants {
-    model: Quickshell.screens
-    delegate: Component {
-      NotificationDismiss {
-        required property var modelData
-        screen: modelData
-      }
-    }
-  }
-
-  Variants {
-    model: Quickshell.screens
-    delegate: Component {
-      NotificationCenter {
-        required property var modelData
-        screen: modelData
-      }
-    }
-  }
+  NotificationCenter { }
 
   // ------------------------------------------------------------- services
   //
