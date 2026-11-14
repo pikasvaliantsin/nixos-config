@@ -104,6 +104,23 @@ let
     '';
   };
 
+  # Read image dimensions without decoding the bitmap. Used by the clipboard
+  # panel to scale its floating preview against the current monitor.
+  imageSize = pkgs.writeShellApplication {
+    name = "image-size";
+    runtimeInputs = [ pkgs.coreutils pkgs.file pkgs.gnugrep ];
+    text = ''
+      set -euo pipefail
+      path="''${1:-}"
+      [ -f "$path" ] || exit 1
+      file -b -- "$path" \
+        | grep -oE '[0-9]+[[:space:]]*x[[:space:]]*[0-9]+' \
+        | tail -n1 \
+        | tr -d '[:space:]' \
+        | tr 'x' ' '
+    '';
+  };
+
   lastShot = pkgs.writeShellApplication {
     name = "last-shot";
     runtimeInputs = [ pkgs.coreutils pkgs.findutils pkgs.wl-clipboard pkgs.libnotify ];
@@ -160,6 +177,7 @@ in
     shotPath
     clipCapture
     clipCopy
+    imageSize
   ];
 
   # Два watcher'а: текст и PNG. Пишут в ~/.local/state/quickshell/clipboard.

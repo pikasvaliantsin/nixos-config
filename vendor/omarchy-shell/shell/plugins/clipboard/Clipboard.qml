@@ -7,10 +7,10 @@ import qs.Commons as Commons
 import qs.Ui
 import "ClipboardHistory.js" as ClipboardHistory
 
-// Clipboard history overlay. Compact card, three permanent tabs (All/Text/
-// Images) plus a Pinned tab that only exists while something is pinned.
-// Images keep the panel small: the right column shows a modest preview and a
-// floating 480x320 preview follows the hovered row.
+// Clipboard history overlay. One compact column: text rows are a single line,
+// image rows carry a 24px thumbnail. No permanent preview column; hovering an
+// image opens a floating preview sized from the image resolution relative to
+// the current monitor.
 Item {
   id: root
 
@@ -25,7 +25,9 @@ Item {
   property int hoveredIndex: -1
   property int hoverPendingIndex: -1
   property int pinHoverId: -1
-  property real hoverRowY: 0
+  property int hoverImageW: 0
+  property int hoverImageH: 0
+  property string pendingSizePath: ""
 
   property string historyPath: Quickshell.env("HOME") + "/.local/state/quickshell/clipboard/history.json"
   property int historyLimit: 500
@@ -42,32 +44,52 @@ Item {
   readonly property int cornerRadius: Style.cornerRadius
   property string fontFamily: Style.font.menuFamily
 
-  // Panel geometry is intentionally in raw logical pixels: the chosen 640px
-  // compact card should stay compact even when the user sets a larger shell
-  // font. Text still follows Style.font.
+  // Panel geometry stays in raw logical pixels so a larger shell font does not
+  // silently turn the 380px card back into a wide panel.
   readonly property int contentMargin: 14
-  readonly property int rowHeight: 38
+  readonly property int rowHeight: 40
   readonly property int listSpacing: 2
   readonly property int headerHeight: 56
   readonly property int footerHeight: 16
   readonly property int contentGap: 8
   readonly property int emptyHeight: 120
-  readonly property int minCardHeight: 340
-  readonly property int maxCardHeight: 470
-  readonly property int cardWidth: Math.min(640, Math.max(520, panel.width - 48))
+  readonly property int minCardHeight: 330
+  readonly property int maxCardHeight: 380
+  readonly property int cardWidth: Math.min(380, Math.max(320, panel.width - 48))
 
-  // Eight rows fit the compact card; the ListView scrolls the rest. Shorter
-  // histories shrink the card instead of leaving empty space.
+  // Six rows fit the height range; the ListView scrolls the rest.
   readonly property int cardHeight: {
-    var rows = Math.min(displayModel.count, 8)
+    var rows = Math.min(displayModel.count, 6)
     var listHeight = rows > 0 ? rows * rowHeight + (rows - 1) * listSpacing : emptyHeight
     return Math.min(maxCardHeight, Math.max(minCardHeight,
       contentMargin * 2 + headerHeight + footerHeight + contentGap * 2 + listHeight))
   }
 
-  readonly property int hoverPreviewWidth: Math.min(
-    480, Math.max(240, (panel.width - cardWidth) / 2 - 24))
-  readonly property int hoverPreviewHeight: Math.round(hoverPreviewWidth * 2 / 3)
+  readonly property real dpr: Math.max(1, panel.devicePixelRatio || 1)
+  readonly property real monitorW: Math.max(1, panel.width * dpr)
+  readonly property real monitorH: Math.max(1, panel.height * dpr)
+
+  // Hover preview: compare the image's pixel size with the current monitor and
+  // pick a 2x / 1x / 0.5x coefficient. Then cap it so a full-screen screenshot
+  // still leaves some context visible behind it.
+  readonly property var hoverPreviewSize: {
+    var monitorW = root.monitorW
+    var monitorH = root.monitorH
+    if (root.hoverImageW <= 0 || root.hoverImageH <= 0) {
+      var fallbackW = Math.min(480, Math.max(240, panel.width - 48))
+      return { w: fallbackW, h: Math.round(fallbackW * 9 / 16) }
+    }
+
+    var cover = Math.max(root.hoverImageW / monitorW, root.hoverImageH / monitorH)
+    var coef = cover <= 0.5 ? 2 : (cover <= 1 ? 1 : 0.5)
+    var w = root.hoverImageW * coef
+    var h = root.hoverImageH * coef
+    var scale = Math.min(1, (monitorW * 0.45) / w, (monitorH * 0.55) / h)
+    return {
+      w: Math.max(1, (w * scale) / root.dpr),
+      h: Math.max(1, (h * scale) / root.dpr)
+    }
+  }
 
   readonly property bool hasPinned: {
     for (var i = 0; i < root.history.length; i++) {
@@ -79,8 +101,6 @@ Item {
     ? ["all", "text", "images", "pinned"]
     : ["all", "text", "images"]
 
-  readonly property var activeRow: (root.selectedIndex >= 0 && root.selectedIndex < displayModel.count)
-    ? displayModel.get(root.selectedIndex) : null
   readonly property var hoveredRow: (root.hoveredIndex >= 0 && root.hoveredIndex < displayModel.count)
     ? displayModel.get(root.hoveredIndex) : null
   readonly property string hoveredImage: {
@@ -110,6 +130,8 @@ Item {
     root.hoveredIndex = -1
     root.hoverPendingIndex = -1
     root.pinHoverId = -1
+    root.hoverImageW = 0
+    root.hoverImageH = 0
     hoverTimer.stop()
     root.rebuildDisplay()
     historyFile.reload()
@@ -122,6 +144,8 @@ Item {
     root.hoveredIndex = -1
     root.hoverPendingIndex = -1
     root.pinHoverId = -1
+    root.hoverImageW = 0
+    root.hoverImageH = 0
     hoverTimer.stop()
   }
 
@@ -139,20 +163,14 @@ Item {
     historyFile.setText(JSON.stringify(root.history.slice(0, root.historyLimit), null, 2) + "\n")
   }
 
-  function entryTextStats(index) {
-    var entry = root.history[index]
-    if (!entry || entry.type !== "text") return ""
-    var text = String(entry.text || "")
-    var lines = text.split("\n").length
-    return text.length + " chars · " + lines + (lines === 1 ? " line" : " lines")
-  }
-
   function setFilter(next) {
     root.filterText = next
     root.selectedIndex = 0
     root.cursorActive = true
     root.hoveredIndex = -1
     root.hoverPendingIndex = -1
+    root.hoverImageW = 0
+    root.hoverImageH = 0
     hoverTimer.stop()
     root.rebuildDisplay()
   }
@@ -164,6 +182,8 @@ Item {
     root.cursorActive = true
     root.hoveredIndex = -1
     root.hoverPendingIndex = -1
+    root.hoverImageW = 0
+    root.hoverImageH = 0
     hoverTimer.stop()
     root.rebuildDisplay()
   }
@@ -180,6 +200,8 @@ Item {
     root.hoveredIndex = -1
     root.hoverPendingIndex = -1
     root.pinHoverId = -1
+    root.hoverImageW = 0
+    root.hoverImageH = 0
     hoverTimer.stop()
 
     var rows = ClipboardHistory.displayRows(
@@ -252,7 +274,6 @@ Item {
     var row = displayModel.get(index)
     root.history = ClipboardHistory.removeEntryAt(root.history, row.historyIndex)
     root.saveHistory()
-    root.hoveredIndex = -1
     root.rebuildDisplay()
     if (displayModel.count === 0) root.cursorActive = false
     root.selectedIndex = Math.min(index, Math.max(0, displayModel.count - 1))
@@ -317,8 +338,6 @@ Item {
     root.copyRow(displayModel.get(index))
   }
 
-  // Preview text is composed imperatively, so rebuild it when the language
-  // changes under an open panel.
   Connections {
     target: Commons.I18n
     function onStringsChanged() { if (root.opened) root.rebuildDisplay() }
@@ -331,9 +350,37 @@ Item {
     interval: 140
     repeat: false
     onTriggered: {
-      if (root.hoverPendingIndex >= 0) {
-        root.hoveredIndex = root.hoverPendingIndex
-        root.hoverPendingIndex = -1
+      if (root.hoverPendingIndex < 0) return
+      root.hoveredIndex = root.hoverPendingIndex
+      root.hoverPendingIndex = -1
+
+      var row = root.hoveredRow
+      if (!row || row.entryType !== "image" || !row.path) return
+      if (row.historyIndex === root.pinHoverId) return
+
+      root.hoverImageW = 0
+      root.hoverImageH = 0
+      root.pendingSizePath = row.path
+      sizeProc.command = ["image-size", row.path]
+      sizeProc.running = true
+    }
+  }
+
+  Process {
+    id: sizeProc
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        var row = root.hoveredRow
+        if (!row || row.path !== root.pendingSizePath) return
+        var parts = String(text).trim().split(/\s+/)
+        if (parts.length < 2) return
+        var w = Number(parts[0])
+        var h = Number(parts[1])
+        if (isFinite(w) && isFinite(h) && w > 0 && h > 0) {
+          root.hoverImageW = w
+          root.hoverImageH = h
+        }
       }
     }
   }
@@ -370,7 +417,9 @@ Item {
       id: card
       width: root.cardWidth
       height: root.cardHeight
-      anchors.centerIn: parent
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.top: parent.top
+      anchors.topMargin: Style.bar.sizeHorizontal + 6
       radius: root.cornerRadius
       color: root.background
       borderSpec: root.borderSpec
@@ -517,7 +566,7 @@ Item {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 height: 2
-                radius: height / 2
+                radius: 1
                 color: root.tab === modelData ? root.selectedText : "transparent"
               }
 
@@ -542,262 +591,158 @@ Item {
         anchors.topMargin: root.contentGap
         anchors.bottomMargin: root.contentGap
 
-        Row {
+        ListView {
+          id: resultList
           anchors.fill: parent
-          spacing: 0
+          model: displayModel
+          clip: true
+          spacing: root.listSpacing
+          boundsBehavior: Flickable.StopAtBounds
 
-          Item {
-            id: listPane
-            width: root.tab === "images" ? parent.width : Math.round(parent.width / 2)
-            height: parent.height
-            clip: true
+          delegate: Rectangle {
+            id: row
+            required property int index
+            required property string entryType
+            required property string previewText
+            required property string previewImage
+            required property string path
+            required property bool pinned
+            required property string capturedAt
+            required property int historyIndex
 
-            ListView {
-              id: resultList
+            readonly property bool selected: root.cursorActive && index === root.selectedIndex
+            readonly property bool hovered: rowHover.hovered
+
+            width: ListView.view.width
+            height: root.rowHeight
+            radius: 8
+            color: selected ? root.selectedBackground
+              : (hovered ? Util.alpha(root.foreground, 0.05) : "transparent")
+
+            HoverHandler {
+              id: rowHover
+            }
+
+            MouseArea {
               anchors.fill: parent
-              anchors.rightMargin: root.tab === "images" ? 0 : root.contentGap
-              model: displayModel
-              clip: true
-              spacing: root.listSpacing
-              boundsBehavior: Flickable.StopAtBounds
-
-              delegate: Rectangle {
-                id: row
-                required property int index
-                required property string entryType
-                required property string previewText
-                required property string fullText
-                required property string previewImage
-                required property bool pinned
-                required property string capturedAt
-                required property int historyIndex
-
-                readonly property bool selected: root.cursorActive && index === root.selectedIndex
-                readonly property bool hovered: rowHover.hovered
-
-                width: ListView.view.width
-                height: root.rowHeight
-                radius: 8
-                color: selected ? root.selectedBackground
-                  : (hovered ? Util.alpha(root.foreground, 0.05) : "transparent")
-
-                HoverHandler {
-                  id: rowHover
-                  onHoveredChanged: {
-                    if (rowHover.hovered) {
-                      root.hoverPendingIndex = row.index
-                      root.hoverRowY = row.mapToItem(surface, 0, 0).y
-                      hoverTimer.restart()
-                    } else {
-                      hoverTimer.stop()
-                      if (root.hoverPendingIndex === row.index) root.hoverPendingIndex = -1
-                      if (root.hoveredIndex === row.index) root.hoveredIndex = -1
-                    }
-                  }
-                }
-
-                MouseArea {
-                  anchors.fill: parent
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: {
-                    root.selectAbsolute(row.index)
-                    root.copyIndex(row.index)
-                  }
-                }
-
-                Item {
-                  anchors.left: parent.left
-                  anchors.leftMargin: 10
-                  anchors.right: pinButton.left
-                  anchors.rightMargin: 4
-                  anchors.top: parent.top
-                  anchors.bottom: parent.bottom
-
-                  SizedImage {
-                    id: thumb
-                    visible: row.entryType === "image"
-                    width: 28
-                    height: 28
-                    anchors.left: parent.left
-                    anchors.verticalCenter: parent.verticalCenter
-                    url: row.previewImage
-                    asynchronous: true
-                    smooth: true
-                  }
-
-                  Text {
-                    textFormat: Text.PlainText
-                    anchors.left: thumb.visible ? thumb.right : parent.left
-                    anchors.leftMargin: thumb.visible ? 8 : 0
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: row.previewText
-                    color: row.selected ? root.selectedText : root.foreground
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.body
-                    elide: Text.ElideRight
-                    wrapMode: Text.NoWrap
-                  }
-                }
-
-                Item {
-                  id: pinButton
-                  width: 24
-                  height: 24
-                  anchors.right: parent.right
-                  anchors.rightMargin: 4
-                  anchors.verticalCenter: parent.verticalCenter
-
-                  Text {
-                    anchors.centerIn: parent
-                    text: "\uf08d"
-                    color: row.pinned ? root.selectedText : root.foreground
-                    opacity: row.pinned ? 0.95 : (row.hovered && root.pinHoverId !== row.historyIndex ? 0.55 : 0)
-                    font.family: root.fontFamily
-                    font.pixelSize: Style.font.body
-                  }
-
-                  MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onPressed: function(mouse) { mouse.accepted = true }
-                    onClicked: root.togglePin(row.index)
-                    onEntered: root.pinHoverId = row.historyIndex
-                    onExited: {
-                      if (root.pinHoverId === row.historyIndex) root.pinHoverId = -1
-                    }
-                  }
-                }
-              }
-            }
-
-            Text {
-              visible: displayModel.count === 0
-              anchors.centerIn: parent
-              width: parent.width - Style.space(24)
-              horizontalAlignment: Text.AlignHCenter
-              textFormat: Text.PlainText
-              text: root.history.length === 0
-                ? Commons.I18n.t("clipboard.empty")
-                : root.filterText
-                  ? Commons.I18n.t("common.noMatchesFor").arg(root.filterText)
-                  : root.tab === "images" ? "No images"
-                  : root.tab === "text" ? "No text clips"
-                  : root.tab === "pinned" ? "No pinned clips"
-                  : "No clips"
-              color: root.foreground
-              opacity: 0.7
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.body
-              wrapMode: Text.WordWrap
-            }
-          }
-
-          Item {
-            id: previewPane
-            visible: root.tab !== "images"
-            width: visible ? parent.width - listPane.width : 0
-            height: parent.height
-            clip: true
-
-            readonly property var row: root.activeRow
-            readonly property bool isImage: !!row && row.entryType === "image"
-
-            Rectangle {
-              anchors.left: parent.left
-              anchors.top: parent.top
-              anchors.bottom: parent.bottom
-              width: 1
-              color: Util.alpha(root.border, 0.28)
-            }
-
-            Text {
-              visible: !previewPane.row
-              anchors.centerIn: parent
-              width: parent.width - Style.space(24)
-              horizontalAlignment: Text.AlignHCenter
-              textFormat: Text.PlainText
-              text: "Select an entry"
-              color: root.foreground
-              opacity: 0.5
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.body
-            }
-
-            Flickable {
-              id: textFlick
-              visible: !!previewPane.row && !previewPane.isImage
-              anchors.left: parent.left
-              anchors.right: parent.right
-              anchors.top: parent.top
-              anchors.bottom: meta.top
-              anchors.leftMargin: root.contentGap
-              anchors.bottomMargin: root.contentGap
-              clip: true
-              contentWidth: width
-              contentHeight: textPreview.implicitHeight
-
-              Text {
-                id: textPreview
-                width: textFlick.width
-                textFormat: Text.PlainText
-                text: previewPane.row ? previewPane.row.fullText : ""
-                color: root.foreground
-                font.family: root.fontFamily
-                font.pixelSize: Style.font.body
-                wrapMode: Text.WrapAnywhere
+              cursorShape: Qt.PointingHandCursor
+              onClicked: {
+                root.selectAbsolute(row.index)
+                root.copyIndex(row.index)
               }
             }
 
             Item {
-              id: imagePane
-              visible: !!previewPane.row && previewPane.isImage
               anchors.left: parent.left
-              anchors.right: parent.right
+              anchors.leftMargin: 10
+              anchors.right: pinButton.left
+              anchors.rightMargin: 4
               anchors.top: parent.top
-              anchors.leftMargin: root.contentGap
-              height: Math.round(width * 9 / 16)
+              anchors.bottom: parent.bottom
 
-              Image {
-                anchors.fill: parent
-                source: previewPane.isImage ? previewPane.row.previewImage : ""
-                fillMode: Image.PreserveAspectFit
-                asynchronous: true
-                smooth: true
-                sourceSize.width: 700
-                sourceSize.height: 500
+              Item {
+                id: thumbArea
+                visible: row.entryType === "image"
+                width: 44
+                height: 32
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+
+                SizedImage {
+                  anchors.centerIn: parent
+                  width: 40
+                  height: 24
+                  crop: true
+                  url: row.previewImage
+                  asynchronous: true
+                  smooth: true
+                }
+
+                HoverHandler {
+                  id: thumbHover
+                  onHoveredChanged: {
+                    if (thumbHover.hovered) {
+                      root.hoverPendingIndex = row.index
+                      hoverTimer.restart()
+                    } else {
+                      hoverTimer.stop()
+                      if (root.hoverPendingIndex === row.index) root.hoverPendingIndex = -1
+                      if (root.hoveredIndex === row.index) {
+                        root.hoveredIndex = -1
+                        root.hoverImageW = 0
+                        root.hoverImageH = 0
+                      }
+                    }
+                  }
+                }
+              }
+
+              Text {
+                textFormat: Text.PlainText
+                anchors.left: thumbArea.visible ? thumbArea.right : parent.left
+                anchors.leftMargin: thumbArea.visible ? 8 : 0
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                text: row.previewText
+                color: row.selected ? root.selectedText : root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.body
+                elide: Text.ElideRight
+                wrapMode: Text.NoWrap
               }
             }
 
-            Text {
-              id: meta
-              anchors.left: parent.left
+            Item {
+              id: pinButton
+              width: 24
+              height: 24
               anchors.right: parent.right
-              anchors.bottom: parent.bottom
-              anchors.leftMargin: root.contentGap
-              height: root.footerHeight
-              textFormat: Text.PlainText
-              text: {
-                var row = root.activeRow
-                if (!row) return ""
-                var parts = []
-                if (row.capturedAt) parts.push(row.capturedAt)
-                if (row.entryType === "image") parts.push(row.mime || "image")
-                else {
-                  var stats = root.entryTextStats(row.historyIndex)
-                  if (stats) parts.push(stats)
-                }
-                return parts.join(" · ")
+              anchors.rightMargin: 4
+              anchors.verticalCenter: parent.verticalCenter
+
+              Text {
+                anchors.centerIn: parent
+                text: "\uf08d"
+                color: row.pinned ? root.selectedText : root.foreground
+                opacity: row.pinned ? 0.95 : (row.hovered ? 0.8 : 0)
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.body
               }
-              color: root.foreground
-              opacity: 0.55
-              font.family: root.fontFamily
-              font.pixelSize: Style.font.caption
-              elide: Text.ElideRight
-              verticalAlignment: Text.AlignVCenter
+
+              MouseArea {
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onPressed: function(mouse) { mouse.accepted = true }
+                onClicked: root.togglePin(row.index)
+                onEntered: root.pinHoverId = row.historyIndex
+                onExited: {
+                  if (root.pinHoverId === row.historyIndex) root.pinHoverId = -1
+                }
+              }
             }
           }
+        }
+
+        Text {
+          visible: displayModel.count === 0
+          anchors.centerIn: parent
+          width: parent.width - 24
+          horizontalAlignment: Text.AlignHCenter
+          textFormat: Text.PlainText
+          text: root.history.length === 0
+            ? Commons.I18n.t("clipboard.empty")
+            : root.filterText
+              ? Commons.I18n.t("common.noMatchesFor").arg(root.filterText)
+              : root.tab === "images" ? "No images"
+              : root.tab === "text" ? "No text clips"
+              : root.tab === "pinned" ? "No pinned clips"
+              : "No clips"
+          color: root.foreground
+          opacity: 0.7
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.body
+          wrapMode: Text.WordWrap
         }
       }
 
@@ -811,7 +756,7 @@ Item {
         anchors.bottomMargin: card.contentBottomInset
         height: root.footerHeight
         textFormat: Text.PlainText
-        text: "←→ tabs · ↑↓ move · Enter copy · Ctrl+P pin · Del delete · Esc close"
+        text: "←→ tabs · ↑↓ · Enter copy · ^P pin · Del · Esc"
         color: root.foreground
         opacity: 0.45
         font.family: root.fontFamily
@@ -821,32 +766,20 @@ Item {
       }
     }
 
-    // Floating image preview: outside the card, so it can be large without
-    // making the panel grow. The full image is only decoded while hovered.
     Rectangle {
       id: hoverPreview
       visible: root.opened && root.hoveredImage !== ""
-      width: root.hoverPreviewWidth
-      height: root.hoverPreviewHeight
+      width: root.hoverPreviewSize.w
+      height: root.hoverPreviewSize.h
       z: 50
       radius: root.cornerRadius
       color: root.background
       border.width: 1
       border.color: Util.alpha(root.border, 0.6)
 
-      readonly property bool fitsRight:
-        card.x + card.width + 16 + width <= surface.width - 12
-      readonly property bool fitsLeft:
-        card.x - 16 - width >= 12
-
-      x: fitsRight
-        ? card.x + card.width + 16
-        : fitsLeft
-          ? card.x - 16 - width
-          : Math.max(12, (surface.width - width) / 2)
-      y: Math.max(12,
-        Math.min(surface.height - height - 12,
-          root.hoverRowY + root.rowHeight / 2 - height / 2))
+      x: Math.max(12, (surface.width - width) / 2)
+      y: Math.max(12, Math.min(surface.height - height - 12,
+        card.y + card.height + 12))
 
       Image {
         anchors.fill: parent
@@ -855,8 +788,8 @@ Item {
         fillMode: Image.PreserveAspectFit
         asynchronous: true
         smooth: true
-        sourceSize.width: 960
-        sourceSize.height: 640
+        sourceSize.width: Math.max(1, Math.ceil(root.hoverPreviewSize.w * root.dpr))
+        sourceSize.height: Math.max(1, Math.ceil(root.hoverPreviewSize.h * root.dpr))
       }
     }
   }
