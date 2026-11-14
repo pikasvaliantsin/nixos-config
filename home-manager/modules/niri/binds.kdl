@@ -4,7 +4,8 @@
 binds {
     // --- сессия, лаунчер, центр уведомлений -------------------------------
     Alt+Space hotkey-overlay-title="Поиск приложений" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"apps\"}"; }
-    Mod+D hotkey-overlay-title="Меню" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"root\"}"; }
+    Mod+D hotkey-overlay-title="Приложения" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"apps\"}"; }
+    Mod+Escape hotkey-overlay-title="Меню" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"root\"}"; }
     Mod+Shift+D hotkey-overlay-title="Поиск файлов" { spawn "omarchy-ipc" "call" "local.file-search" "toggle"; }
     Mod+Shift+C hotkey-overlay-title="Калькулятор" { spawn "omarchy-ipc" "call" "local.calc" "toggle"; }
     // Notification center is a custom plugin on top of omarchy-shell.
@@ -152,7 +153,7 @@ binds {
     Mod+Tab repeat=false { toggle-overview; }
     Mod+Shift+Slash hotkey-overlay-title="Горячие клавиши" { spawn "niri" "msg" "action" "show-hotkey-overlay"; }
     Mod+Shift+P { power-off-monitors; }
-    Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+    Mod+Shift+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
     Mod+Shift+E { quit; }
 
     // --- приложения -------------------------------------------------------

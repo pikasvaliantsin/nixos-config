@@ -174,13 +174,11 @@ Item {
       id: card
       width: root.cardWidth
       height: content.implicitHeight + card.padding * 2
-      anchors.horizontalCenter: parent.horizontalCenter
-      anchors.top: parent.top
-      anchors.topMargin: Style.bar.sizeHorizontal + Style.gapsOut
+      anchors.centerIn: parent
       color: Commons.Color.menu.background
       borderSpec: Border.surfaceSpec("menu", "border", Commons.Color.menu.border, Math.max(1, Style.space(2)))
       radius: Style.cornerRadius
-      padding: Style.space(14)
+      padding: Style.space(16)
 
       MouseArea {
         anchors.fill: parent
@@ -189,7 +187,9 @@ Item {
 
       Column {
         id: content
-        width: parent.width
+        x: card.padding
+        y: card.padding
+        width: card.width - card.padding * 2
         spacing: Style.space(8)
 
         TextField {
@@ -224,7 +224,10 @@ Item {
         ListView {
           id: resultList
           width: parent.width
-          height: Math.min(Style.space(360), Math.max(root.rowHeight, root.results.length * root.rowHeight))
+          height: root.results.length > 0
+            ? Math.min(Style.space(360), root.results.length * root.rowHeight)
+            : 0
+          visible: root.results.length > 0
           clip: true
           model: root.results
           currentIndex: root.selectedIndex
@@ -298,6 +301,7 @@ Item {
           opacity: 0.6
           font.family: Style.font.family
           font.pixelSize: Style.font.caption
+          horizontalAlignment: Text.AlignHCenter
           wrapMode: Text.WordWrap
         }
 
@@ -308,6 +312,7 @@ Item {
           opacity: 0.4
           font.family: Style.font.family
           font.pixelSize: Style.font.caption
+          horizontalAlignment: Text.AlignHCenter
           elide: Text.ElideRight
         }
       }

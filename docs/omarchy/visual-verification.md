@@ -122,9 +122,10 @@ components may be separate. Check the process list first.
 - The OSD is the upstream `omarchy.osd` panel, enabled in `shell.json`; the
   audio bar widget consumes the wheel so the bar's workspace scroller does not
   also fire.
-- Launcher: `Mod+D` opens the Omarchy menu root, `Alt+Space` opens its Apps
-  submenu, `Mod+Shift+D` opens the dsearch file finder and `Mod+Shift+C` opens
-  the calculator. Check Walker/Elephant are inactive.
+- Launcher: `Mod+D` and `Alt+Space` open the Apps search, `Mod+Escape` opens
+  the root menu, `Mod+Shift+D` opens the dsearch file finder and `Mod+Shift+C`
+  opens the calculator. In the menu, walk the cursor into a submenu and go
+  back: the row must stay selected. Check Walker/Elephant are inactive.
 - Power panel: open `omarchy.power` and check the battery size, real health,
   charge limit, time left/to full, state and power draw. Cycle count is not
   shown: this battery reports `0` in sysfs and `N/A` in UPower, so there is no

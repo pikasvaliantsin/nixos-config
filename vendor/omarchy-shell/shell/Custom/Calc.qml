@@ -119,14 +119,16 @@ Item {
       color: Commons.Color.menu.background
       borderSpec: Border.surfaceSpec("menu", "border", Commons.Color.menu.border, Math.max(1, Style.space(2)))
       radius: Style.cornerRadius
-      padding: Style.space(16)
+      padding: Style.space(18)
 
       MouseArea { anchors.fill: parent; onClicked: {} }
 
       Column {
         id: content
-        width: parent.width
-        spacing: Style.space(10)
+        x: card.padding
+        y: card.padding
+        width: card.width - card.padding * 2
+        spacing: Style.space(12)
 
         Text {
           width: parent.width
@@ -171,6 +173,7 @@ Item {
           opacity: 0.4
           font.family: Style.font.family
           font.pixelSize: Style.font.caption
+          horizontalAlignment: Text.AlignHCenter
         }
       }
     }

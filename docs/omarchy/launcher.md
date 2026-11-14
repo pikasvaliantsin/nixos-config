@@ -13,7 +13,8 @@ Quickshell stack:
 
 ```kdl
 Alt+Space       → Omarchy menu, Apps submenu
-Mod+D           → Omarchy menu, root
+Mod+D           → Omarchy menu, Apps submenu
+Mod+Escape      → Omarchy menu, root
 Mod+Shift+D     → dsearch file search
 Mod+Shift+C     → qalc calculator
 ```
@@ -42,6 +43,10 @@ User entries can override or extend the defaults in:
 
 The menu uses the shell's `AppLibrary`, so app rows share icons, launch
 feedback and the installed-app list with the rest of the shell.
+
+Opening a submenu records the current cursor row. Going back with
+`Escape`/Left/Backspace returns to that row instead of resetting the
+selection to the first entry.
 
 ## dsearch
 
