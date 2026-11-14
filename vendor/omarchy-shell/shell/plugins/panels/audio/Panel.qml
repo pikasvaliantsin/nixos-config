@@ -743,6 +743,13 @@ Panel {
     // also let the bar's background handler switch workspaces.
     consumeWheel: true
     onPressed: function(b) {
+      // A second press on the icon is a close, whatever the button: right
+      // click only mutes while the panel is closed, otherwise it looked like
+      // the panel could not be dismissed with the same gesture.
+      if (root.opened) {
+        root.close()
+        return
+      }
       if (b === Qt.RightButton) root.toggleAllMuted()
       else root.toggle()
     }

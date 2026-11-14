@@ -403,6 +403,15 @@ PanelWindow {
     onTriggered: root.popoutSwitchClosing = false
   }
 
+  // Surface-level Escape fallback. Panels normally close from their key
+  // catcher, but a fullscreen app or a lost focus prime can leave the content
+  // without focus while the surface still owns the keyboard.
+  Shortcut {
+    sequence: "Escape"
+    enabled: root.open
+    onActivated: root.close()
+  }
+
   // --- outside-click dismissal --------------------------------------------
 
   // Catches clicks anywhere in the clickable region (i.e. everywhere on

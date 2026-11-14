@@ -24,17 +24,15 @@
           ]
         }
       ],
-      "centerBegin": [],
-      "center": [
-        {
-          "id": "omarchy.weather"
-        },
+      "centerBegin": [
         {
           "id": "local.cava"
         },
         {
           "id": "omarchy.media"
-        },
+        }
+      ],
+      "center": [
         {
           "id": "omarchy.clock",
           "format": "ddd d MMM HH:mm",
@@ -42,7 +40,11 @@
           "verticalFormat": "HH\n—\nmm"
         }
       ],
-      "centerEnd": [],
+      "centerEnd": [
+        {
+          "id": "omarchy.weather"
+        }
+      ],
       "right": [
         {
           "id": "omarchy.keyboard-layout"
