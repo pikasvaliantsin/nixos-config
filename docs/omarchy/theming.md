@@ -96,7 +96,11 @@ Do not hand-edit `generated/`; it is rebuilt on every `theme-set`.
   `[colors-dark]`; the generated file also sets `[csd] preferred=none` and does
   not force a global app-id. Normal foot windows therefore tile, and the
   transient helpers pass `org.omarchy.transient` / `org.omarchy.sudo`
-  explicitly.
+  explicitly. The Starship prompt in `home-manager/modules/shell/starship.nix`
+  uses ANSI color names (`blue`, `purple`, `yellow`, `bright-black`, `green`),
+  so it reads these palettes and follows the theme without a rebuild. Its
+  chevron is the Nerd Font `U+E0B1`: the bundled JetBrains Mono has no
+  `U+276F`, and foot would fall back to a thin DejaVu Sans glyph.
 - `btop.theme` — monitor colors.
 
 ## Live application
