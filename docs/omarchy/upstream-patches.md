@@ -64,6 +64,12 @@ Re-check each against the new tag; the descriptions say what to keep.
 - `shell/plugins/services/media/Service.qml`
   - drop `playerctld` from `players` (it mirrors the active player and showed
     every source twice).
+- `shell/services/AppLibrary.qml`
+  - NixOS/niri does not run a UWSM session, so upstream's
+    `uwsm-app -- gtk-launch` and `omarchy-launch-tui` are unavailable.
+    GUI entries launch with `gtk-launch`; TUI entries run in `foot -e`.
+  - `pkgs/omarchy-shell/default.nix` adds `gtk3` to the wrapped shell PATH
+    so `gtk-launch` resolves desktop entries and DBus activation.
 - `shell/plugins/bar/indicators/PasswordlessSudo.qml`
   - countdown tooltip from the marker file, live while hovered.
 - `shell/plugins/clipboard/` (`Clipboard.qml`, `ClipboardHistory.js`,

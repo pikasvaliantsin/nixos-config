@@ -32,6 +32,7 @@
   wireplumber,
   pulseaudio,
   glib,
+  gtk3,
   brightnessctl,
   systemd,
   wlsunset,
@@ -69,6 +70,7 @@ let
     wireplumber
     pulseaudio
     glib
+    gtk3
     brightnessctl
     systemd
     wlsunset
