@@ -105,6 +105,23 @@ Apps launched from the menu (including web apps) run in a transient
 inherit `omarchy-shell.service`'s cgroup and survive shell restarts and
 rebuilds; this is the NixOS/niri replacement for upstream's `uwsm-app`.
 
+### Chromium/Electron and the keyring
+
+Chromium and Electron use `--password-store=basic`:
+
+- `omarchy-launch-webapp` adds the flag to every web app;
+- `~/.local/bin/chromium`, `obsidian` and `vesktop` are wrappers that add it
+  to the corresponding binaries.
+
+This avoids the "Unlock Login Keyring" dialog. The login keyring is not
+unlocked after a fingerprint login: `pam_fprintd` is `sufficient` in the PAM
+stack and skips `pam_gnome_keyring`. With the basic store, Chromium/Electron
+keep their secrets in their own profile instead of libsecret.
+
+If the login keyring is later unlocked at login (for example by using a
+password login and a keyring password that matches it), remove the wrappers
+and the flag from `omarchy-launch-webapp` to get OS-keyring protection back.
+
 ## dsearch
 
 `programs.dsearch` is enabled in

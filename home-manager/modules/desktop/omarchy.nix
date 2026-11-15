@@ -63,6 +63,21 @@ in
     cava
   ];
 
+  # Chromium and Electron use the OS keyring for their local secret store.
+  # After a fingerprint login the login keyring stays locked, so every app
+  # shows the "Unlock Login Keyring" dialog. Keep these apps on Chromium's
+  # local basic store instead; remove these wrappers if the keyring is
+  # unlocked at login again.
+  home.file.".local/bin/chromium".source = pkgs.writeShellScript "chromium-basic-store" ''
+    exec ${pkgs.chromium}/bin/chromium --password-store=basic "$@"
+  '';
+  home.file.".local/bin/obsidian".source = pkgs.writeShellScript "obsidian-basic-store" ''
+    exec ${pkgs.obsidian}/bin/obsidian --password-store=basic "$@"
+  '';
+  home.file.".local/bin/vesktop".source = pkgs.writeShellScript "vesktop-basic-store" ''
+    exec ${pkgs.vesktop}/bin/vesktop --password-store=basic "$@"
+  '';
+
   # The shell reads ~/.config/omarchy/shell.json first; without it, the
   # packaged default is used. Keep the repo copy canonical.
   xdg.configFile."omarchy/shell.json".source =

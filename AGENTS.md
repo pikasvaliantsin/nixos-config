@@ -97,6 +97,11 @@ systemctl --user restart omarchy-shell
   directly from Quickshell; they inherit `omarchy-shell.service`'s cgroup and
   a rebuild restart can kill them, or block the stop while a Chromium web app
   shuts down.
+- Chromium and Electron run with `--password-store=basic` (the
+  `~/.local/bin` wrappers and `omarchy-launch-webapp`). The login keyring is
+  locked after fingerprint login, and without this flag every app opens the
+  "Unlock Login Keyring" dialog. Do not remove the flag without first fixing
+  keyring unlock at login.
 - The shell loads plugins from the package's `share/omarchy/shell`, not from
   the repository directly. Rebuild the `omarchy-shell` package after QML edits.
 - `omarchy-ipc` resolves the running shell by process, so it also reaches a

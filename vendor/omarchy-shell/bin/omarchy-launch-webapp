@@ -31,6 +31,7 @@ fi
 
 exec "$browser" \
   --app="$url" \
+  --password-store=basic \
   --ozone-platform-hint=wayland \
   --no-first-run \
   --no-default-browser-check \
