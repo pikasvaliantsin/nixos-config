@@ -40,6 +40,11 @@ Re-check each against the new tag; the descriptions say what to keep.
 - `shell/plugins/bar/widgets/Tray.qml`, `shell/plugins/menu/Menu.qml`
   - app menu footer has Pin/Unpin and Hide;
   - the menu has a hidden-tray provider for `System → Tray icons`.
+- `shell/plugins/bar/widgets/OpenCode.qml`
+  - the bar mark is drawn in the bar foreground (frame plus a dimmed lower
+    block) instead of loading the cream-white `agents/assets/opencode.svg`
+    tile, which read as a bright block on a themed bar;
+  - keep the upstream SVG geometry (240x300 frame, 60 thick, 120x120 block).
 - `shell/plugins/panels/audio/Panel.qml`
   - pressing the icon while the popup is open closes it (right click only
     mutes while closed).
