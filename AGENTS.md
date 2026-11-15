@@ -7,6 +7,35 @@ to this fork.
 
 Read this file first, then the matching guide under [`docs/omarchy/`](docs/omarchy/).
 
+## Reuse Omarchy first
+
+This repository is a port, not a greenfield desktop. The vendored Quickshell
+Omarchy tree is a complete implementation, and most desktop tasks are already
+solved there. **Inventing a new component is the last resort.**
+
+Before writing new QML, a helper script, or a service:
+
+1. Search `vendor/omarchy-shell/shell/` and `vendor/omarchy-shell/bin/` for an
+   existing implementation (launcher, bar widget, panel, OSD, media, menu,
+   notifications, key handling, theming, etc.).
+2. Read the matching note in `docs/omarchy/` and the upstream source around
+   that module; the original Omarchy is the reference implementation.
+3. Prefer porting/backporting the existing module: replace Hyprland with
+   `Commons.Niri`, UWSM/Arch paths with NixOS/niri equivalents, and keep the
+   upstream structure and names.
+4. Only if there is no equivalent, or its architecture conflicts with
+   niri/NixOS, write a local component in `shell/Custom/` and record why in
+   [`docs/omarchy/upstream-patches.md`](docs/omarchy/upstream-patches.md).
+
+In practice ~95% of tasks should reuse an existing Omarchy solution with a
+port/adaptation. A parallel "simpler" reimplementation loses upstream fixes,
+theming, IPC contracts and the agent documentation that already exists; it is
+a maintenance liability, not a shortcut.
+
+Recent examples: `shell/services/AppLibrary.qml` (launcher backend),
+`bin/omarchy-brightness-display-ddc` (DDC helper), the OSD, the media panel and
+the bar widgets are ported/backported Omarchy code, not local inventions.
+
 ## Source map
 
 - `flake.nix` — inputs, `nixosConfigurations.asus-expertbook`, overlays.

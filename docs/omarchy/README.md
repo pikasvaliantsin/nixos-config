@@ -14,6 +14,16 @@ They are deliberately shorter than the upstream files and use commands that
 exist in this repository. The upstream originals remain the reference for
 Quickshell architecture and general UI rules.
 
+## Reuse before inventing
+
+The vendored shell is the reference implementation, not an empty framework.
+Search `vendor/omarchy-shell/shell/` and `vendor/omarchy-shell/bin/` before
+writing a new component, and read the matching upstream note. In ~95% of cases
+the existing Omarchy module can be ported/backported to niri/NixOS (niri APIs,
+NixOS paths, no UWSM). Fresh local code belongs in `shell/Custom/` and must be
+justified in [`upstream-patches.md`](upstream-patches.md); a parallel
+reimplementation is the last resort.
+
 ## Upstream → adapted
 
 | Upstream | Here | What changed |
