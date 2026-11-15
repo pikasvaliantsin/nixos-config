@@ -131,6 +131,11 @@ systemctl --user restart omarchy-shell
   `NiriModel.js`. Use `niri msg` / `Niri` helpers instead of Hyprland APIs.
   Workspace references for `focus-workspace` are **index or name**, not the
   internal workspace id.
+- Keyboard layouts are tracked per window (`track-layout "window"` in
+  `home-manager/modules/niri/config.kdl` and the greeter config). `us` is
+  first, so every new window, launcher or menu opens with English while a
+  window where Russian was chosen keeps it. Do not switch back to `global`:
+  one Russian chat would then make new terminals and the app search Russian.
 - Widget files contain Nerd Font glyphs. Do not rewrite them wholesale with
   tools that strip multi-byte codepoints; make targeted edits or insert via
   Python `chr(0x...)`.

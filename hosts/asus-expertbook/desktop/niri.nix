@@ -44,7 +44,7 @@
                     options "grp:win_space_toggle,compose:ralt,ctrl:nocaps"
                 }
                 numlock
-                track-layout "global"
+                track-layout "window"
             }
 
             touchpad {
