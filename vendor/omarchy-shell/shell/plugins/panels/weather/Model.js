@@ -94,6 +94,29 @@ function roundedTemp(value) {
   return isNaN(n) ? "" : String(Math.round(n))
 }
 
+// Round to a fixed number of decimals while keeping the raw string for a
+// missing value; used for readings that lose their meaning when rounded to an
+// integer (precipitation, visibility in km).
+function roundedNumber(value, digits) {
+  if (value === undefined || value === null || value === "") return ""
+  var n = parseFloat(String(value))
+  if (isNaN(n)) return ""
+  var scale = Math.pow(10, digits || 0)
+  return String(Math.round(n * scale) / scale)
+}
+
+// Degrees (the direction the wind comes from) → 16-point compass label.
+function compass16(degrees) {
+  var n = parseFloat(String(degrees))
+  if (isNaN(n)) return ""
+  var points = [
+    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"
+  ]
+  var normalized = ((n % 360) + 360) % 360
+  return points[Math.round(normalized / 22.5) % 16]
+}
+
 function celsiusToFahrenheit(value) {
   if (value === undefined || value === null || value === "") return ""
   var n = parseFloat(String(value))
@@ -188,6 +211,20 @@ function openMeteoCurrentCondition(dailyForecastReport) {
     windspeedKmph: roundedTemp(current.wind_speed_10m),
     windspeedMiles: roundedTemp(current.wind_speed_10m * 0.621371),
     humidity: roundedTemp(current.relative_humidity_2m),
+    // Extra readings the details grid shows. Open-Meteo reports pressure in
+    // hPa, cloud cover and humidity in %, precipitation in mm, visibility in
+    // metres and wind direction in degrees from north.
+    pressure: roundedTemp(current.pressure_msl),
+    cloudcover: roundedTemp(current.cloud_cover),
+    precipMM: roundedNumber(current.precipitation, 1),
+    uvIndex: roundedNumber(current.uv_index, 0),
+    visibility: current.visibility === undefined || current.visibility === null
+      ? "" : roundedNumber(Number(current.visibility) / 1000, 1),
+    winddirDegree: roundedTemp(current.wind_direction_10m),
+    winddir16Point: compass16(current.wind_direction_10m),
+    WindGustKmph: roundedTemp(current.wind_gusts_10m),
+    WindGustMiles: current.wind_gusts_10m === undefined || current.wind_gusts_10m === null
+      ? "" : roundedTemp(Number(current.wind_gusts_10m) * 0.621371),
     openMeteoWeatherCode: current.weather_code,
     isDay: current.is_day
   }

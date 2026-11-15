@@ -42,6 +42,16 @@
       ],
       "centerEnd": [
         {
+          "id": "omarchy.elsewhen",
+          "offsetMode": "home",
+          "cities": [
+            { "zone": "Europe/London", "name": "London" },
+            { "zone": "America/New_York", "name": "New York" },
+            { "zone": "Asia/Tokyo", "name": "Tokyo" },
+            { "zone": "Etc/UTC", "name": "UTC" }
+          ]
+        },
+        {
           "id": "omarchy.weather"
         }
       ],
@@ -90,7 +100,6 @@
     "omarchy.disk-speedtest",
     "omarchy.dock",
     "omarchy.dropbox",
-    "omarchy.elsewhen",
     "omarchy.emojis",
     "omarchy.idle",
     "omarchy.image-picker",

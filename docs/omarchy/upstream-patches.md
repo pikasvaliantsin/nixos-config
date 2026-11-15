@@ -45,6 +45,14 @@ Re-check each against the new tag; the descriptions say what to keep.
     block) instead of loading the cream-white `agents/assets/opencode.svg`
     tile, which read as a bright block on a themed bar;
   - keep the upstream SVG geometry (240x300 frame, 60 thick, 120x120 block).
+- `shell/plugins/panels/weather/Panel.qml`, `panels/weather/Model.js` and the
+  `weather.*` keys in `default/i18n/{en,ru}/shell.json`
+  - a details grid under the hero adds pressure, UV index, visibility, cloud
+    cover, precipitation, sunrise/sunset and gusts; empty readings are hidden;
+  - the wind reading carries its 16-point direction;
+  - Open-Meteo is asked for those current/daily fields and
+    `openMeteoCurrentCondition` maps them into wttr's `current_condition`
+    shape, so the grid works with either source (coordinates use Open-Meteo).
 - `shell/plugins/panels/audio/Panel.qml`
   - pressing the icon while the popup is open closes it (right click only
     mutes while closed).

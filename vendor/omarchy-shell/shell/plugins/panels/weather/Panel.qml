@@ -157,13 +157,96 @@ Panel {
   readonly property string reportTempNum:   current ? displayNumber(useImperial ? current.temp_F : current.temp_C) : ""
   readonly property string tempUnit:        "°" + (useImperial ? "F" : "C")
   readonly property string reportFeels:     current ? formatTemp(useImperial ? current.FeelsLikeF : current.FeelsLikeC) : ""
-  readonly property string reportWind:      current ? (useImperial ? (displayNumber(current.windspeedMiles) + " mph") : (displayNumber(current.windspeedKmph) + " km/h")) : ""
+  readonly property string reportWind: {
+    if (!current) return ""
+    var speed = useImperial ? displayNumber(current.windspeedMiles) : displayNumber(current.windspeedKmph)
+    var unit = useImperial ? " mph" : " km/h"
+    var direction = current.winddir16Point ? String(current.winddir16Point) : ""
+    var reading = speed === "" ? "" : speed + unit
+    if (direction === "") return reading
+    return reading === "" ? direction : reading + " " + direction
+  }
   readonly property string reportHumidity:  current ? (displayNumber(current.humidity) + "%") : ""
+  readonly property string reportGust: {
+    if (!current) return ""
+    var value = useImperial ? current.WindGustMiles : current.WindGustKmph
+    if (value === undefined || value === null || value === "") return ""
+    return displayNumber(value) + (useImperial ? " mph" : " km/h")
+  }
+  readonly property string reportPressure:  current && current.pressure !== undefined && current.pressure !== "" ? displayNumber(current.pressure) + " hPa" : ""
+  readonly property string reportUv:        current && current.uvIndex !== undefined && current.uvIndex !== "" ? displayNumber(current.uvIndex) : ""
+  readonly property string reportVisibility: {
+    if (!current || current.visibility === undefined || current.visibility === null || current.visibility === "") return ""
+    var km = parseFloat(String(current.visibility))
+    if (!isFinite(km)) return ""
+    return useImperial ? displayNumber((km * 0.621371).toFixed(1)) + " mi" : displayNumber(km) + " km"
+  }
+  readonly property string reportCloud:     current && current.cloudcover !== undefined && current.cloudcover !== "" ? displayNumber(current.cloudcover) + "%" : ""
+  readonly property string reportPrecip: {
+    if (!current || current.precipMM === undefined || current.precipMM === null || current.precipMM === "") return ""
+    var mm = parseFloat(String(current.precipMM))
+    if (!isFinite(mm)) return ""
+    return useImperial ? displayNumber((mm / 25.4).toFixed(2)) + " in" : displayNumber(mm) + " mm"
+  }
+
+  // Sunrise/sunset from the daily forecast (fast, always available with
+  // coordinates), falling back to wttr's astronomy block.
+  readonly property var sunTimes: {
+    var daily = dailyForecastReport && dailyForecastReport.daily ? dailyForecastReport.daily : null
+    var astronomy = report && report.weather && report.weather[0] && report.weather[0].astronomy
+      ? report.weather[0].astronomy[0] : null
+    var sunrise = daily && daily.sunrise && daily.sunrise.length > 0 ? daily.sunrise[0] : ""
+    var sunset = daily && daily.sunset && daily.sunset.length > 0 ? daily.sunset[0] : ""
+    return {
+      sunrise: sunrise !== "" ? formatClock(sunrise) : (astronomy && astronomy.sunrise ? formatClock(astronomy.sunrise) : ""),
+      sunset: sunset !== "" ? formatClock(sunset) : (astronomy && astronomy.sunset ? formatClock(astronomy.sunset) : "")
+    }
+  }
+
+  // The secondary readings, in display order; empty ones are dropped so a
+  // source without a field never leaves a label hanging over a blank value.
+  readonly property var detailStats: {
+    var entries = [
+      { label: Commons.I18n.t("weather.pressure"), value: reportPressure },
+      { label: Commons.I18n.t("weather.uv"), value: reportUv },
+      { label: Commons.I18n.t("weather.visibility"), value: reportVisibility },
+      { label: Commons.I18n.t("weather.clouds"), value: reportCloud },
+      { label: Commons.I18n.t("weather.precip"), value: reportPrecip },
+      { label: Commons.I18n.t("weather.sunrise"), value: sunTimes.sunrise },
+      { label: Commons.I18n.t("weather.sunset"), value: sunTimes.sunset },
+      { label: Commons.I18n.t("weather.gust"), value: reportGust }
+    ]
+    var out = []
+    for (var i = 0; i < entries.length; i++)
+      if (entries[i].value !== "") out.push(entries[i])
+    return out
+  }
 
   // The report's numbers arrive as strings ("13"), and blank when missing.
   function displayNumber(value) {
     if (value === undefined || value === null || value === "") return ""
     return Commons.I18n.formatNumber(value)
+  }
+
+  // "07:45 AM" from wttr or "2026-11-15T07:45" from Open-Meteo → the locale's
+  // short clock form, so the details grid matches the rest of the desktop.
+  function formatClock(value) {
+    var text = String(value || "").trim()
+    if (text === "") return ""
+    var match = /^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i.exec(text)
+    if (!match) {
+      var iso = /T(\d{2}):(\d{2})/.exec(text)
+      if (iso) match = [null, iso[1], iso[2]]
+    }
+    if (!match) return text
+    var hours = parseInt(match[1], 10)
+    var minutes = parseInt(match[2], 10)
+    var meridiem = match[3] ? String(match[3]).toUpperCase() : ""
+    if (meridiem === "PM" && hours < 12) hours += 12
+    if (meridiem === "AM" && hours === 12) hours = 0
+    var date = new Date()
+    date.setHours(hours, minutes, 0, 0)
+    return date.toLocaleTimeString(Qt.locale(Commons.I18n.formatLocale), Locale.ShortFormat)
   }
 
   function refresh() {
@@ -205,8 +288,9 @@ Panel {
     var url = "https://api.open-meteo.com/v1/forecast"
       + "?latitude=" + encodeURIComponent(String(lat))
       + "&longitude=" + encodeURIComponent(String(lon))
-      + "&daily=weather_code,temperature_2m_max,temperature_2m_min"
+      + "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset"
       + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day"
+      + ",pressure_msl,cloud_cover,precipitation,uv_index,visibility,wind_direction_10m,wind_gusts_10m"
       + "&forecast_days=4"
       + "&timezone=auto"
     dailyForecastProc.command = ["curl", "-fsS", "--max-time", "5", url]
@@ -857,6 +941,55 @@ Panel {
         font.family: root.bar.fontFamily
         font.pixelSize: Style.font.bodySmall
         font.italic: true
+      }
+
+      // ---- Secondary readings: pressure, UV, visibility, cloud cover,
+      //      precipitation, sun times and gusts. The list drops whatever the
+      //      current source does not carry.
+      Rectangle {
+        visible: root.detailStats.length > 0
+        width: parent.width
+        height: Style.spacing.hairline
+        color: root.bar.foreground
+        opacity: 0.12
+      }
+
+      Item {
+        visible: root.detailStats.length > 0
+        width: parent.width
+        height: detailFlow.implicitHeight
+
+        Flow {
+          id: detailFlow
+          x: Style.space(16)
+          width: parent.width - Style.space(32)
+          spacing: Style.space(26)
+
+          Repeater {
+            model: root.detailStats
+
+            Column {
+              required property var modelData
+              spacing: Style.space(5)
+
+              Text {
+                textFormat: Text.PlainText
+                text: modelData.label
+                color: Qt.darker(root.bar.foreground, 1.5)
+                font.family: root.bar.fontFamily
+                font.pixelSize: Style.font.bodySmall
+                font.letterSpacing: 1
+              }
+              Text {
+                textFormat: Text.PlainText
+                text: modelData.value
+                color: root.bar.foreground
+                font.family: root.bar.fontFamily
+                font.pixelSize: Style.font.title
+              }
+            }
+          }
+        }
       }
 
       // ---- Divider between current conditions and forecast.
