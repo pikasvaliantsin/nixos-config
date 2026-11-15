@@ -34,11 +34,11 @@ calls `theme-set <name>`.
 
 The official Omarchy themes from upstream tag `v4.5.0` are also vendored
 under `home-manager/modules/desktop/themes/`: all 23 `colors.toml` palettes,
-`icons.theme`, `preview*.png`, `unlock.png`, and the small editor/Chromium
-extras. Their large `backgrounds/` directories are intentionally omitted to
-keep the repository small; the carousel uses `preview.png`, and wallpaper
-cycling falls back to `~/Pictures/Wallpapers`. Add a background directory (or
-use `theme-install`) if a theme should also switch wallpapers.
+`icons.theme`, `preview*.png`, `unlock.png`, the small editor/Chromium extras,
+and the top-level `backgrounds/*.webp` wallpapers. `theme-set <name>` links
+that directory to `current/wallpapers` and applies its first image through
+`awww`; `bg-cycle` and the wallpaper deck cycle the rest. Only the large
+`backgrounds/intros/` boot videos are omitted to keep the repository smaller.
 
 List installed themes with:
 

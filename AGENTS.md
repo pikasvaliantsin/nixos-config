@@ -139,8 +139,9 @@ symlink under `~/.local/state/theme/current`, and the shell reads
 `~/.local/state/omarchy/current/theme/`. Generated fragments include
 `colors.toml`, `shell.toml`, `niri.kdl`, GTK CSS, Ghostty/foot and btop.
 The official Omarchy themes from tag `v4.5.0` are vendored under
-`home-manager/modules/desktop/themes/` (palettes, icons, previews; upstream
-backgrounds omitted). Prefer their `colors.toml` over inventing a new palette.
+`home-manager/modules/desktop/themes/` (palettes, icons, previews, top-level
+wallpapers; only `backgrounds/intros/` is omitted). Prefer their `colors.toml`
+over inventing a new palette.
 Do not hand-edit the Nix store; edit the theme source and regenerate.
 
 ## Fingerprint
