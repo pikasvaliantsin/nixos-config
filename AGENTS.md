@@ -92,6 +92,11 @@ systemctl --user restart omarchy-shell
   `omarchy-launch-shell` under `systemd-run --user`, verify, then stop the
   preview and start the service again. Check
   `pgrep -af 'quickshell -p .*omarchy/shell'` before and after.
+- Launch apps through `AppLibrary.launch`: it wraps them in
+  `systemd-run --user --scope --slice=app.slice`. Do not start long-lived apps
+  directly from Quickshell; they inherit `omarchy-shell.service`'s cgroup and
+  a rebuild restart can kill them, or block the stop while a Chromium web app
+  shuts down.
 - The shell loads plugins from the package's `share/omarchy/shell`, not from
   the repository directly. Rebuild the `omarchy-shell` package after QML edits.
 - `omarchy-ipc` resolves the running shell by process, so it also reaches a
