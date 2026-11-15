@@ -53,6 +53,14 @@ Re-check each against the new tag; the descriptions say what to keep.
   - Output row moves only the player's stream via `pactl move-sink-input`;
   - IPC `omarchy.media` with `volumeUp/Down/Status`, `outputs`, `refresh`,
     `move`.
+- `bin/omarchy-brightness-display`
+  - shows our OSD instead of swayosd and prefers the internal panel even when
+    an external monitor is focused.
+- `bin/omarchy-osd` (our script)
+  - turns `-i/-m/-p` into the `osd display` IPC call. Upstream's `osd show`
+    method is shadowed by the IpcHandler base and registers no arguments.
+- `shell/plugins/osd/Osd.qml`
+  - adds `display(payloadJson)` next to `show`; our script uses it.
 - `shell/plugins/services/media/Service.qml`
   - drop `playerctld` from `players` (it mirrors the active player and showed
     every source twice).

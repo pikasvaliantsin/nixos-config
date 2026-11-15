@@ -15,6 +15,9 @@ while (( $# > 0 )); do
   esac
 done
 
+# Brightness keys belong to the built-in panel even when an external monitor
+# has focus; fall back to the focused output on machines without one.
+[[ -n $monitor ]] || monitor=$(niri msg --json outputs 2>/dev/null | jq -r 'keys[] | select(test("^(eDP|LVDS|DSI)-"))' | head -n1)
 [[ -n $monitor ]] || monitor=$(niri msg --json focused-output 2>/dev/null | jq -r '.name // ""')
 
 internal=0
