@@ -94,17 +94,6 @@ function roundedTemp(value) {
   return isNaN(n) ? "" : String(Math.round(n))
 }
 
-// Round to a fixed number of decimals while keeping the raw string for a
-// missing value; used for readings that lose their meaning when rounded to an
-// integer (precipitation, visibility in km).
-function roundedNumber(value, digits) {
-  if (value === undefined || value === null || value === "") return ""
-  var n = parseFloat(String(value))
-  if (isNaN(n)) return ""
-  var scale = Math.pow(10, digits || 0)
-  return String(Math.round(n * scale) / scale)
-}
-
 // Degrees (the direction the wind comes from) → 16-point compass label.
 function compass16(degrees) {
   var n = parseFloat(String(degrees))
@@ -178,7 +167,7 @@ function openMeteoForecastDays(dailyForecastReport, todayString) {
   if (!daily || !daily.time) return []
 
   var result = []
-  for (var i = 0; i < daily.time.length && result.length < 3; ++i) {
+  for (var i = 0; i < daily.time.length && result.length < 6; ++i) {
     var date = daily.time[i]
     if (!isFutureForecastDate(date, todayString)) continue
 
@@ -190,6 +179,8 @@ function openMeteoForecastDays(dailyForecastReport, todayString) {
       mintempC: roundedTemp(minC),
       maxtempF: roundedTemp(celsiusToFahrenheit(maxC)),
       mintempF: roundedTemp(celsiusToFahrenheit(minC)),
+      rainChance: daily.precipitation_probability_max ? daily.precipitation_probability_max[i] : "",
+      windMaxKmph: daily.wind_speed_10m_max ? daily.wind_speed_10m_max[i] : "",
       openMeteoWeatherCode: daily.weather_code ? daily.weather_code[i] : null
     })
   }
@@ -211,15 +202,6 @@ function openMeteoCurrentCondition(dailyForecastReport) {
     windspeedKmph: roundedTemp(current.wind_speed_10m),
     windspeedMiles: roundedTemp(current.wind_speed_10m * 0.621371),
     humidity: roundedTemp(current.relative_humidity_2m),
-    // Extra readings the details grid shows. Open-Meteo reports pressure in
-    // hPa, cloud cover and humidity in %, precipitation in mm, visibility in
-    // metres and wind direction in degrees from north.
-    pressure: roundedTemp(current.pressure_msl),
-    cloudcover: roundedTemp(current.cloud_cover),
-    precipMM: roundedNumber(current.precipitation, 1),
-    uvIndex: roundedNumber(current.uv_index, 0),
-    visibility: current.visibility === undefined || current.visibility === null
-      ? "" : roundedNumber(Number(current.visibility) / 1000, 1),
     winddirDegree: roundedTemp(current.wind_direction_10m),
     winddir16Point: compass16(current.wind_direction_10m),
     WindGustKmph: roundedTemp(current.wind_gusts_10m),
@@ -252,7 +234,7 @@ function weatherResponseCompletesSave(hasConfiguredCoordinates, source) {
 function wttrNextForecastDays(report, todayString) {
   var days = report && report.weather ? report.weather : []
   var result = []
-  for (var i = 0; i < days.length && result.length < 3; ++i) {
+  for (var i = 0; i < days.length && result.length < 6; ++i) {
     if (isFutureForecastDate(days[i].date, todayString)) result.push(days[i])
   }
   return result
@@ -261,6 +243,99 @@ function wttrNextForecastDays(report, todayString) {
 function buildForecastDays(report, dailyForecastReport, todayString) {
   var days = openMeteoForecastDays(dailyForecastReport, todayString)
   return days.length > 0 ? days : wttrNextForecastDays(report, todayString)
+}
+
+// Daily rain/wind may be absent from wttr's day record; both are recoverable
+// from its 3-hourly entries, so the table has one code path for either source.
+function dayRainChance(day) {
+  if (!day) return ""
+  if (day.rainChance !== undefined && day.rainChance !== null && day.rainChance !== "")
+    return String(day.rainChance)
+  var hourly = Array.isArray(day.hourly) ? day.hourly : []
+  var max = null
+  for (var i = 0; i < hourly.length; i++) {
+    var chance = parseFloat(String(hourly[i].chanceofrain))
+    if (!isFinite(chance)) continue
+    max = max === null ? chance : Math.max(max, chance)
+  }
+  return max === null ? "" : String(Math.round(max))
+}
+
+function dayWindKmph(day) {
+  if (!day) return ""
+  if (day.windMaxKmph !== undefined && day.windMaxKmph !== null && day.windMaxKmph !== "")
+    return String(day.windMaxKmph)
+  var hourly = Array.isArray(day.hourly) ? day.hourly : []
+  var max = null
+  for (var i = 0; i < hourly.length; i++) {
+    var speed = parseFloat(String(hourly[i].windspeedKmph))
+    if (!isFinite(speed)) continue
+    max = max === null ? speed : Math.max(max, speed)
+  }
+  return max === null ? "" : String(max)
+}
+
+// Next hours from Open-Meteo's hourly block, or wttr's 3-hourly entries when
+// coordinates are unavailable. Each row carries a timestamp so the panel can
+// label it in the user's locale.
+function buildHourly(report, dailyForecastReport, nowMs, limit) {
+  var max = limit || 10
+  var now = isFinite(Number(nowMs)) ? Number(nowMs) : Date.now()
+  var hourly = dailyForecastReport && dailyForecastReport.hourly ? dailyForecastReport.hourly : null
+
+  if (hourly && Array.isArray(hourly.time) && hourly.time.length > 0) {
+    var out = []
+    for (var i = 0; i < hourly.time.length && out.length < max; i++) {
+      var when = new Date(hourly.time[i])
+      if (isNaN(when.getTime())) continue
+      // Keep the hour that is running now, drop the ones already over.
+      if (when.getTime() + 60 * 60 * 1000 <= now) continue
+      var temp = hourly.temperature_2m ? hourly.temperature_2m[i] : ""
+      out.push({
+        timestamp: when.getTime(),
+        tempC: roundedTemp(temp),
+        tempF: roundedTemp(celsiusToFahrenheit(temp)),
+        weatherCode: hourly.weather_code ? hourly.weather_code[i] : null,
+        isDay: hourly.is_day ? hourly.is_day[i] : null,
+        rainChance: hourly.precipitation_probability ? hourly.precipitation_probability[i] : "",
+        openMeteo: true
+      })
+    }
+    if (out.length > 0) return out
+  }
+
+  // wttr's hourly entries carry a 3-hour clock ("0", "300", ...) but no date;
+  // pair them with their day's date.
+  var days = report && report.weather ? report.weather : []
+  var fallback = []
+  for (var d = 0; d < days.length && fallback.length < max; d++) {
+    var entries = Array.isArray(days[d].hourly) ? days[d].hourly : []
+    for (var h = 0; h < entries.length && fallback.length < max; h++) {
+      var entry = entries[h]
+      var day = new Date(String(days[d].date || "") + "T00:00:00")
+      if (isNaN(day.getTime())) continue
+      var clock = String(entry.time || "0")
+      var hour = parseInt(clock, 10) / 100
+      day.setHours(hour, 0, 0, 0)
+      if (day.getTime() + 60 * 60 * 1000 <= now) continue
+      fallback.push({
+        timestamp: day.getTime(),
+        tempC: roundedTemp(entry.tempC),
+        tempF: roundedTemp(entry.tempF),
+        weatherCode: entry.weatherCode,
+        isDay: hour >= 6 && hour < 18,
+        rainChance: entry.chanceofrain,
+        openMeteo: false
+      })
+    }
+  }
+  return fallback
+}
+
+function hourIcon(row) {
+  if (!row) return ""
+  if (row.openMeteo) return iconForOpenMeteoCode(row.weatherCode, Number(row.isDay) === 0)
+  return iconForCode(row.weatherCode, !row.isDay)
 }
 
 function bareTempForDay(day, kind, useImperial, fmt) {
@@ -346,6 +421,10 @@ if (typeof module !== "undefined") {
     weatherResponseCompletesSave: weatherResponseCompletesSave,
     wttrNextForecastDays: wttrNextForecastDays,
     buildForecastDays: buildForecastDays,
+    dayRainChance: dayRainChance,
+    dayWindKmph: dayWindKmph,
+    buildHourly: buildHourly,
+    hourIcon: hourIcon,
     bareTempForDay: bareTempForDay,
     dayIcon: dayIcon,
     iconForOpenMeteoCode: iconForOpenMeteoCode,

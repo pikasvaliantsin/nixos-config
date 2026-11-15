@@ -159,34 +159,43 @@ Panel {
   readonly property string reportFeels:     current ? formatTemp(useImperial ? current.FeelsLikeF : current.FeelsLikeC) : ""
   readonly property string reportWind: {
     if (!current) return ""
-    var speed = useImperial ? displayNumber(current.windspeedMiles) : displayNumber(current.windspeedKmph)
-    var unit = useImperial ? " mph" : " km/h"
+    var reading = windReading(current.windspeedKmph, current.windspeedMiles)
     var direction = current.winddir16Point ? String(current.winddir16Point) : ""
-    var reading = speed === "" ? "" : speed + unit
     if (direction === "") return reading
     return reading === "" ? direction : reading + " " + direction
   }
   readonly property string reportHumidity:  current ? (displayNumber(current.humidity) + "%") : ""
-  readonly property string reportGust: {
-    if (!current) return ""
-    var value = useImperial ? current.WindGustMiles : current.WindGustKmph
-    if (value === undefined || value === null || value === "") return ""
-    return displayNumber(value) + (useImperial ? " mph" : " km/h")
+  readonly property string reportGust:      current ? windReading(current.WindGustKmph, current.WindGustMiles) : ""
+
+  // Wind is metres per second in metric; the imperial setting keeps mph.
+  function windReading(kmph, miles) {
+    if (useImperial) {
+      if (miles === undefined || miles === null || miles === "") return ""
+      return displayNumber(miles) + " mph"
+    }
+    var speed = parseFloat(String(kmph))
+    if (!isFinite(speed)) return ""
+    return displayNumber((speed / 3.6).toFixed(1)) + " m/s"
   }
-  readonly property string reportPressure:  current && current.pressure !== undefined && current.pressure !== "" ? displayNumber(current.pressure) + " hPa" : ""
-  readonly property string reportUv:        current && current.uvIndex !== undefined && current.uvIndex !== "" ? displayNumber(current.uvIndex) : ""
-  readonly property string reportVisibility: {
-    if (!current || current.visibility === undefined || current.visibility === null || current.visibility === "") return ""
-    var km = parseFloat(String(current.visibility))
-    if (!isFinite(km)) return ""
-    return useImperial ? displayNumber((km * 0.621371).toFixed(1)) + " mi" : displayNumber(km) + " km"
-  }
-  readonly property string reportCloud:     current && current.cloudcover !== undefined && current.cloudcover !== "" ? displayNumber(current.cloudcover) + "%" : ""
-  readonly property string reportPrecip: {
-    if (!current || current.precipMM === undefined || current.precipMM === null || current.precipMM === "") return ""
-    var mm = parseFloat(String(current.precipMM))
-    if (!isFinite(mm)) return ""
-    return useImperial ? displayNumber((mm / 25.4).toFixed(2)) + " in" : displayNumber(mm) + " mm"
+
+  // The next hours, labelled and formatted for the strip.
+  readonly property var hourlyRows: {
+    var rows = Model.buildHourly(report, dailyForecastReport, Date.now(), 10)
+    var now = Date.now()
+    var out = []
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i]
+      var temperature = useImperial ? row.tempF : row.tempC
+      var chance = row.rainChance === undefined || row.rainChance === null || row.rainChance === ""
+        ? "" : Math.round(Number(row.rainChance)) + "%"
+      out.push({
+        label: hourLabel(row.timestamp, now),
+        icon: Model.hourIcon(row),
+        temp: temperature === "" ? "" : temperature + "°",
+        rain: chance
+      })
+    }
+    return out
   }
 
   // Sunrise/sunset from the daily forecast (fast, always available with
@@ -203,29 +212,41 @@ Panel {
     }
   }
 
-  // The secondary readings, in display order; empty ones are dropped so a
-  // source without a field never leaves a label hanging over a blank value.
-  readonly property var detailStats: {
-    var entries = [
-      { label: Commons.I18n.t("weather.pressure"), value: reportPressure },
-      { label: Commons.I18n.t("weather.uv"), value: reportUv },
-      { label: Commons.I18n.t("weather.visibility"), value: reportVisibility },
-      { label: Commons.I18n.t("weather.clouds"), value: reportCloud },
-      { label: Commons.I18n.t("weather.precip"), value: reportPrecip },
-      { label: Commons.I18n.t("weather.sunrise"), value: sunTimes.sunrise },
-      { label: Commons.I18n.t("weather.sunset"), value: sunTimes.sunset },
-      { label: Commons.I18n.t("weather.gust"), value: reportGust }
-    ]
-    var out = []
-    for (var i = 0; i < entries.length; i++)
-      if (entries[i].value !== "") out.push(entries[i])
-    return out
+  function dayRainText(day) {
+    var chance = Model.dayRainChance(day)
+    return chance === "" ? "—" : displayNumber(chance) + "%"
+  }
+
+  function dayWindText(day) {
+    var kmph = Model.dayWindKmph(day)
+    if (kmph === "") return "—"
+    return windReading(kmph, Math.round(Number(kmph) * 0.621371))
+  }
+
+  function dayLabel(dateString) {
+    var date = new Date(String(dateString || "") + "T12:00:00")
+    if (isNaN(date.getTime())) return ""
+    var locale = Qt.locale(Commons.I18n.formatLocale)
+    return locale.standaloneDayName(date.getDay(), Locale.ShortFormat).toUpperCase() + " " + date.getDate()
   }
 
   // The report's numbers arrive as strings ("13"), and blank when missing.
   function displayNumber(value) {
     if (value === undefined || value === null || value === "") return ""
     return Commons.I18n.formatNumber(value)
+  }
+
+  // A compact hour label for the strip: NOW for the running hour, otherwise
+  // the hour alone ("9 PM" or "21"), because the cells are narrow.
+  function hourLabel(timestamp, nowMs) {
+    var when = new Date(timestamp)
+    var now = new Date(nowMs)
+    if (when.getFullYear() === now.getFullYear() && when.getMonth() === now.getMonth()
+        && when.getDate() === now.getDate() && when.getHours() === now.getHours())
+      return Commons.I18n.t("weather.now")
+    var locale = Qt.locale(Commons.I18n.formatLocale)
+    var twelveHour = /ap/i.test(locale.timeFormat(Locale.ShortFormat))
+    return Qt.formatTime(when, twelveHour ? "h AP" : "HH")
   }
 
   // "07:45 AM" from wttr or "2026-11-15T07:45" from Open-Meteo → the locale's
@@ -289,9 +310,11 @@ Panel {
       + "?latitude=" + encodeURIComponent(String(lat))
       + "&longitude=" + encodeURIComponent(String(lon))
       + "&daily=weather_code,temperature_2m_max,temperature_2m_min,sunrise,sunset"
+      + ",precipitation_probability_max,wind_speed_10m_max"
+      + "&hourly=temperature_2m,weather_code,precipitation_probability,is_day"
       + "&current=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,weather_code,is_day"
-      + ",pressure_msl,cloud_cover,precipitation,uv_index,visibility,wind_direction_10m,wind_gusts_10m"
-      + "&forecast_days=4"
+      + ",wind_direction_10m,wind_gusts_10m"
+      + "&forecast_days=7"
       + "&timezone=auto"
     dailyForecastProc.command = ["curl", "-fsS", "--max-time", "5", url]
     dailyForecastProc.running = true
@@ -943,11 +966,9 @@ Panel {
         font.italic: true
       }
 
-      // ---- Secondary readings: pressure, UV, visibility, cloud cover,
-      //      precipitation, sun times and gusts. The list drops whatever the
-      //      current source does not carry.
+      // ---- Hourly strip: the next ten hours.
       Rectangle {
-        visible: root.detailStats.length > 0
+        visible: root.hourlyRows.length > 0
         width: parent.width
         height: Style.spacing.hairline
         color: root.bar.foreground
@@ -955,44 +976,79 @@ Panel {
       }
 
       Item {
-        visible: root.detailStats.length > 0
+        visible: root.hourlyRows.length > 0
         width: parent.width
-        height: detailFlow.implicitHeight
+        height: hourlyColumn.implicitHeight
 
-        Flow {
-          id: detailFlow
+        Column {
+          id: hourlyColumn
           x: Style.space(16)
           width: parent.width - Style.space(32)
-          spacing: Style.space(26)
+          spacing: Style.space(8)
 
-          Repeater {
-            model: root.detailStats
+          Text {
+            textFormat: Text.PlainText
+            text: Commons.I18n.t("weather.hourly")
+            color: Qt.darker(root.bar.foreground, 1.5)
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.bodySmall
+            font.letterSpacing: 1
+          }
 
-            Column {
-              required property var modelData
-              spacing: Style.space(5)
+          Row {
+            spacing: Style.space(4)
 
-              Text {
-                textFormat: Text.PlainText
-                text: modelData.label
-                color: Qt.darker(root.bar.foreground, 1.5)
-                font.family: root.bar.fontFamily
-                font.pixelSize: Style.font.bodySmall
-                font.letterSpacing: 1
-              }
-              Text {
-                textFormat: Text.PlainText
-                text: modelData.value
-                color: root.bar.foreground
-                font.family: root.bar.fontFamily
-                font.pixelSize: Style.font.title
+            Repeater {
+              model: root.hourlyRows
+
+              Column {
+                required property var modelData
+                width: Style.space(40)
+                spacing: Style.space(3)
+
+                Text {
+                  textFormat: Text.PlainText
+                  text: modelData.label
+                  width: parent.width
+                  horizontalAlignment: Text.AlignHCenter
+                  color: Qt.darker(root.bar.foreground, 1.4)
+                  font.family: root.bar.fontFamily
+                  font.pixelSize: Style.font.caption
+                }
+                Text {
+                  textFormat: Text.PlainText
+                  text: modelData.icon
+                  width: parent.width
+                  horizontalAlignment: Text.AlignHCenter
+                  color: root.bar.foreground
+                  font.family: root.bar.fontFamily
+                  font.pixelSize: Style.font.title
+                }
+                Text {
+                  textFormat: Text.PlainText
+                  text: modelData.temp
+                  width: parent.width
+                  horizontalAlignment: Text.AlignHCenter
+                  color: root.bar.foreground
+                  font.family: root.bar.fontFamily
+                  font.pixelSize: Style.font.body
+                }
+                Text {
+                  textFormat: Text.PlainText
+                  text: modelData.rain === "" ? " " : modelData.rain
+                  width: parent.width
+                  horizontalAlignment: Text.AlignHCenter
+                  color: Qt.darker(root.bar.foreground, 1.5)
+                  font.family: root.bar.fontFamily
+                  font.pixelSize: Style.font.caption
+                }
               }
             }
           }
         }
       }
 
-      // ---- Divider between current conditions and forecast.
+      // ---- Daily table: day, condition, high/low, rain chance and peak wind.
       Rectangle {
         visible: root.forecastDays.length > 0
         width: parent.width
@@ -1001,68 +1057,174 @@ Panel {
         opacity: 0.12
       }
 
-      // ---- Forecast row: each cell has the day icon left of a day-name + hi/lo column.
-      //      Wrapped in an Item so the block of cells can be centered within the popup.
-      Item {
+      Column {
         visible: root.forecastDays.length > 0
-        width: parent.width
-        height: forecastRow.height
+        x: Style.space(16)
+        width: parent.width - Style.space(32)
+        spacing: Style.space(6)
 
         Row {
-          id: forecastRow
-          anchors.horizontalCenter: parent.horizontalCenter
-          spacing: Style.space(44)
+          width: parent.width
+          spacing: Style.space(8)
 
-          Repeater {
-            model: root.forecastDays
+          Text {
+            width: Style.space(86)
+            textFormat: Text.PlainText
+            text: Commons.I18n.t("weather.day")
+            color: Qt.darker(root.bar.foreground, 1.6)
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.caption
+            font.letterSpacing: 1
+          }
+          Text {
+            width: Style.space(26)
+            textFormat: Text.PlainText
+            text: ""
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.caption
+          }
+          Text {
+            width: Style.space(100)
+            textFormat: Text.PlainText
+            text: Commons.I18n.t("weather.temp")
+            color: Qt.darker(root.bar.foreground, 1.6)
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.caption
+            font.letterSpacing: 1
+          }
+          Text {
+            width: Style.space(76)
+            textFormat: Text.PlainText
+            text: Commons.I18n.t("weather.rain")
+            color: Qt.darker(root.bar.foreground, 1.6)
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.caption
+            font.letterSpacing: 1
+          }
+          Text {
+            width: Style.space(106)
+            textFormat: Text.PlainText
+            text: Commons.I18n.t("weather.wind")
+            color: Qt.darker(root.bar.foreground, 1.6)
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.caption
+            font.letterSpacing: 1
+          }
+        }
 
-            Row {
-              required property var modelData
-              required property int index
-              spacing: Style.space(10)
+        Repeater {
+          model: root.forecastDays
 
-              Text {
-                textFormat: Text.PlainText
-                anchors.verticalCenter: parent.verticalCenter
-                text: root.dayIcon(modelData)
-                color: root.bar.foreground
-                font.family: root.bar.fontFamily
-                font.pixelSize: Style.font.display
-              }
+          Row {
+            required property var modelData
+            width: parent.width
+            spacing: Style.space(8)
 
-              Column {
-                anchors.verticalCenter: parent.verticalCenter
-                spacing: Style.space(2)
-
-                Text {
-                  textFormat: Text.PlainText
-                  text: root.dayName(modelData.date).toUpperCase()
-                  color: Qt.darker(root.bar.foreground, 1.4)
-                  font.family: root.bar.fontFamily
-                  font.pixelSize: Style.font.caption
-                  font.letterSpacing: 1
-                }
-
-                Row {
-                  spacing: Style.space(6)
-
-                  Text {
-                    textFormat: Text.PlainText
-                    text: root.bareTempForDay(modelData, "max")
-                    color: root.bar.foreground
-                    font.family: root.bar.fontFamily
-                    font.pixelSize: Style.font.body
-                  }
-                  Text {
-                    textFormat: Text.PlainText
-                    text: root.bareTempForDay(modelData, "min")
-                    color: Qt.darker(root.bar.foreground, 1.5)
-                    font.family: root.bar.fontFamily
-                    font.pixelSize: Style.font.body
-                  }
-                }
-              }
+            Text {
+              width: Style.space(86)
+              textFormat: Text.PlainText
+              text: root.dayLabel(modelData.date)
+              color: Qt.darker(root.bar.foreground, 1.4)
+              font.family: root.bar.fontFamily
+              font.pixelSize: Style.font.bodySmall
+              font.letterSpacing: 1
             }
+            Text {
+              width: Style.space(26)
+              textFormat: Text.PlainText
+              text: root.dayIcon(modelData)
+              horizontalAlignment: Text.AlignHCenter
+              color: root.bar.foreground
+              font.family: root.bar.fontFamily
+              font.pixelSize: Style.font.title
+            }
+            Text {
+              width: Style.space(100)
+              textFormat: Text.PlainText
+              text: root.bareTempForDay(modelData, "max") + " / " + root.bareTempForDay(modelData, "min")
+              color: root.bar.foreground
+              font.family: root.bar.fontFamily
+              font.pixelSize: Style.font.body
+            }
+            Text {
+              width: Style.space(76)
+              textFormat: Text.PlainText
+              text: root.dayRainText(modelData)
+              color: root.bar.foreground
+              font.family: root.bar.fontFamily
+              font.pixelSize: Style.font.body
+            }
+            Text {
+              width: Style.space(106)
+              textFormat: Text.PlainText
+              text: root.dayWindText(modelData)
+              color: root.bar.foreground
+              font.family: root.bar.fontFamily
+              font.pixelSize: Style.font.body
+            }
+          }
+        }
+      }
+
+      // ---- Today's sun and gusts.
+      Row {
+        visible: root.sunTimes.sunrise !== "" || root.sunTimes.sunset !== "" || root.reportGust !== ""
+        x: Style.space(16)
+        spacing: Style.space(36)
+
+        Column {
+          spacing: Style.space(5)
+          Text {
+            textFormat: Text.PlainText
+            text: Commons.I18n.t("weather.sunrise")
+            color: Qt.darker(root.bar.foreground, 1.5)
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.bodySmall
+            font.letterSpacing: 1
+          }
+          Text {
+            textFormat: Text.PlainText
+            text: root.sunTimes.sunrise
+            color: root.bar.foreground
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.body
+          }
+        }
+        Column {
+          spacing: Style.space(5)
+          Text {
+            textFormat: Text.PlainText
+            text: Commons.I18n.t("weather.sunset")
+            color: Qt.darker(root.bar.foreground, 1.5)
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.bodySmall
+            font.letterSpacing: 1
+          }
+          Text {
+            textFormat: Text.PlainText
+            text: root.sunTimes.sunset
+            color: root.bar.foreground
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.body
+          }
+        }
+        Column {
+          spacing: Style.space(5)
+          visible: root.reportGust !== ""
+          Text {
+            textFormat: Text.PlainText
+            text: Commons.I18n.t("weather.gust")
+            color: Qt.darker(root.bar.foreground, 1.5)
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.bodySmall
+            font.letterSpacing: 1
+          }
+          Text {
+            textFormat: Text.PlainText
+            text: root.reportGust
+            color: root.bar.foreground
+            font.family: root.bar.fontFamily
+            font.pixelSize: Style.font.body
           }
         }
       }

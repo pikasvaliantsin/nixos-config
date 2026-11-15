@@ -47,12 +47,13 @@ Re-check each against the new tag; the descriptions say what to keep.
   - keep the upstream SVG geometry (240x300 frame, 60 thick, 120x120 block).
 - `shell/plugins/panels/weather/Panel.qml`, `panels/weather/Model.js` and the
   `weather.*` keys in `default/i18n/{en,ru}/shell.json`
-  - a details grid under the hero adds pressure, UV index, visibility, cloud
-    cover, precipitation, sunrise/sunset and gusts; empty readings are hidden;
-  - the wind reading carries its 16-point direction;
-  - Open-Meteo is asked for those current/daily fields and
-    `openMeteoCurrentCondition` maps them into wttr's `current_condition`
-    shape, so the grid works with either source (coordinates use Open-Meteo).
+  - the panel shows a ten-hour strip and a six-day table (day, condition,
+    high/low, rain chance, peak wind) instead of the old three-cell forecast;
+  - wind and gusts are m/s in metric (mph under the imperial setting), and the
+    current wind carries its 16-point direction;
+  - Open-Meteo is asked for hourly temperature/weather/rain chance and daily
+    rain/wind maxima; `buildHourly` falls back to wttr's 3-hourly entries when
+    coordinates are unavailable.
 - `shell/plugins/panels/audio/Panel.qml`
   - pressing the icon while the popup is open closes it (right click only
     mutes while closed).
