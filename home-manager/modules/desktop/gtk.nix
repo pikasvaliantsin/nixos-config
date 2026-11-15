@@ -2,6 +2,10 @@
 { pkgs, ... }:
 
 {
+  # Yaru variants are referenced by Omarchy themes' icons.theme (The Origin
+  # picks Yaru-blue-dark); Papirus stays the default and the fallback.
+  home.packages = [ pkgs.yaru-theme ];
+
   dconf.settings = {
     "org/gnome/desktop/interface" = {
       color-scheme = "prefer-dark";

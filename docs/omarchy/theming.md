@@ -143,7 +143,9 @@ Use `pgrep -f awww-daemon`; the daemon is a normal `awww-daemon` process.
 - Installed themes are data, not code. Do not execute theme scripts; we only
   consume colors and known fragments.
 - `icons.theme` selects the icon theme. It is validated against the user and
-  system icon roots; a missing name falls back to Papirus-Dark. GTK apps pick
+  system icon roots; a missing name falls back to Papirus-Dark. The Yaru
+  variants (used by some third-party themes) ship with `yaru-theme`, so a theme
+  asking for `Yaru-blue-dark` resolves instead of falling back. GTK apps pick
   it up immediately, while Quickshell may need a shell restart.
 
 ## Wallpapers
