@@ -88,11 +88,17 @@ Re-check each against the new tag; the descriptions say what to keep.
     `desktop-file-utils` to the wrapped shell PATH for the web-app helpers.
 - `bin/omarchy-webapp-install`, `bin/omarchy-webapp-remove`,
   `bin/omarchy-launch-webapp` (backport from newer upstream)
-  - runtime web apps: `.desktop` under `~/.local/share/applications`, icon
-    fetch, `StartupWMClass`, and `omarchy-launch-webapp` instead of
-    `uwsm-app`;
+  - runtime web apps: `.desktop` under `~/.local/share/applications`,
+    `StartupWMClass`, and `omarchy-launch-webapp` instead of `uwsm-app`;
+  - reads the page title and web app manifest for the name and the largest
+    manifest icon, with apple-touch-icon / Google favicon / `/favicon.ico`
+    fallbacks;
+  - writes `X-Omarchy-WebApp=true` and `X-Omarchy-WebApp-URL=...`, copies the
+    icon under `StartupWMClass`, and removes both on uninstall;
   - adding/removing a web app needs no rebuild; Chromium, `gum`, `file` and
-    `desktop-file-utils` are runtime dependencies.
+    `desktop-file-utils` are runtime dependencies;
+  - the old declarative `webapps.nix` / `webapps-tui` / `webapps.json` layer
+    was removed, so runtime is the only source of truth.
 - `default/omarchy/omarchy-menu.jsonc`
   - Install → Web App and Remove → Web App entries.
 - `shell/plugins/bar/indicators/PasswordlessSudo.qml`

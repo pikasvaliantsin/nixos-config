@@ -90,12 +90,15 @@ omarchy-webapp-remove "Twitch"
 - The installer writes `~/.local/share/applications/<name>.desktop`, downloads
   the site icon, and sets `StartupWMClass` so the dock/taskbar associates the
   window with the web app.
-- `omarchy-launch-webapp` selects a Chromium-based browser. The declarative
-  `mySystem.webapps` module can set `OMARCHY_WEBAPP_BROWSER` to a different
-  browser.
-- `mySystem.webapps` / `webapps.json` remains a separate Nix-managed set for
-  reproducible entries; those are not listed by `Remove → Web App` because
-  they do not use `omarchy-launch-webapp`.
+- `omarchy-launch-webapp` selects a Chromium-based browser. Set
+  `OMARCHY_WEBAPP_BROWSER` to an absolute browser path to force a different
+  Chromium-based browser.
+- The installer asks for the URL first, then looks up the name and the best
+  icon automatically (web app manifest → apple-touch-icon → Google favicon →
+  `/favicon.ico`); the icon URL is only requested if every source fails.
+- There is no separate declarative TUI anymore: every web app is a runtime
+  `.desktop` file under `~/.local/share/applications` and is managed by
+  Install/Remove.
 
 Apps launched from the menu (including web apps) run in a transient
 `systemd-run --user --scope --slice=app.slice` scope. They therefore do not

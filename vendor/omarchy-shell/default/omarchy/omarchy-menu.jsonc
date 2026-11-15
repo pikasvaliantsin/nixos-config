@@ -107,7 +107,7 @@
   "remove.webapp": {
     "icon": "",
     "label": "Web App",
-    "when": "grep -qE '^Exec=.*(omarchy-launch-webapp|omarchy-webapp-handler)' $HOME/.local/share/applications/*.desktop",
+    "when": "grep -qE '^(X-Omarchy-WebApp=true|Exec=.*(omarchy-launch-webapp|omarchy-webapp-handler))' $HOME/.local/share/applications/*.desktop",
     "action": "omarchy-launch-floating-terminal omarchy-webapp-remove"
   },
   "system": {

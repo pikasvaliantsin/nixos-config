@@ -24,8 +24,6 @@ in
     ./gtk.nix
     ./portals.nix
     ./udiskie.nix
-    ./webapps.nix
-    ./webapps-tui.nix
     ./desktop-tools.nix
     ./omarchy.nix
     ./themes.nix

@@ -1,12 +1,15 @@
 #!/bin/bash
 
 # omarchy:summary=Create a desktop launcher for a web app
-# omarchy:args=[name url icon-url-or-name [custom-exec] [mime-types]]
+# omarchy:args=[name url [icon-url-or-name [custom-exec] [mime-types]]]
 
 set -euo pipefail
 
 ICON_DIR="$HOME/.local/share/icons/hicolor/256x256/apps"
 DESKTOP_DIR="$HOME/.local/share/applications"
+
+AUTO_NAME=""
+AUTO_ICON_URL=""
 
 safe_icon_name() {
   printf '%s\n' "$1" \
@@ -44,30 +47,96 @@ download_icon() {
   return 0
 }
 
-fetch_site_icon() {
-  local site_url="$1" dest="$2"
-  local origin page icon_url host
-  origin=$(sed -E 's|^(https?://[^/]+).*|\1|' <<<"$site_url")
-  host=${site_url#*://}
-  host=${host%%/*}
-  host=${host%%\?*}
-  host=${host%%#*}
-  host=${host%:*}
+origin_of() {
+  sed -E 's|^(https?://[^/]+).*|\1|' <<<"$1"
+}
 
-  page=$(curl -fsSL --max-time 5 "$site_url" 2>/dev/null | head -c 100000 | tr '\n' ' ' || true)
-  icon_url=$(grep -oiE "<link[^>]*rel=[\"'][^\"']*apple-touch-icon[^\"']*[\"'][^>]*>" <<<"$page" \
-    | grep -oiE "href=[\"'][^\"']+" | head -1 | sed -E "s/^href=[\"']//" || true)
+host_of() {
+  local rest=${1#*://}
+  rest=${rest%%/*}
+  rest=${rest%%\?*}
+  rest=${rest%%#*}
+  rest=${rest%:*}
+  printf '%s\n' "${rest,,}"
+}
 
-  case $icon_url in
-    http://* | https://*) ;;
-    //*) icon_url="https:$icon_url" ;;
-    /*) icon_url="$origin$icon_url" ;;
-    ?*) icon_url="$origin/$icon_url" ;;
+# Resolve href/src values from a page or manifest against its base URL.
+url_resolve() {
+  local base="$1" ref="$2" origin
+  origin=$(origin_of "$base")
+  case $ref in
+    http://* | https://*) printf '%s\n' "$ref" ;;
+    //*) printf 'https:%s\n' "$ref" ;;
+    /*) printf '%s\n' "$origin$ref" ;;
+    *) printf '%s\n' "${base%/*}/$ref" ;;
   esac
+}
 
-  { [[ -n $icon_url ]] && download_icon "$icon_url" "$dest"; } \
-    || download_icon "$origin/apple-touch-icon.png" "$dest" \
-    || download_icon "https://www.google.com/s2/favicons?domain=${host}&sz=256" "$dest"
+decode_entities() {
+  local value="$1"
+  value=${value//&amp;/&}
+  value=${value//&quot;/\"}
+  value=${value//&#39;/\'}
+  value=${value//&lt;/<}
+  value=${value//&gt;/>}
+  printf '%s\n' "$value"
+}
+
+# Fill AUTO_NAME and AUTO_ICON_URL from the page title, web app manifest name
+# and the largest manifest icon.  Falls back to the host name.
+fetch_site_metadata() {
+  local site_url="$1" page manifest_url manifest origin mname
+  AUTO_NAME=""
+  AUTO_ICON_URL=""
+  origin=$(origin_of "$site_url")
+
+  page=$(curl -fsSL --max-time 5 "$site_url" 2>/dev/null | head -c 200000 | tr '\n' ' ' || true)
+  if [[ -n $page ]]; then
+    AUTO_NAME=$(sed -n 's:.*<title[^>]*>\([^<]*\)</title>.*:\1:p' <<<"$page" | head -1 | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' || true)
+    AUTO_NAME=$(decode_entities "$AUTO_NAME")
+
+    manifest_url=$(grep -oiE "<link[^>]*rel=[\"']manifest[\"'][^>]*>" <<<"$page" \
+      | grep -oiE "href=[\"'][^\"']+" | head -1 | sed -E "s/^href=[\"']//" || true)
+    if [[ -n $manifest_url ]]; then
+      manifest_url=$(url_resolve "${origin}/" "$manifest_url")
+      manifest=$(curl -fsSL --max-time 5 "$manifest_url" 2>/dev/null || true)
+      if [[ -n $manifest ]] && command -v jq >/dev/null 2>&1; then
+        mname=$(jq -r '.short_name // .name // empty' <<<"$manifest" 2>/dev/null || true)
+        [[ -n $mname ]] && AUTO_NAME=$mname
+        AUTO_ICON_URL=$(jq -r '
+          (.icons // [])
+          | map(select(.src != null))
+          | sort_by((.sizes // "0") | split("x")[0] | tonumber? // 0)
+          | reverse
+          | .[0].src // empty
+        ' <<<"$manifest" 2>/dev/null || true)
+        [[ -n $AUTO_ICON_URL ]] && AUTO_ICON_URL=$(url_resolve "$manifest_url" "$AUTO_ICON_URL")
+      fi
+    fi
+  fi
+
+  [[ -n $AUTO_NAME ]] || AUTO_NAME=$(host_of "$site_url")
+}
+
+fetch_best_icon() {
+  local site_url="$1" dest="$2" origin host url
+  origin=$(origin_of "$site_url")
+  host=$(host_of "$site_url")
+
+  local candidates=()
+  [[ -n $AUTO_ICON_URL ]] && candidates+=("$AUTO_ICON_URL")
+  candidates+=(
+    "$origin/apple-touch-icon.png"
+    "https://www.google.com/s2/favicons?domain=${host}&sz=256"
+    "$origin/favicon.ico"
+  )
+
+  for url in "${candidates[@]}"; do
+    if download_icon "$url" "$dest"; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 # Escape a value for Name=/Comment= in a desktop entry.
@@ -108,27 +177,22 @@ window_class() {
   printf 'chrome-%s_%s-Default\n' "${host,,}" "${path//\//_}"
 }
 
-if (( $# < 3 )); then
+if (( $# < 2 )); then
   echo -e "\e[32mLet's create a new web app you can start with the app launcher.\n\e[0m"
   if ! command -v gum >/dev/null 2>&1; then
     echo "omarchy-webapp-install: gum is required for interactive mode" >&2
     exit 1
   fi
 
-  APP_NAME=$(gum input --prompt "Name> " --placeholder "My favorite web app")
   APP_URL=$(gum input --prompt "URL> " --placeholder "https://example.com")
   [[ $APP_URL =~ ^[a-zA-Z][a-zA-Z0-9+.-]*: ]] || APP_URL="https://$APP_URL"
 
-  ICON_REF=""
-  ICON_VALUE=$(safe_icon_name "$APP_NAME")
-  mkdir -p "$ICON_DIR"
-  if fetch_site_icon "$APP_URL" "$ICON_DIR/$ICON_VALUE.png"; then
-    gtk-update-icon-cache "$HOME/.local/share/icons/hicolor" &>/dev/null || true
-    ICON_REF="$ICON_VALUE"
-  else
-    ICON_REF=$(gum input --prompt "Icon URL/name> " --placeholder "Could not fetch favicon automatically. Enter PNG icon URL or icon name")
-  fi
+  echo "Looking up name and icon..."
+  fetch_site_metadata "$APP_URL"
+  APP_NAME=$(gum input --prompt "Name> " --value "$AUTO_NAME")
+  [[ -n $APP_NAME ]] || APP_NAME=$AUTO_NAME
 
+  ICON_REF=""
   CUSTOM_EXEC=""
   MIME_TYPES=""
   INTERACTIVE_MODE=true
@@ -140,37 +204,52 @@ else
   CUSTOM_EXEC="${4:-}"
   MIME_TYPES="${5:-}"
   INTERACTIVE_MODE=false
+
+  if [[ -z $ICON_REF ]]; then
+    echo "Looking up name and icon..."
+    fetch_site_metadata "$APP_URL"
+  fi
 fi
 
-[[ -n $APP_NAME && -n $APP_URL ]] || {
+[[ -n ${APP_NAME:-} && -n $APP_URL ]] || {
   echo "You must set app name and app URL!" >&2
   exit 1
 }
 
-if [[ -z $ICON_REF ]]; then
-  ICON_VALUE=$(safe_icon_name "$APP_NAME")
-  mkdir -p "$ICON_DIR"
-  if fetch_site_icon "$APP_URL" "$ICON_DIR/$ICON_VALUE.png"; then
-    gtk-update-icon-cache "$HOME/.local/share/icons/hicolor" &>/dev/null || true
+mkdir -p "$ICON_DIR"
+
+if [[ -n $ICON_REF ]]; then
+  if [[ $ICON_REF =~ ^https?:// ]]; then
+    ICON_VALUE=$(safe_icon_name "$APP_NAME")
+    if ! download_icon "$ICON_REF" "$ICON_DIR/$ICON_VALUE.png"; then
+      echo "warning: failed to download icon; trying the site automatically" >&2
+      if ! fetch_best_icon "$APP_URL" "$ICON_DIR/$ICON_VALUE.png"; then
+        ICON_VALUE="webapp"
+      fi
+    fi
+  elif [[ -f $ICON_REF ]]; then
+    ICON_VALUE=$(install_user_icon "$ICON_REF" "$(safe_icon_name "$APP_NAME")") || ICON_VALUE="webapp"
   else
-    ICON_VALUE="webapp"
+    ICON_VALUE=$(icon_name_from_ref "$ICON_REF")
   fi
-elif [[ $ICON_REF =~ ^https?:// ]]; then
-  ICON_VALUE=$(safe_icon_name "$APP_NAME")
-  mkdir -p "$ICON_DIR"
-  if download_icon "$ICON_REF" "$ICON_DIR/$ICON_VALUE.png"; then
-    gtk-update-icon-cache "$HOME/.local/share/icons/hicolor" &>/dev/null || true
-  else
-    echo "warning: failed to download icon; using the generic webapp icon" >&2
-    ICON_VALUE="webapp"
-  fi
-elif [[ -f $ICON_REF ]]; then
-  ICON_VALUE=$(install_user_icon "$ICON_REF" "$(safe_icon_name "$APP_NAME")") || ICON_VALUE="webapp"
 else
-  ICON_VALUE=$(icon_name_from_ref "$ICON_REF")
+  ICON_VALUE=$(safe_icon_name "$APP_NAME")
+  if ! fetch_best_icon "$APP_URL" "$ICON_DIR/$ICON_VALUE.png"; then
+    echo "warning: could not fetch an icon; using the generic webapp icon" >&2
+    ICON_VALUE="webapp"
+  fi
 fi
 
+gtk-update-icon-cache "$HOME/.local/share/icons/hicolor" &>/dev/null || true
+
 wmclass=$(window_class "$APP_URL")
+
+# Some docks look up the icon by StartupWMClass rather than by Icon=.
+if [[ -f "$ICON_DIR/$ICON_VALUE.png" ]]; then
+  cp -f "$ICON_DIR/$ICON_VALUE.png" "$ICON_DIR/$wmclass.png" 2>/dev/null || true
+  gtk-update-icon-cache "$HOME/.local/share/icons/hicolor" &>/dev/null || true
+fi
+
 exec_command="${CUSTOM_EXEC:-omarchy-launch-webapp $(desktop_exec_arg "$APP_URL")}"
 desktop_file="$DESKTOP_DIR/$APP_NAME.desktop"
 mkdir -p "$DESKTOP_DIR"
@@ -187,6 +266,8 @@ Terminal=false
 StartupNotify=true
 StartupWMClass=$wmclass
 Categories=Network;
+X-Omarchy-WebApp=true
+X-Omarchy-WebApp-URL=$(desktop_escape "$APP_URL")
 EOF
 
 if [[ -n $MIME_TYPES ]]; then
