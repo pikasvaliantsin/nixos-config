@@ -18,6 +18,7 @@
       "scanner"
       # Нужна GameMode для renice игровых процессов (CAP_SYS_NICE)
       "gamemode"
+      "i2c"
     ];
     shell = pkgs.fish;
   };

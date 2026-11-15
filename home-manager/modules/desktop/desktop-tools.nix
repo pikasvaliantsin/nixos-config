@@ -325,6 +325,7 @@ in
     playerctl
     wlogout
     brightnessctl
+    ddcutil
     libnotify
     calcurse
     grim

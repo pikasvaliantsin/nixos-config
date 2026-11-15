@@ -1,6 +1,10 @@
 { pkgs, ... }:
 
 {
+  # DDC/CI for the external monitor backlight (Super + volume knob).
+  hardware.i2c.enable = true;
+  users.groups.i2c = { };
+
   # ========================================
   # POWER MANAGEMENT
   # ========================================
@@ -97,6 +101,7 @@
     # записи порога и дать петлю перезапусков.
     udev.extraRules = ''
       SUBSYSTEM=="power_supply", KERNEL=="AC0", TAG+="systemd", ENV{SYSTEMD_WANTS}+="battery-charge-limit.service"
+      KERNEL=="i2c-[0-9]*", GROUP="i2c", MODE="0660", TAG+="uaccess"
     '';
 
     # ========================================

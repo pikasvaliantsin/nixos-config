@@ -1,0 +1,29 @@
+#!/bin/bash
+
+# omarchy:summary=Adjust the external monitor backlight over DDC/CI
+# omarchy:args=<+N|-N>
+# omarchy:examples=omarchy-brightness-external +5 | omarchy-brightness-external -5
+
+set -euo pipefail
+
+step="${1:-}"
+[[ $step =~ ^[+-][0-9]+$ ]] || { echo "usage: omarchy-brightness-external <+N|-N>" >&2; exit 2; }
+
+command -v ddcutil >/dev/null 2>&1 || { echo "omarchy-brightness-external: ddcutil missing" >&2; exit 1; }
+
+# The internal panel has no DDC; the first detected display is the HDMI one.
+info=$(ddcutil --display 1 getvcp 10 --brief 2>/dev/null) || exit 1
+current=$(awk '{print $4}' <<<"$info")
+max=$(awk '{print $5}' <<<"$info")
+[[ $current =~ ^[0-9]+$ && $max =~ ^[0-9]+$ ]] || exit 1
+
+if [[ $step == +* ]]; then
+  value=$((current + ${step#+}))
+else
+  value=$((current - ${step#-}))
+fi
+((value > max)) && value=$max
+((value < 0)) && value=0
+
+ddcutil --display 1 setvcp 10 "$value" >/dev/null
+omarchy-osd -i brightness -p "$value" >/dev/null 2>&1 || true

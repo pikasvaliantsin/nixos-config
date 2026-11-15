@@ -21,9 +21,9 @@ binds {
     Ctrl+Alt+Delete hotkey-overlay-title="Process monitor" { spawn "foot" "dgop" "top"; }
 
     // --- audio / microphone / brightness (with OSD) --------------------------------
-    // Mod + wheel is the volume knob; this laptop has no brightness wheel.
-    Mod+WheelScrollUp allow-when-locked=true { spawn "omarchy-audio-output-volume" "+2"; }
-    Mod+WheelScrollDown allow-when-locked=true { spawn "omarchy-audio-output-volume" "-2"; }
+    // Super + the keyboard volume knob drives the external monitor backlight.
+    Super+XF86AudioRaiseVolume allow-when-locked=true cooldown-ms=250 { spawn "omarchy-brightness-external" "+5"; }
+    Super+XF86AudioLowerVolume allow-when-locked=true cooldown-ms=250 { spawn "omarchy-brightness-external" "-5"; }
     XF86AudioRaiseVolume allow-when-locked=true { spawn "omarchy-audio-output-volume" "raise"; }
     XF86AudioLowerVolume allow-when-locked=true { spawn "omarchy-audio-output-volume" "lower"; }
     XF86AudioMute allow-when-locked=true { spawn "omarchy-audio-output-volume" "mute-toggle"; }
@@ -79,8 +79,8 @@ binds {
     Mod+Shift+U { move-workspace-down; }
     Mod+Shift+Page_Up { move-workspace-up; }
     Mod+Shift+Page_Down { move-workspace-down; }
-    // Wheel over the desktop is volume now; workspaces stay on the bar wheel
-    // and the keyboard binds above.
+    Mod+WheelScrollUp cooldown-ms=150 { focus-workspace-up; }
+    Mod+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
     Mod+Ctrl+Up { move-column-to-workspace-up; }
     Mod+Ctrl+Down { move-column-to-workspace-down; }
     Mod+Ctrl+I { move-column-to-workspace-up; }
