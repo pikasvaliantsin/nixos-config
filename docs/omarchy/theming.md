@@ -24,6 +24,7 @@ the same format as themes from <https://omarchy.org/themes/>. Install from a
 git URL:
 
 ```bash
+theme-install                                  # asks for the URL
 theme-install https://github.com/dhh/omarchy-giants-theme
 theme-install https://github.com/<owner>/omarchy-<name>-theme.git
 ```
@@ -31,6 +32,21 @@ theme-install https://github.com/<owner>/omarchy-<name>-theme.git
 `theme-install` clones into `~/.config/omarchy/themes/<name>` (the upstream
 `omarchy-<name>-theme` prefix/suffix is stripped for the local name) and then
 calls `theme-set <name>`.
+
+Without an argument it asks for the URL with `gum input`, so the Omarchy menu
+path **Install → Style → Theme** opens a floating terminal with the same
+prompt. The installer mirrors upstream's safety checks: it refuses git options
+and transport helpers (`ext::`, `-o…`) and allows only `ssh`, `git`, `http(s)`,
+`ftp(s)` and `file`. The clone is `--depth 1` into a hidden temporary directory
+next to the themes, the result must contain `colors.toml`, and the existing
+theme is replaced only after that check passes. A successful run ends with
+`theme-installed <name>`.
+
+The running shell also takes a URL directly: open the theme deck with
+`Mod+Alt+T`, press `i`, paste the repository URL, and press Enter. The clone
+runs in the background, errors stay in the input card, and the deck reloads
+with the new theme selected. Installed themes are runtime state under
+`~/.config/omarchy/themes`; they do not need a rebuild or `switch`.
 
 The official Omarchy themes from upstream tag `v4.5.0` are also vendored
 under `home-manager/modules/desktop/themes/`: all 23 `colors.toml` palettes,

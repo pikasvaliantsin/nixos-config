@@ -99,6 +99,15 @@
     "label": "Web App",
     "action": "omarchy-launch-floating-terminal omarchy-webapp-install"
   },
+  "install.style": {
+    "icon": "󰏘",
+    "label": "Style"
+  },
+  "install.style.theme": {
+    "icon": "󰸌",
+    "label": "Theme",
+    "action": "omarchy-launch-floating-terminal omarchy-theme-install"
+  },
   "remove": {
     "icon": "󰭌",
     "label": "Remove",

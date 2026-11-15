@@ -22,6 +22,15 @@ Item {
   property string notice: ""
   property string errorText: ""
 
+  // Theme install receiver: `i` opens a URL field, theme-install clones and
+  // applies in the background, and the deck reloads on the new theme.
+  property bool urlInputActive: false
+  property bool installing: false
+  property string installStatus: ""
+  property string installOutput: ""
+  property string installError: ""
+  property string pendingInstallSelection: ""
+
   readonly property bool isThemes: mode === "themes"
   readonly property var currentItem: items.length === 0 ? null : items[Math.max(0, Math.min(index, items.length - 1))]
 
@@ -58,6 +67,10 @@ Item {
     root.index = 0
     root.notice = ""
     root.errorText = ""
+    root.urlInputActive = false
+    root.installing = false
+    root.installStatus = ""
+    root.pendingInstallSelection = ""
     root.loading = true
     listProc.running = false
     listProc.command = ["omarchy-gallery", root.mode]
@@ -84,6 +97,7 @@ Item {
   }
 
   function applyCurrent() {
+    if (root.urlInputActive || root.installing) return
     if (!root.currentItem || root.loading) return
     root.errorText = ""
     if (root.isThemes)
@@ -91,6 +105,46 @@ Item {
     else
       applyProc.command = ["omarchy-gallery", "wallpaper", String(root.index)]
     applyProc.running = true
+  }
+
+  function startUrlInput() {
+    if (!root.isThemes || root.installing) return
+    root.urlInputActive = true
+    root.installStatus = ""
+    root.errorText = ""
+    Qt.callLater(function() {
+      if (!urlField) return
+      urlField.text = ""
+      urlField.forceActiveFocus()
+    })
+  }
+
+  function cancelUrlInput() {
+    root.urlInputActive = false
+    if (!root.installing) root.installStatus = ""
+    if (urlField) urlField.text = ""
+  }
+
+  function dismiss() {
+    if (root.urlInputActive) root.cancelUrlInput()
+    else root.close()
+  }
+
+  function installFromInput() {
+    if (root.installing) return
+    var url = urlField ? String(urlField.text).trim() : ""
+    if (url === "") return
+    root.installOutput = ""
+    root.installError = ""
+    root.installStatus = "Installing…"
+    root.installing = true
+    installProc.command = ["theme-install", url]
+    installProc.running = true
+  }
+
+  function lastLine(value) {
+    var lines = String(value || "").trim().split("\n")
+    return lines.length > 0 ? lines[lines.length - 1] : ""
   }
 
   Process {
@@ -110,7 +164,14 @@ Item {
           return
         }
         root.items = parsed.items
-        if (root.isThemes) {
+        var wanted = root.pendingInstallSelection
+        if (wanted !== "") {
+          root.pendingInstallSelection = ""
+          var installedAt = 0
+          for (var j = 0; j < root.items.length; j++)
+            if (String(root.items[j].name || "") === wanted) installedAt = j
+          root.index = installedAt
+        } else if (root.isThemes) {
           var at = 0
           for (var i = 0; i < root.items.length; i++)
             if (String(root.items[i].name || "") === String(parsed.current || "")) at = i
@@ -142,6 +203,49 @@ Item {
     onTriggered: root.close()
   }
 
+  Process {
+    id: installProc
+    onExited: function(code, status) {
+      root.installing = false
+      if (code !== 0 || status !== 0) {
+        var message = root.lastLine(root.installError !== "" ? root.installError : installStderr.text)
+        root.installStatus = message === "" ? "Install failed" : message
+        return
+      }
+
+      var output = root.installOutput !== "" ? root.installOutput : installStdout.text
+      var lines = String(output || "").trim().split("\n")
+      var installed = ""
+      for (var i = 0; i < lines.length; i++)
+        if (lines[i].indexOf("theme-installed ") === 0)
+          installed = lines[i].slice("theme-installed ".length)
+
+      root.urlInputActive = false
+      if (urlField) urlField.text = ""
+      root.installStatus = installed === "" ? "Theme installed" : "Installed " + installed
+      root.notice = root.installStatus
+      root.pendingInstallSelection = installed
+      clearInstallStatus.restart()
+
+      // theme-install applies the theme; reload the deck so the new entry is
+      // visible instead of leaving the old list on screen.
+      root.loading = true
+      listProc.running = false
+      listProc.command = ["omarchy-gallery", root.mode]
+      listProc.running = true
+    }
+    stdout: StdioCollector {
+      id: installStdout
+      waitForEnd: true
+      onStreamFinished: root.installOutput = text
+    }
+    stderr: StdioCollector {
+      id: installStderr
+      waitForEnd: true
+      onStreamFinished: root.installError = text
+    }
+  }
+
   ShellIpc {
     target: "gallery"
 
@@ -151,6 +255,18 @@ Item {
     function next(): void { root.move(1) }
     function previous(): void { root.move(-1) }
     function apply(): void { root.applyCurrent() }
+    function prompt(): string {
+      root.startUrlInput()
+      return "ok"
+    }
+    function install(url: string): string {
+      if (!root.isThemes) return "not-themes"
+      root.urlInputActive = true
+      root.installStatus = ""
+      if (urlField) urlField.text = String(url || "")
+      root.installFromInput()
+      return root.installing ? "installing" : "unknown"
+    }
     function status(): string {
       return JSON.stringify({
         opened: root.opened,
@@ -172,13 +288,18 @@ Item {
 
     // Shortcuts live in the overlay window; ones on the shell root never see
     // this surface's keys.
-    Shortcut { sequence: "Escape"; enabled: root.opened; onActivated: root.close() }
-    Shortcut { sequence: "Left"; enabled: root.opened; onActivated: root.move(-1) }
-    Shortcut { sequence: "Right"; enabled: root.opened; onActivated: root.move(1) }
-    Shortcut { sequence: "Up"; enabled: root.opened; onActivated: root.move(-1) }
-    Shortcut { sequence: "Down"; enabled: root.opened; onActivated: root.move(1) }
-    Shortcut { sequence: "Return"; enabled: root.opened; onActivated: root.applyCurrent() }
-    Shortcut { sequence: "Enter"; enabled: root.opened; onActivated: root.applyCurrent() }
+    Shortcut { sequence: "Escape"; enabled: root.opened; onActivated: root.dismiss() }
+    Shortcut {
+      sequence: "i"
+      enabled: root.opened && root.isThemes && !root.urlInputActive && !root.installing
+      onActivated: root.startUrlInput()
+    }
+    Shortcut { sequence: "Left"; enabled: root.opened && !root.urlInputActive; onActivated: root.move(-1) }
+    Shortcut { sequence: "Right"; enabled: root.opened && !root.urlInputActive; onActivated: root.move(1) }
+    Shortcut { sequence: "Up"; enabled: root.opened && !root.urlInputActive; onActivated: root.move(-1) }
+    Shortcut { sequence: "Down"; enabled: root.opened && !root.urlInputActive; onActivated: root.move(1) }
+    Shortcut { sequence: "Return"; enabled: root.opened && !root.urlInputActive; onActivated: root.applyCurrent() }
+    Shortcut { sequence: "Enter"; enabled: root.opened && !root.urlInputActive; onActivated: root.applyCurrent() }
 
     Rectangle {
       anchors.fill: parent
@@ -369,9 +490,65 @@ Item {
         }
       }
 
+      Rectangle {
+        anchors.horizontalCenter: parent.horizontalCenter
+        visible: root.urlInputActive || root.installing || root.installStatus !== ""
+        width: Math.min(root.deckWidth, Style.space(560))
+        height: urlColumn.implicitHeight + Style.space(24)
+        radius: Style.cornerRadius
+        color: Commons.Color.menu.background
+        border.width: 1
+        border.color: Qt.rgba(Commons.Color.menu.border.r, Commons.Color.menu.border.g,
+                              Commons.Color.menu.border.b, 0.55)
+
+        Column {
+          id: urlColumn
+          anchors.centerIn: parent
+          width: parent.width - Style.space(32)
+          spacing: Style.space(8)
+
+          TextField {
+            id: urlField
+            width: parent.width
+            visible: root.urlInputActive
+            enabled: !root.installing
+            foreground: Commons.Color.menu.text
+            placeholderText: "https://github.com/<owner>/omarchy-<name>-theme"
+            onAccepted: root.installFromInput()
+            Keys.onPressed: function(event) {
+              if (event.key === Qt.Key_Escape) {
+                root.cancelUrlInput()
+                event.accepted = true
+              }
+            }
+          }
+
+          Text {
+            width: parent.width
+            visible: root.installStatus !== ""
+            text: root.installStatus
+            color: root.installStatus.indexOf("Installed") === 0
+              ? Commons.Color.menu.text : Commons.Color.urgent
+            font.family: Style.font.family
+            font.pixelSize: Style.font.caption
+            wrapMode: Text.WrapAnywhere
+            maximumLineCount: 2
+            elide: Text.ElideRight
+          }
+        }
+      }
+
+      Timer {
+        id: clearInstallStatus
+        interval: 5000
+        onTriggered: if (!root.installing && root.installStatus.indexOf("Installed") === 0) root.installStatus = ""
+      }
+
       Text {
         anchors.horizontalCenter: parent.horizontalCenter
-        text: "← → select · Enter apply · Esc close"
+        text: root.isThemes
+          ? "← → select · Enter apply · i install · Esc close"
+          : "← → select · Enter apply · Esc close"
         color: Commons.Color.menu.text
         opacity: 0.35
         font.family: Style.font.family

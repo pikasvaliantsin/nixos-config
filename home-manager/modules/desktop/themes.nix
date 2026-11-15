@@ -513,24 +513,77 @@ let
 
   themeInstall = pkgs.writeShellApplication {
     name = "theme-install";
-    runtimeInputs = [ pkgs.coreutils pkgs.git pkgs.gnused ];
+    runtimeInputs = [ pkgs.coreutils pkgs.git pkgs.gnused pkgs.gum ];
     text = ''
       set -eu
-      url="''${1:-}"
-      if [ -z "$url" ]; then
-        echo "usage: theme-install <git-url>" >&2
-        exit 1
-      fi
-      themes_dir="$HOME/.config/omarchy/themes"
-      name=$(basename -- "''${url%.git}" | sed -E 's/^omarchy-//; s/-theme$//' | tr '[:upper:]' '[:lower:]')
-      [[ $name =~ ^[a-z0-9_][a-z0-9._+-]*$ ]] || {
-        echo "theme-install: unusable theme name '$name'" >&2
+
+      refuse() {
+        echo "theme-install: $*" >&2
         exit 1
       }
+
+      url="''${1:-}"
+      if [ -z "$url" ]; then
+        url=$(gum input \
+          --header "Install an Omarchy theme" \
+          --placeholder "https://github.com/<owner>/omarchy-<name>-theme" \
+          --prompt "Theme git URL> " </dev/tty || true)
+      fi
+      [ -n "''${url:-}" ] || exit 1
+
+      # git runs a remote helper for `<helper>::<address>` and for schemes it
+      # does not handle itself. Refuse the helper form outright and allowlist
+      # the transports a theme repository can legitimately use; ext:: would
+      # execute a command. Ported from upstream omarchy-git-url-check.
+      case "$url" in
+        -*) refuse "'$url' names a git option, not a repository." ;;
+      esac
+      if [[ $url =~ ^[A-Za-z0-9][A-Za-z0-9+.-]*:: ]]; then
+        refuse "'$url' names a git transport helper, not a repository."
+      fi
+      if [[ $url =~ ^([A-Za-z0-9][A-Za-z0-9+.-]*):// ]]; then
+        scheme=$(printf '%s' "''${BASH_REMATCH[1]}" | tr '[:upper:]' '[:lower:]')
+        case "$scheme" in
+          ssh|git|git+ssh|ssh+git|http|https|ftp|ftps|file) ;;
+          *) refuse "'$url' uses the '$scheme' transport, which theme-install does not clone from." ;;
+        esac
+      fi
+
+      themes_dir="$HOME/.config/omarchy/themes"
+
+      # Strip a user@host: prefix from scp-style SSH URLs so basename sees
+      # just the repository path. A single colon before any slash is ssh,
+      # not a URL scheme.
+      repo_path="$url"
+      if [[ $repo_path != *"://"* && $repo_path == *:* && ''${repo_path%%:*} != */* ]]; then
+        repo_path="''${repo_path#*:}"
+      fi
+      name=$(basename -- "$repo_path" .git | sed -E 's/^omarchy-//; s/-theme$//' | tr '[:upper:]' '[:lower:]')
+      # Pin the collation: [a-z] would otherwise accept accented letters.
+      ( LC_ALL=C; [[ $name =~ ^[a-z0-9_][a-z0-9._+-]*$ ]] ) || \
+        refuse "'$url' does not give a usable theme name."
+
       mkdir -p "$themes_dir"
+
+      # Clone beside the target and swap only after colors.toml is present, so
+      # a failed clone or a non-theme repository never destroys an installed
+      # theme. --depth 1 keeps the wallpaper-heavy repositories small.
+      tmp=$(mktemp -d "$themes_dir/.install.XXXXXX")
+      trap 'rm -rf "$tmp"' EXIT
+      if ! git clone --depth 1 -- "$url" "$tmp/theme"; then
+        refuse "failed to clone $url"
+      fi
+      if [ ! -f "$tmp/theme/colors.toml" ]; then
+        refuse "$url does not look like an Omarchy theme (no colors.toml)."
+      fi
+
       rm -rf "''${themes_dir:?}/''${name:?}"
-      git clone -- "$url" "$themes_dir/$name"
-      exec theme-set "$name"
+      mv "$tmp/theme" "$themes_dir/$name"
+      trap - EXIT
+      rm -rf "$tmp"
+
+      theme-set "$name"
+      printf 'theme-installed %s\n' "$name"
     '';
   };
 
