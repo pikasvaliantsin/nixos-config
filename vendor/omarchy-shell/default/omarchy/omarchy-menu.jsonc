@@ -89,6 +89,27 @@
     "label": "Region + desktop audio",
     "action": "omarchy-capture-screenrecording --region --with-desktop-audio"
   },
+  "install": {
+    "icon": "󰉉",
+    "label": "Install",
+    "aliases": ["install"]
+  },
+  "install.webapp": {
+    "icon": "",
+    "label": "Web App",
+    "action": "omarchy-launch-floating-terminal omarchy-webapp-install"
+  },
+  "remove": {
+    "icon": "󰭌",
+    "label": "Remove",
+    "aliases": ["uninstall", "remove"]
+  },
+  "remove.webapp": {
+    "icon": "",
+    "label": "Web App",
+    "when": "grep -qE '^Exec=.*(omarchy-launch-webapp|omarchy-webapp-handler)' $HOME/.local/share/applications/*.desktop",
+    "action": "omarchy-launch-floating-terminal omarchy-webapp-remove"
+  },
   "system": {
     "icon": "",
     "label": "System",

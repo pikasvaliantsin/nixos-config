@@ -1,0 +1,53 @@
+#!/bin/bash
+
+# omarchy:summary=Remove a web app desktop launcher
+# omarchy:args=[name]
+
+set -euo pipefail
+
+ICON_DIR="$HOME/.local/share/icons/hicolor/256x256/apps"
+OLD_ICON_DIR="$HOME/.local/share/applications/icons"
+DESKTOP_DIR="$HOME/.local/share/applications"
+
+WEB_APPS=()
+while IFS= read -r -d '' file; do
+  if grep -qE '^Exec=.*(omarchy-launch-webapp|omarchy-webapp-handler)' "$file"; then
+    WEB_APPS+=("$(basename "${file%.desktop}")")
+  fi
+done < <(find "$DESKTOP_DIR" -maxdepth 1 -name '*.desktop' -print0 2>/dev/null || true)
+
+if (( ${#WEB_APPS[@]} == 0 )); then
+  echo "No web apps to remove."
+  exit 1
+fi
+
+mapfile -t SORTED_WEB_APPS < <(printf '%s\n' "${WEB_APPS[@]}" | sort)
+
+if (( $# == 0 )); then
+  if command -v gum >/dev/null 2>&1; then
+    APP_NAME=$(printf '%s\n' "${SORTED_WEB_APPS[@]}" | gum choose --header "Select web app to remove")
+  else
+    printf '%s\n' "${SORTED_WEB_APPS[@]}"
+    read -r -p "Web app name: " APP_NAME
+  fi
+else
+  APP_NAME="$*"
+fi
+
+[[ -n ${APP_NAME:-} ]] || {
+  echo "You must select a web app to remove." >&2
+  exit 1
+}
+
+icon_name=$(printf '%s\n' "$APP_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^[:alnum:]]\+/-/g; s/^-//; s/-$//')
+
+rm -f "$DESKTOP_DIR/$APP_NAME.desktop"
+rm -f "$ICON_DIR/$icon_name.png" "$ICON_DIR/$APP_NAME.png" "$OLD_ICON_DIR/$APP_NAME.png"
+
+if command -v update-desktop-database >/dev/null 2>&1; then
+  update-desktop-database "$DESKTOP_DIR" &>/dev/null || true
+fi
+
+if [[ ${OMARCHY_REMOVE_NOTIFY:-true} != "false" ]] && command -v omarchy-notification-send >/dev/null 2>&1; then
+  omarchy-notification-send -g  "Web app removed" "$APP_NAME" >/dev/null 2>&1 || true
+fi

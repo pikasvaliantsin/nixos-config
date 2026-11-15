@@ -32,8 +32,9 @@ vendor/omarchy-shell/default/omarchy/omarchy-menu.jsonc
 ```
 
 This is deliberately a minimal menu for the NixOS/niri port: Apps, Files,
-Calculator, Capture and System. The upstream Omarchy menu is not copied
-wholesale because most of its Arch/Hyprland actions do not exist here.
+Calculator, Capture, Install/Remove (web apps) and System. The upstream
+Omarchy menu is not copied wholesale because most of its Arch/Hyprland actions
+do not exist here.
 
 User entries can override or extend the defaults in:
 
@@ -72,6 +73,34 @@ restorable this way.
 
 Files are rewritten atomically and watched, so edits from an editor apply
 without restarting the shell. Pins for uninstalled apps are ignored.
+
+## Web apps
+
+Runtime web apps follow the upstream Omarchy model: a `.desktop` file that
+runs a Chromium-based browser with `--app=<url>`.
+
+```bash
+omarchy-webapp-install "Twitch" "https://twitch.tv" "twitch"
+omarchy-webapp-remove "Twitch"
+```
+
+- Install and Remove are in the Omarchy menu (`Install → Web App`,
+  `Remove → Web App`); they open in a floating `foot` terminal and do not
+  require a rebuild.
+- The installer writes `~/.local/share/applications/<name>.desktop`, downloads
+  the site icon, and sets `StartupWMClass` so the dock/taskbar associates the
+  window with the web app.
+- `omarchy-launch-webapp` selects a Chromium-based browser. The declarative
+  `mySystem.webapps` module can set `OMARCHY_WEBAPP_BROWSER` to a different
+  browser.
+- `mySystem.webapps` / `webapps.json` remains a separate Nix-managed set for
+  reproducible entries; those are not listed by `Remove → Web App` because
+  they do not use `omarchy-launch-webapp`.
+
+Apps launched from the menu (including web apps) run in a transient
+`systemd-run --user --scope --slice=app.slice` scope. They therefore do not
+inherit `omarchy-shell.service`'s cgroup and survive shell restarts and
+rebuilds; this is the NixOS/niri replacement for upstream's `uwsm-app`.
 
 ## dsearch
 

@@ -33,6 +33,9 @@
   pulseaudio,
   glib,
   gtk3,
+  gum,
+  file,
+  desktop-file-utils,
   brightnessctl,
   ddcutil,
   systemd,
@@ -72,6 +75,9 @@ let
     pulseaudio
     glib
     gtk3
+    gum
+    file
+    desktop-file-utils
     brightnessctl
     ddcutil
     systemd

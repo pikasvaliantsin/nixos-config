@@ -79,9 +79,22 @@ Re-check each against the new tag; the descriptions say what to keep.
 - `shell/services/AppLibrary.qml`
   - NixOS/niri does not run a UWSM session, so upstream's
     `uwsm-app -- gtk-launch` and `omarchy-launch-tui` are unavailable.
-    GUI entries launch with `gtk-launch`; TUI entries run in `foot -e`.
-  - `pkgs/omarchy-shell/default.nix` adds `gtk3` to the wrapped shell PATH
-    so `gtk-launch` resolves desktop entries and DBus activation.
+  - GUI and TUI entries launch in a transient
+    `systemd-run --user --scope --slice=app.slice` scope, using the parsed
+    `Exec` vector / `foot -e`; `gtk-launch` is only the DBus-only fallback.
+    This keeps apps out of `omarchy-shell.service`'s cgroup, so a rebuild
+    restart cannot kill a Chromium web app or hang on its shutdown.
+  - `pkgs/omarchy-shell/default.nix` adds `gtk3`, `gum`, `file` and
+    `desktop-file-utils` to the wrapped shell PATH for the web-app helpers.
+- `bin/omarchy-webapp-install`, `bin/omarchy-webapp-remove`,
+  `bin/omarchy-launch-webapp` (backport from newer upstream)
+  - runtime web apps: `.desktop` under `~/.local/share/applications`, icon
+    fetch, `StartupWMClass`, and `omarchy-launch-webapp` instead of
+    `uwsm-app`;
+  - adding/removing a web app needs no rebuild; Chromium, `gum`, `file` and
+    `desktop-file-utils` are runtime dependencies.
+- `default/omarchy/omarchy-menu.jsonc`
+  - Install → Web App and Remove → Web App entries.
 - `shell/plugins/bar/indicators/PasswordlessSudo.qml`
   - countdown tooltip from the marker file, live while hovered.
 - `shell/plugins/clipboard/` (`Clipboard.qml`, `ClipboardHistory.js`,

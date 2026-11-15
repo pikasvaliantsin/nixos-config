@@ -226,20 +226,44 @@ Item {
     if (!iconIndexScan.running) iconIndexScan.running = true
   }
 
+  // Run a command in a transient systemd scope under app.slice.  Processes
+  // started directly by Quickshell inherit omarchy-shell.service's cgroup; a
+  // rebuild restarts that service and KillMode=control-group then kills them.
+  // A Chromium web app can hold that stop for the whole TimeoutStopSec, which
+  // made rebuilds look hung.  A scope also mirrors upstream's uwsm-app.
+  function launchScoped(argv, workingDirectory) {
+    if (!argv || argv.length === 0) return false
+    var command = ["systemd-run", "--user", "--scope", "--collect", "--quiet", "--slice=app.slice"]
+    if (workingDirectory) command.push("--working-directory=" + workingDirectory)
+    command.push("--")
+    Quickshell.execDetached({ command: command.concat(argv) })
+    return true
+  }
+
   function launch(desktopId, name) {
     var id = String(desktopId || "")
     if (!id) return
     root.beginLaunchFeedback(name)
+    var entry = DesktopEntries.byId(id)
+
     // NixOS/niri does not run a UWSM session, so upstream's
     // `uwsm-app -- gtk-launch` and `omarchy-launch-tui` are not available.
-    // TUI entries run in foot; GUI entries use gtk-launch, which resolves the
-    // desktop id through the XDG data dirs and honours DBus activation.
-    var command = root.terminalCommand(DesktopEntries.byId(id))
+    // TUI entries run in foot; GUI entries use the parsed Exec vector.
+    var command = root.terminalCommand(entry)
     if (command.length > 0) {
-      Util.execArgv(["foot", "-e"].concat(command))
-      return
+      if (root.launchScoped(["foot", "-e"].concat(command), entry.workingDirectory || "")) return
     }
-    // Keep the .desktop suffix or ids like org.telegram.desktop won't resolve.
+
+    // Prefer the parsed Exec vector over gtk-launch: the app itself then stays
+    // as the scope's command.  gtk-launch exits after forking, and a transient
+    // scope would take the still-running app down with it.
+    var argv = (entry && entry.command ? entry.command : []).filter(function(word) {
+      return !/^%[a-zA-Z]$/.test(String(word))
+    })
+    if (root.launchScoped(argv, entry && entry.workingDirectory ? entry.workingDirectory : "")) return
+
+    // Last resort for DBus-activatable entries with no Exec vector.  Keep the
+    // .desktop suffix or ids like org.telegram.desktop won't resolve.
     Util.execDetached("gtk-launch " + Util.shellQuote(id + ".desktop"))
   }
 

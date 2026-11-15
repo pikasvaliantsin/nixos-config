@@ -449,6 +449,10 @@ in
         message = "mySystem.webapps.entries.${key}: URL должен быть http(s) и без пробелов.";
       }) allEntries;
 
+      # Runtime web apps created by the Omarchy menu use this browser.
+      home.packages = [ cfg.browser ];
+      home.sessionVariables.OMARCHY_WEBAPP_BROWSER = "${cfg.browser}/bin/${cfg.binary}";
+
       xdg.dataFile = lib.mapAttrs' (
         _: v: lib.nameValuePair "applications/${v.desktopFileName}.desktop" { text = v.desktopText; }
       ) entries;

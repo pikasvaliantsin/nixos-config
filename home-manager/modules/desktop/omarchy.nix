@@ -54,6 +54,11 @@ in
     brightnessctl
     wlsunset
     foot
+    chromium
+    gum
+    file
+    desktop-file-utils
+    gtk3
     omarchySpeedtest
     cava
   ];
