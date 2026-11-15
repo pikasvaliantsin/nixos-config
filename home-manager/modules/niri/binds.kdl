@@ -17,8 +17,8 @@ binds {
     Mod+V hotkey-overlay-title="Clipboard" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.clipboard" "{}"; }
     Mod+Alt+L hotkey-overlay-title="Lock" { spawn "gtklock"; }
     Super+X hotkey-overlay-title="System" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"system\"}"; }
-    Mod+M hotkey-overlay-title="Process monitor" { spawn "foot" "dgop" "top"; }
-    Ctrl+Alt+Delete hotkey-overlay-title="Process monitor" { spawn "foot" "dgop" "top"; }
+    Mod+M hotkey-overlay-title="Process monitor" { spawn "foot" "--app-id=org.omarchy.btop" "--title=btop" "-o" "csd.preferred=none" "btop"; }
+    Ctrl+Alt+Delete hotkey-overlay-title="Process monitor" { spawn "foot" "--app-id=org.omarchy.btop" "--title=btop" "-o" "csd.preferred=none" "btop"; }
 
     // --- audio / microphone / brightness (with OSD) --------------------------------
     // Super + the keyboard volume knob drives the external monitor backlight.

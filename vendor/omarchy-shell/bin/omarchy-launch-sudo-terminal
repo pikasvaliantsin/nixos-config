@@ -6,6 +6,7 @@ exec foot \
   --app-id=org.omarchy.sudo \
   --title="Passwordless sudo" \
   --window-size-pixels=520x260 \
+  -o csd.preferred=none \
   -o csd.size=0 \
   -o csd.border-width=0 \
   "$@"

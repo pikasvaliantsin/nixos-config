@@ -6,6 +6,7 @@ exec foot \
   --app-id=org.omarchy.transient \
   --title="Omarchy Transient" \
   --window-size-pixels=720x420 \
+  -o csd.preferred=none \
   -o csd.size=0 \
   -o csd.border-width=0 \
   "$@"

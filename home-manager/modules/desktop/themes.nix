@@ -169,6 +169,7 @@ let
       if [ -z "$theme" ]; then
         echo "usage: theme-set <name>"
         echo "native themes: $(find "$themes_dir" -maxdepth 2 -name palette.json -printf '%h\n' 2>/dev/null | xargs -r -n1 basename | sort | tr '\n' ' ')"
+        echo "vendored omarchy themes: $(find "$themes_dir" -maxdepth 2 -name colors.toml -printf '%h\n' 2>/dev/null | xargs -r -n1 basename | sort | tr '\n' ' ')"
         echo "omarchy themes: $(find "$omarchy_themes_dir" -maxdepth 2 -name colors.toml -printf '%h\n' 2>/dev/null | xargs -r -n1 basename | sort | tr '\n' ' ')"
         exit 1
       fi
@@ -418,9 +419,8 @@ let
       font=JetBrains Mono:size=12
       pad=12x12
       dpi-aware=yes
-      app-id=org.omarchy.transient
 
-      [colors]
+      [colors-dark]
       alpha=0.95
       background=''${plain_bg}
       foreground=''${plain_fg}
@@ -442,6 +442,11 @@ let
       bright5=''${bright_magenta#\#}
       bright6=''${bright_cyan#\#}
       bright7=''${plain_fg}
+
+      [csd]
+      preferred=none
+      size=0
+      border-width=0
       EOF
       fi
 

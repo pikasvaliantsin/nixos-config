@@ -32,6 +32,14 @@ theme-install https://github.com/<owner>/omarchy-<name>-theme.git
 `omarchy-<name>-theme` prefix/suffix is stripped for the local name) and then
 calls `theme-set <name>`.
 
+The official Omarchy themes from upstream tag `v4.5.0` are also vendored
+under `home-manager/modules/desktop/themes/`: all 23 `colors.toml` palettes,
+`icons.theme`, `preview*.png`, `unlock.png`, and the small editor/Chromium
+extras. Their large `backgrounds/` directories are intentionally omitted to
+keep the repository small; the carousel uses `preview.png`, and wallpaper
+cycling falls back to `~/Pictures/Wallpapers`. Add a background directory (or
+use `theme-install`) if a theme should also switch wallpapers.
+
 List installed themes with:
 
 ```bash
@@ -84,8 +92,11 @@ Do not hand-edit `generated/`; it is rebuilt on every `theme-set`.
 - `niri.kdl` — focus ring/border/tab/insert colors. Must be valid KDL: niri
   rejects single-line `{ ... }` blocks without `;` separators.
 - `gtk.css` / `gtklock.css` — GTK3/4 and lock screen color overrides.
-- `ghostty.conf` / `foot.ini` — terminal palettes. The transient sudo terminal
-  uses the same foot theme.
+- `ghostty.conf` / `foot.ini` — terminal palettes. Foot 1.28 uses
+  `[colors-dark]`; the generated file also sets `[csd] preferred=none` and does
+  not force a global app-id. Normal foot windows therefore tile, and the
+  transient helpers pass `org.omarchy.transient` / `org.omarchy.sudo`
+  explicitly.
 - `btop.theme` — monitor colors.
 
 ## Live application

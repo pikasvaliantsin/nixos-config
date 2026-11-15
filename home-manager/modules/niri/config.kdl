@@ -140,6 +140,12 @@ window-rule {
     default-window-height { fixed 260; }
 }
 
+// Full-size process monitor.
+window-rule {
+    match app-id="^org.omarchy.btop$"
+    open-maximized true
+}
+
 environment {
     "GTK_USE_PORTAL" "1"
     "WLR_NO_HARDWARE_CURSORS" "1"
