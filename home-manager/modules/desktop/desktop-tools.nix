@@ -339,6 +339,22 @@ in
     clipGc
   ];
 
+  # OSD for volume/brightness keys. Without the server the client exits
+  # silently and the media keys look dead, so it runs with the session.
+  systemd.user.services.swayosd = {
+    Unit = {
+      Description = "SwayOSD volume and brightness overlay";
+      PartOf = [ "graphical-session.target" ];
+      After = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${pkgs.swayosd}/bin/swayosd-server";
+      Restart = "on-failure";
+      RestartSec = 1;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   # Два watcher'а: текст и PNG. Пишут в ~/.local/state/quickshell/clipboard.
   systemd.user.services.clipboard-text = {
     Unit = {

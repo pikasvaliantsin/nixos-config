@@ -49,7 +49,8 @@ Item {
       out.push({ kind: "section", title: section.title })
       for (var i = 0; i < section.items.length; i++) {
         var item = section.items[i]
-        out.push({ kind: "item", keys: item.keys, title: item.title, action: item.action })
+        out.push({ kind: "item", keys: item.keys, title: item.title,
+                   action: item.action, command: item.command || item.action })
       }
     }
     return out
@@ -274,7 +275,7 @@ Item {
               spacing: Style.space(10)
 
               Text {
-                width: Style.space(210)
+                width: Style.space(190)
                 text: rowItem.modelData.kind === "item" ? rowItem.modelData.keys : ""
                 color: Commons.Color.menu.text
                 font.family: Style.font.family
@@ -285,12 +286,23 @@ Item {
               }
 
               Text {
-                width: Math.max(0, parent.width - Style.space(210) - Style.space(10))
+                width: Style.space(260)
                 text: rowItem.modelData.kind === "item" ? rowItem.modelData.title : ""
                 color: Commons.Color.menu.text
                 font.family: Style.font.family
                 font.pixelSize: Style.font.bodySmall
                 elide: Text.ElideRight
+                anchors.verticalCenter: parent.verticalCenter
+              }
+
+              Text {
+                width: Math.max(0, parent.width - Style.space(190) - Style.space(260) - Style.space(20))
+                text: rowItem.modelData.kind === "item" ? rowItem.modelData.command : ""
+                color: Commons.Color.menu.text
+                opacity: 0.45
+                font.family: Style.font.family
+                font.pixelSize: Style.font.caption
+                elide: Text.ElideMiddle
                 anchors.verticalCenter: parent.verticalCenter
               }
             }

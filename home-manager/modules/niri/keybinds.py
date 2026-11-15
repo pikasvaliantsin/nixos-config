@@ -81,10 +81,12 @@ def main():
             if not action:
                 continue
 
+            command = action.replace('\\"', '"').replace("\\'", "'")
             current["items"].append({
                 "keys": keys,
                 "title": title or action_label(action),
                 "action": action,
+                "command": command,
             })
 
     if current["items"]:
