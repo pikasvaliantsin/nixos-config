@@ -34,6 +34,9 @@ def action_label(action):
         if parts:
             return " ".join(parts[:3])
         return text[6:].strip()
+    if " " not in text and ("-" in text or "_" in text):
+        words = text.replace("-", " ").replace("_", " ")
+        return words[:1].upper() + words[1:]
     return text
 
 

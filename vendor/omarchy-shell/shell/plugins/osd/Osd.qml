@@ -115,9 +115,13 @@ Item {
 
   ShellIpc {
     target: "osd"
-    function show(payloadJson: string): string {
+    // void return: the IPC parser registers parameters for void functions;
+    // with `: string` this method was advertised as taking no arguments.
+    function show(payloadJson: string): void {
       root.open(payloadJson)
-      return "ok"
+    }
+    function display(payloadJson: string): void {
+      root.open(payloadJson)
     }
     function close(): string { root.close(); return "ok" }
     function state(): string { return root.opened ? "open" : "closed" }

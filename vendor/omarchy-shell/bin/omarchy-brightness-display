@@ -55,6 +55,6 @@ esac
 
 brightnessctl -d "$device" set "$step" >/dev/null
 if (( ! no_osd )); then
-  command -v swayosd-client >/dev/null 2>&1 && swayosd-client --brightness 2>/dev/null || true
+  command -v omarchy-osd >/dev/null 2>&1 && omarchy-osd -i brightness -p "$(current)" >/dev/null 2>&1 || true
 fi
 current

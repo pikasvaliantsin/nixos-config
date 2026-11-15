@@ -2,56 +2,57 @@
 // команды: omarchy-ipc/swayosd/gtklock/niri msg/playerctl/wpctl/dfiles.
 
 binds {
-    // --- сессия, лаунчер, центр уведомлений -------------------------------
-    Alt+Space hotkey-overlay-title="Поиск приложений" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"apps\"}"; }
-    Mod+D hotkey-overlay-title="Приложения" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"apps\"}"; }
-    Mod+Escape hotkey-overlay-title="Меню" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"root\"}"; }
-    Mod+Shift+D hotkey-overlay-title="Поиск файлов" { spawn "omarchy-ipc" "call" "local.file-search" "toggle"; }
-    Mod+Shift+C hotkey-overlay-title="Калькулятор" { spawn "omarchy-ipc" "call" "local.calc" "toggle"; }
-    Mod+Shift+X hotkey-overlay-title="Инструменты разработчика" { spawn "omarchy-ipc" "call" "devtools" "toggle"; }
-    Mod+Alt+T hotkey-overlay-title="Темы" { spawn "omarchy-ipc" "call" "gallery" "themes"; }
-    Mod+Shift+B hotkey-overlay-title="Обои" { spawn "omarchy-ipc" "call" "gallery" "wallpapers"; }
+    // --- session, launcher, notification center -------------------------------
+    Alt+Space hotkey-overlay-title="App search" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"apps\"}"; }
+    Mod+D hotkey-overlay-title="Apps" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"apps\"}"; }
+    Mod+Escape hotkey-overlay-title="Menu" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"root\"}"; }
+    Mod+Shift+D hotkey-overlay-title="File search" { spawn "omarchy-ipc" "call" "local.file-search" "toggle"; }
+    Mod+Shift+C hotkey-overlay-title="Calculator" { spawn "omarchy-ipc" "call" "local.calc" "toggle"; }
+    Mod+Shift+X hotkey-overlay-title="Developer tools" { spawn "omarchy-ipc" "call" "devtools" "toggle"; }
+    Mod+Alt+T hotkey-overlay-title="Themes" { spawn "omarchy-ipc" "call" "gallery" "themes"; }
+    Mod+Shift+B hotkey-overlay-title="Wallpapers" { spawn "omarchy-ipc" "call" "gallery" "wallpapers"; }
     // Notification center is a custom plugin on top of omarchy-shell.
-    Mod+N hotkey-overlay-title="Уведомления" { spawn "omarchy-ipc" "call" "notifications" "toggle"; }
+    Mod+N hotkey-overlay-title="Notifications" { spawn "omarchy-ipc" "call" "notifications" "toggle"; }
     // Clipboard history overlay (QML, Omarchy clipboard plugin).
-    Mod+V hotkey-overlay-title="Буфер обмена" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.clipboard" "{}"; }
-    Mod+Alt+L hotkey-overlay-title="Блокировка" { spawn "gtklock"; }
-    Super+X hotkey-overlay-title="Система" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"system\"}"; }
-    Mod+M hotkey-overlay-title="Монитор процессов" { spawn "foot" "dgop" "top"; }
-    Ctrl+Alt+Delete hotkey-overlay-title="Монитор процессов" { spawn "foot" "dgop" "top"; }
+    Mod+V hotkey-overlay-title="Clipboard" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.clipboard" "{}"; }
+    Mod+Alt+L hotkey-overlay-title="Lock" { spawn "gtklock"; }
+    Super+X hotkey-overlay-title="System" { spawn "omarchy-ipc" "call" "shell" "toggle" "omarchy.menu" "{\"menu\":\"system\"}"; }
+    Mod+M hotkey-overlay-title="Process monitor" { spawn "foot" "dgop" "top"; }
+    Ctrl+Alt+Delete hotkey-overlay-title="Process monitor" { spawn "foot" "dgop" "top"; }
 
-    // --- звук / микрофон / яркость (с OSD) --------------------------------
-    XF86AudioRaiseVolume allow-when-locked=true { spawn "swayosd-client" "--output-volume" "raise"; }
-    XF86AudioLowerVolume allow-when-locked=true { spawn "swayosd-client" "--output-volume" "lower"; }
-    XF86AudioMute allow-when-locked=true { spawn "swayosd-client" "--output-volume" "mute-toggle"; }
-    XF86AudioMicMute allow-when-locked=true { spawn "swayosd-client" "--input-volume" "mute-toggle"; }
-    XF86MonBrightnessUp allow-when-locked=true { spawn "swayosd-client" "--brightness" "raise"; }
-    XF86MonBrightnessDown allow-when-locked=true { spawn "swayosd-client" "--brightness" "lower"; }
+    // --- audio / microphone / brightness (with OSD) --------------------------------
+    // Mod + wheel is the volume knob; this laptop has no brightness wheel.
+    Mod+WheelScrollUp allow-when-locked=true { spawn "omarchy-audio-output-volume" "+2"; }
+    Mod+WheelScrollDown allow-when-locked=true { spawn "omarchy-audio-output-volume" "-2"; }
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "omarchy-audio-output-volume" "raise"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "omarchy-audio-output-volume" "lower"; }
+    XF86AudioMute allow-when-locked=true { spawn "omarchy-audio-output-volume" "mute-toggle"; }
+    XF86AudioMicMute allow-when-locked=true { spawn "omarchy-audio-input-mute"; }
+    XF86MonBrightnessUp allow-when-locked=true { spawn "omarchy-brightness-display" "+5%"; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "omarchy-brightness-display" "5%-"; }
 
-    // --- медиа ------------------------------------------------------------
+    // --- media ------------------------------------------------------------
     XF86AudioPlay allow-when-locked=true { spawn "playerctl" "play-pause"; }
     XF86AudioPause allow-when-locked=true { spawn "playerctl" "play-pause"; }
     XF86AudioNext allow-when-locked=true { spawn "playerctl" "next"; }
     XF86AudioPrev allow-when-locked=true { spawn "playerctl" "previous"; }
-    Ctrl+XF86AudioRaiseVolume allow-when-locked=true { spawn "playerctl" "volume" "0.03+"; }
-    Ctrl+XF86AudioLowerVolume allow-when-locked=true { spawn "playerctl" "volume" "0.03-"; }
 
-    // --- обои / скриншоты -------------------------------------------------
-    Mod+Shift+Tab repeat=false { spawn "bg-next"; }
-    Mod+Alt+Tab repeat=false { spawn "bg-prev"; }
-    Mod+Y hotkey-overlay-title="Обои" { spawn "waypaper"; }
+    // --- wallpapers / screenshots -------------------------------------------------
+    Mod+Shift+Tab repeat=false hotkey-overlay-title="Next wallpaper" { spawn "bg-next"; }
+    Mod+Alt+Tab repeat=false hotkey-overlay-title="Previous wallpaper" { spawn "bg-prev"; }
+    Mod+Y hotkey-overlay-title="Wallpaper picker" { spawn "omarchy-ipc" "call" "gallery" "wallpapers"; }
     XF86Launch1 { screenshot; }
-    Super+Shift+S hotkey-overlay-title="Скриншот: область" { screenshot; }
-    Mod+Ctrl+S hotkey-overlay-title="Скриншот: экран" { screenshot-screen; }
-    Mod+Ctrl+Shift+S hotkey-overlay-title="Скриншот: окно" { screenshot-window; }
-    Ctrl+Shift+S hotkey-overlay-title="Последний скриншот → буфер" { spawn "last-shot"; }
-    Ctrl+Alt+S hotkey-overlay-title="Скриншот → путь в буфер" { spawn "shot-path"; }
+    Super+Shift+S hotkey-overlay-title="Screenshot: region" { screenshot; }
+    Mod+Ctrl+S hotkey-overlay-title="Screenshot: screen" { screenshot-screen; }
+    Mod+Ctrl+Shift+S hotkey-overlay-title="Screenshot: window" { screenshot-window; }
+    Ctrl+Shift+S hotkey-overlay-title="Last screenshot → clipboard" { spawn "last-shot"; }
+    Ctrl+Alt+S hotkey-overlay-title="Screenshot → path to clipboard" { spawn "shot-path"; }
     Ctrl+XF86Launch1 { screenshot-screen; }
     Alt+XF86Launch1 { screenshot-window; }
-    Alt+R hotkey-overlay-title="Запись экрана" { spawn "omarchy-capture-screenrecording" "--fullscreen" "--with-desktop-audio"; }
-    Alt+Shift+R hotkey-overlay-title="Запись области" { spawn "omarchy-capture-screenrecording" "--region" "--with-desktop-audio"; }
+    Alt+R hotkey-overlay-title="Screen recording" { spawn "omarchy-capture-screenrecording" "--fullscreen" "--with-desktop-audio"; }
+    Alt+Shift+R hotkey-overlay-title="Region recording" { spawn "omarchy-capture-screenrecording" "--region" "--with-desktop-audio"; }
 
-    // --- воркспейсы -------------------------------------------------------
+    // --- workspaces -------------------------------------------------------
     Mod+1 { focus-workspace 1; }
     Mod+2 { focus-workspace 2; }
     Mod+3 { focus-workspace 3; }
@@ -78,8 +79,8 @@ binds {
     Mod+Shift+U { move-workspace-down; }
     Mod+Shift+Page_Up { move-workspace-up; }
     Mod+Shift+Page_Down { move-workspace-down; }
-    Mod+WheelScrollUp cooldown-ms=150 { focus-workspace-up; }
-    Mod+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
+    // Wheel over the desktop is volume now; workspaces stay on the bar wheel
+    // and the keyboard binds above.
     Mod+Ctrl+Up { move-column-to-workspace-up; }
     Mod+Ctrl+Down { move-column-to-workspace-down; }
     Mod+Ctrl+I { move-column-to-workspace-up; }
@@ -87,7 +88,7 @@ binds {
     Mod+Ctrl+WheelScrollUp cooldown-ms=150 { move-column-to-workspace-up; }
     Mod+Ctrl+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
 
-    // --- окна и колонки ---------------------------------------------------
+    // --- windows and columns ---------------------------------------------------
     Mod+H { focus-column-left; }
     Mod+L { focus-column-right; }
     Mod+J { focus-window-down; }
@@ -150,22 +151,21 @@ binds {
     Mod+Ctrl+WheelScrollLeft { move-column-left; }
     Mod+Ctrl+WheelScrollRight { move-column-right; }
 
-    // --- обзор / прочее ---------------------------------------------------
-    Mod+O repeat=false { toggle-overview; }
-    Mod+Tab repeat=false { toggle-overview; }
-    Mod+K hotkey-overlay-title="Горячие клавиши" { spawn "omarchy-ipc" "call" "keybinds" "toggle"; }
-    Mod+Shift+Slash hotkey-overlay-title="Горячие клавиши" { spawn "omarchy-ipc" "call" "keybinds" "toggle"; }
-    Mod+Shift+P { power-off-monitors; }
-    Mod+Shift+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
-    Mod+Shift+E { quit; }
+    // --- overview / misc ---------------------------------------------------
+    Mod+O repeat=false hotkey-overlay-title="Overview" { toggle-overview; }
+    Mod+Tab repeat=false hotkey-overlay-title="Overview" { toggle-overview; }
+    Mod+K hotkey-overlay-title="Keybindings" { spawn "omarchy-ipc" "call" "keybinds" "toggle"; }
+    Mod+Shift+Slash hotkey-overlay-title="Keybindings" { spawn "omarchy-ipc" "call" "keybinds" "toggle"; }
+    Mod+Shift+P hotkey-overlay-title="Monitors off" { power-off-monitors; }
+    Mod+Shift+Escape allow-inhibiting=false hotkey-overlay-title="Toggle shortcuts inhibit" { toggle-keyboard-shortcuts-inhibit; }
+    Mod+Shift+E hotkey-overlay-title="Quit niri" { quit; }
 
-    // --- приложения -------------------------------------------------------
-    Mod+Return hotkey-overlay-title="Терминал" { spawn "ghostty"; }
-    Mod+T hotkey-overlay-title="Терминал" { spawn "ghostty"; }
-    Mod+B { spawn "zen"; }
-    Super+Shift+B { spawn "firefox"; }
-    Super+G repeat=false { spawn "steam"; }
-    "Shift+Page_Up" repeat=false { spawn "./scripts/toogle_key.sh"; }
+    // --- applications -------------------------------------------------------
+    Mod+Return hotkey-overlay-title="Terminal" { spawn "ghostty"; }
+    Mod+T hotkey-overlay-title="Terminal" { spawn "ghostty"; }
+    Mod+B hotkey-overlay-title="Zen browser" { spawn "zen"; }
+    Mod+Ctrl+B hotkey-overlay-title="Firefox" { spawn "firefox"; }
+    Super+G repeat=false hotkey-overlay-title="Steam" { spawn "steam"; }
     Mod+Alt+B hotkey-overlay-title="Bite Alarm" { spawn "bite-alarm-toggle"; }
     Mod+Alt+R hotkey-overlay-title="Reel Hold" { spawn "reel-hold"; }
 }
