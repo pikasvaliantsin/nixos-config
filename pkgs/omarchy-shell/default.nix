@@ -34,6 +34,7 @@
   glib,
   gtk3,
   brightnessctl,
+  ddcutil,
   systemd,
   wlsunset,
   foot,
@@ -72,6 +73,7 @@ let
     glib
     gtk3
     brightnessctl
+    ddcutil
     systemd
     wlsunset
     foot

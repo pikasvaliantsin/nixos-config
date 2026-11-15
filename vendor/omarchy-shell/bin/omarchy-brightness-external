@@ -10,20 +10,41 @@ step="${1:-}"
 [[ $step =~ ^[+-][0-9]+$ ]] || { echo "usage: omarchy-brightness-external <+N|-N>" >&2; exit 2; }
 
 command -v ddcutil >/dev/null 2>&1 || { echo "omarchy-brightness-external: ddcutil missing" >&2; exit 1; }
+command -v omarchy-brightness-display-ddc >/dev/null 2>&1 || { echo "omarchy-brightness-external: DDC helper missing" >&2; exit 1; }
 
-# The internal panel has no DDC; the first detected display is the HDMI one.
-info=$(ddcutil --display 1 getvcp 10 --brief 2>/dev/null) || exit 1
-current=$(awk '{print $4}' <<<"$info")
-max=$(awk '{print $5}' <<<"$info")
-[[ $current =~ ^[0-9]+$ && $max =~ ^[0-9]+$ ]] || exit 1
+# Find a connected external output that is currently on.  DDC to a sleeping
+# monitor can block for a long time, and on AMDGPU a full i2c bus scan can
+# wedge the display engine (ddcutil issue #223).
+monitor=""
+for status in /sys/class/drm/card*-HDMI-A-*/status /sys/class/drm/card*-DP-*/status; do
+  [[ -r $status ]] || continue
+  [[ $(<"$status") == connected ]] || continue
+  dir=${status%/status}
+  dpms="$dir/dpms"
+  if [[ -r $dpms && $(<"$dpms") != On ]]; then
+    continue
+  fi
+  name=${dir##*/}
+  monitor=${name#*-}
+  break
+done
+[[ -n $monitor ]] || exit 0
 
+# The DDC helper speaks percentages; the keybind passes raw steps.
 if [[ $step == +* ]]; then
-  value=$((current + ${step#+}))
+  step="+${step#+}%"
 else
-  value=$((current - ${step#-}))
+  step="${step#-}%-"
 fi
-((value > max)) && value=$max
-((value < 0)) && value=0
 
-ddcutil --display 1 setvcp 10 "$value" >/dev/null
-omarchy-osd -i brightness -p "$value" >/dev/null 2>&1 || true
+# Serialize brightness calls.  A second key event is dropped while one DDC
+# transaction is in flight; this is what prevents the ddcutil process storm
+# that hard-hung the display engine on 2026-11-15.
+runtime="${XDG_RUNTIME_DIR:-/tmp}"
+exec 9>"$runtime/omarchy-brightness-display.lock"
+flock -n 9 || exit 0
+
+brightness=$(omarchy-brightness-display-ddc "$monitor" "$step") || exit 1
+if command -v omarchy-osd >/dev/null 2>&1; then
+  omarchy-osd -i brightness -p "$brightness" >/dev/null 2>&1 || true
+fi

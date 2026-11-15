@@ -56,6 +56,18 @@ Re-check each against the new tag; the descriptions say what to keep.
 - `bin/omarchy-brightness-display`
   - shows our OSD instead of swayosd and prefers the internal panel even when
     an external monitor is focused.
+- `bin/omarchy-brightness-display-ddc` (backport from newer upstream)
+  - resolves the DDC bus from `/sys/class/drm/card*-<monitor>/ddc` first, so
+    the normal path never runs `ddcutil detect`;
+  - uses `--bus`, `--skip-ddc-checks`, `--noverify`, and bounds each DDC call
+    with `timeout`;
+  - never scans all i2c buses: on AMDGPU a rapid key repeat plus a bus scan
+    wedged the display engine (ddcutil issue #223).
+- `bin/omarchy-brightness-external` (our script)
+  - resolves a connected HDMI/DP output and checks `dpms=On`;
+  - takes `flock -n` on `omarchy-brightness-display.lock`, so rapid
+    Super+volume events cannot spawn a ddcutil storm;
+  - converts `+N`/`-N` to `+N%`/`N%-` and delegates to the DDC helper.
 - `bin/omarchy-osd` (our script)
   - turns `-i/-m/-p` into the `osd display` IPC call. Upstream's `osd show`
     method is shadowed by the IpcHandler base and registers no arguments.
