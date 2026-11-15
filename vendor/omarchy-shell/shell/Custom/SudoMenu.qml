@@ -58,7 +58,7 @@ KeyboardPanel {
 
       Text {
         width: parent.width
-        text: "Confirm with your password or fingerprint."
+        text: "Confirm to continue."
         color: Commons.Color.muted
         font.family: Style.font.family
         font.pixelSize: Style.font.caption

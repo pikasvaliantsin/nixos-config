@@ -140,6 +140,13 @@ symlink under `~/.local/state/theme/current`, and the shell reads
 `colors.toml`, `shell.toml`, `niri.kdl`, GTK CSS, Ghostty/foot and btop.
 Do not hand-edit the Nix store; edit the theme source and regenerate.
 
+## Fingerprint
+
+`mySystem.fingerprintAuth.enable` (default `false`) gates PAM login/sudo and
+the graphical sudo dialog. The fprintd daemon, the patched libfprint driver
+and enrolled prints are always kept; set the option to `true` and rebuild for
+laptop-only use. See [`docs/omarchy/auth.md`](docs/omarchy/auth.md).
+
 ## Clipboard and notifications
 
 The notification deck is replaced locally; the clipboard is an adapted

@@ -24,6 +24,7 @@ import time
 
 PAMTESTER = "@PAMTESTER@"
 FPRINTD = "@FPRINTD@"
+FINGERPRINT_ENABLED = "@FINGERPRINT_ENABLED@" == "1"
 PASSWORD_SERVICE = "omarchy-password"
 TIMEOUT_SECONDS = 120
 
@@ -181,6 +182,7 @@ def main():
         "type": "auth_request",
         "user": user,
         "service": os.environ.get("PAM_SERVICE", "sudo"),
+        "fingerprint": FINGERPRINT_ENABLED,
     }
     request.update(process_context())
     if not send(connection, request):
@@ -227,6 +229,9 @@ def main():
                     return 5
 
                 if action == "fingerprint":
+                    if not FINGERPRINT_ENABLED:
+                        send(connection, {"event": "fingerprint_failed"})
+                        continue
                     if fingerprint is None or fingerprint.poll() is not None:
                         fingerprint = subprocess.Popen(
                             [FPRINTD, user],

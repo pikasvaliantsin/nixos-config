@@ -5,6 +5,23 @@
 Quickshell auth dialog for a password or fingerprint and verifies the answer
 itself.
 
+## Fingerprint toggle
+
+`mySystem.fingerprintAuth.enable` (default `false`) controls PAM integration
+with the ELAN sensor:
+
+- `false`: `services.fprintd.enablePam = false`, so `pam_fprintd` is absent
+  from `login`, `greetd` and `sudo`; greetd asks for a password and `AuthAgent`
+  hides the fingerprint button. The fprintd daemon, drivers and enrolled
+  prints stay installed.
+- `true`: `pam_fprintd` returns to the PAM stacks and the graphical dialog
+  offers the sensor again.
+
+The sensor is on the far side of the laptop, so it is off by default while the
+external monitor/keyboard are in use. To re-enable it for laptop-only use, set
+`mySystem.fingerprintAuth.enable = true` and rebuild. Enrollment data lives in
+`/var/lib/fprint` and is not touched by the switch.
+
 ## Flow
 
 1. A terminal `sudo`, or `omarchy-sudo-passwordless` from the bar menu, starts
@@ -14,7 +31,8 @@ itself.
    `PAM_USER`'s UID) and sends an `auth_request`.
 4. `AuthAgent` shows one modal dialog on the focused output with:
    - a password field, usable immediately;
-   - a fingerprint button and an automatically started scan.
+   - a fingerprint button and an automatically started scan, only when
+     `mySystem.fingerprintAuth.enable` is true.
 5. The dialog sends either a password or a fingerprint request. The helper:
    - checks a password with `pamtester omarchy-password <user> authenticate`;
    - runs `fprintd-verify <user>` itself for fingerprint.
@@ -30,10 +48,13 @@ fingerprint.
 
 ```pam
 auth [success=done abort=die ignore=ignore default=ignore] pam_omarchy.so /nix/store/...-omarchy-pam-auth
-auth sufficient pam_fprintd.so
+auth sufficient pam_fprintd.so          # only when mySystem.fingerprintAuth.enable
 auth sufficient pam_unix.so likeauth try_first_pass
 auth required pam_deny.so
 ```
+
+With the toggle off, `pam_fprintd` is absent and the helper only offers a
+password; `pam_gnome_keyring` still runs in the `login` stack.
 
 - helper exit 0 → `PAM_SUCCESS`: stop, sudo proceeds;
 - helper exit 5 (Cancel) → `PAM_ABORT`: deny immediately, no sudo retry and no
@@ -71,7 +92,8 @@ Use the PAM stack directly, which avoids changing sudo timestamps:
 nix shell nixpkgs#pamtester -c pamtester sudo "$USER" authenticate </dev/null
 ```
 
-The dialog should open. Check:
+The dialog should open. With `mySystem.fingerprintAuth.enable = false` it
+must show only the password field and Cancel. With the toggle on, also check:
 
 - fingerprint works with the sensor;
 - typing a password works immediately and cancels the scan;

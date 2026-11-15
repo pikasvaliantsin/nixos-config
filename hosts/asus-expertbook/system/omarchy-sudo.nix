@@ -11,8 +11,12 @@ let
   pamAuth = pkgs.writeScript "omarchy-pam-auth" ''
     #!${pkgs.python3}/bin/python3
     ${builtins.replaceStrings
-      [ "@PAMTESTER@" "@FPRINTD@" ]
-      [ "${pkgs.pamtester}/bin/pamtester" "${pkgs.fprintd}/bin/fprintd-verify" ]
+      [ "@PAMTESTER@" "@FPRINTD@" "@FINGERPRINT_ENABLED@" ]
+      [
+        "${pkgs.pamtester}/bin/pamtester"
+        "${pkgs.fprintd}/bin/fprintd-verify"
+        (if config.mySystem.fingerprintAuth.enable then "1" else "0")
+      ]
       (builtins.readFile ./omarchy-pam-auth.py)}
   '';
 

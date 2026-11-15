@@ -5,7 +5,7 @@
 # поэтому здесь собирается именно эта версия.
 #
 # Источник патчей: https://github.com/Alexys829/elan-0c77-libfprint
-{ lib, ... }:
+{ config, lib, ... }:
 
 let
   patchDir = ./fingerprint/patches;
@@ -15,7 +15,19 @@ let
   patches = map (n: patchDir + "/${n}") series;
 in
 {
-  nixpkgs.overlays = [
+  options.mySystem.fingerprintAuth.enable = lib.mkOption {
+    type = lib.types.bool;
+    default = false;
+    description = ''
+      Use the fingerprint sensor for PAM login/sudo and the graphical sudo
+      dialog. The fprintd daemon and enrolled prints stay in place either way;
+      set this to true and rebuild when using the laptop without an external
+      keyboard/monitor.
+    '';
+  };
+
+  config = {
+    nixpkgs.overlays = [
     (final: prev: {
       libfprint = prev.libfprint.overrideAttrs (old: {
         version = "1.95.1+tod1";
@@ -47,5 +59,7 @@ in
     })
   ];
 
-  services.fprintd.enable = true;
+    services.fprintd.enable = true;
+    services.fprintd.enablePam = config.mySystem.fingerprintAuth.enable;
+  };
 }

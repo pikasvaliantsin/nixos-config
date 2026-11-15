@@ -31,6 +31,7 @@ Item {
   property bool checking: false
   property bool cancelling: false
   property bool fingerprintActive: false
+  property bool fingerprintEnabled: true
   property bool statusError: false
   property string status: ""
 
@@ -74,10 +75,20 @@ Item {
       root.checking = false
       root.cancelling = false
       root.fingerprintActive = false
+      root.fingerprintEnabled = message.fingerprint !== false
       root.statusError = false
-      root.status = I18n.t("auth.touch", "Touch the sensor or type your password")
+      root.status = root.fingerprintEnabled
+        ? I18n.t("auth.touch", "Touch the sensor or type your password")
+        : I18n.t("auth.passwordOnly", "Enter your password")
       passwordInput.text = ""
-      Qt.callLater(function() { root.startFingerprint() })
+      if (root.fingerprintEnabled) {
+        Qt.callLater(function() { root.startFingerprint() })
+      } else {
+        Qt.callLater(function() {
+          passwordInput.enabled = true
+          passwordInput.forceActiveFocus()
+        })
+      }
       return
     }
 
@@ -117,7 +128,7 @@ Item {
   }
 
   function startFingerprint() {
-    if (!root.opened || root.cancelling) return
+    if (!root.opened || root.cancelling || !root.fingerprintEnabled) return
     root.statusError = false
     root.fingerprintActive = true
     root.status = I18n.t("auth.waiting", "Touch the fingerprint sensor…")
@@ -302,6 +313,7 @@ Item {
           spacing: Style.space(8)
 
           Button {
+            visible: root.fingerprintEnabled
             text: I18n.t("auth.fingerprint", "Fingerprint")
             iconText: "󰈷"
             foreground: Commons.Color.popups.text
@@ -311,7 +323,13 @@ Item {
             onClicked: root.startFingerprint()
           }
 
-          Item { width: Math.max(0, parent.width - parent.children[0].width - parent.children[2].width - parent.spacing * 2); height: 1 }
+          Item {
+            width: Math.max(0, parent.width
+              - (parent.children[0].visible ? parent.children[0].width : 0)
+              - parent.children[2].width
+              - parent.spacing * 2)
+            height: 1
+          }
 
           Button {
             text: I18n.t("auth.cancel", "Cancel")
