@@ -75,7 +75,11 @@ systemctl --user restart omarchy-shell
 ```
 
 - `nixos-rebuild build` validates Nix evaluation without activating.
-- `switch` needs root; do not assume passwordless sudo is enabled.
+- `switch` needs root; do not assume passwordless sudo is enabled. When
+  `sudo -n true` succeeds, run `switch` in the same turn and verify that
+  `readlink -f /run/current-system` equals the build path, the user units are
+  active, and the changed UI/config is live. The user grants sudo periodically,
+  so retry it on later turns instead of leaving a build unapplied.
 - QML is not compiled by Nix. A successful build only proves the package
   built, not that the QML loads. Start the shell and read its journal/log.
 - The shell package path can be checked with:
