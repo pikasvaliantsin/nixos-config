@@ -75,6 +75,7 @@ Item {
     listProc.running = false
     listProc.command = ["omarchy-gallery", root.mode]
     listProc.running = true
+    Qt.callLater(root.focusDeck)
   }
 
   // The hotkey opens and closes: a second press on the same deck hides it.
@@ -113,16 +114,27 @@ Item {
     root.installStatus = ""
     root.errorText = ""
     Qt.callLater(function() {
-      if (!urlField) return
-      urlField.text = ""
-      urlField.forceActiveFocus()
+      var field = root.inputField()
+      if (!field) return
+      field.text = ""
+      field.forceActiveFocus()
     })
+  }
+
+  function inputField() {
+    return urlFieldLoader.item
   }
 
   function cancelUrlInput() {
     root.urlInputActive = false
     if (!root.installing) root.installStatus = ""
-    if (urlField) urlField.text = ""
+    Qt.callLater(root.focusDeck)
+  }
+
+  // The scrim owns focus when no text field is open, so a hidden field can
+  // never keep swallowing the deck's arrow keys after a reopen.
+  function focusDeck() {
+    scrim.forceActiveFocus()
   }
 
   function dismiss() {
@@ -131,9 +143,13 @@ Item {
   }
 
   function installFromInput() {
-    if (root.installing) return
-    var url = urlField ? String(urlField.text).trim() : ""
-    if (url === "") return
+    var field = root.inputField()
+    root.installUrl(field ? String(field.text).trim() : "")
+  }
+
+  function installUrl(value) {
+    var url = String(value || "").trim()
+    if (url === "" || root.installing) return
     root.installOutput = ""
     root.installError = ""
     root.installStatus = "Installing…"
@@ -221,11 +237,11 @@ Item {
           installed = lines[i].slice("theme-installed ".length)
 
       root.urlInputActive = false
-      if (urlField) urlField.text = ""
       root.installStatus = installed === "" ? "Theme installed" : "Installed " + installed
       root.notice = root.installStatus
       root.pendingInstallSelection = installed
       clearInstallStatus.restart()
+      Qt.callLater(root.focusDeck)
 
       // theme-install applies the theme; reload the deck so the new entry is
       // visible instead of leaving the old list on screen.
@@ -261,10 +277,8 @@ Item {
     }
     function install(url: string): string {
       if (!root.isThemes) return "not-themes"
-      root.urlInputActive = true
       root.installStatus = ""
-      if (urlField) urlField.text = String(url || "")
-      root.installFromInput()
+      root.installUrl(url)
       return root.installing ? "installing" : "unknown"
     }
     function status(): string {
@@ -275,6 +289,9 @@ Item {
         count: root.items.length,
         name: root.itemTitle(root.currentItem),
         loading: root.loading,
+        input: root.urlInputActive,
+        installing: root.installing,
+        fieldFocus: root.inputField() ? root.inputField().activeFocus : false,
         error: root.errorText
       })
     }
@@ -296,8 +313,6 @@ Item {
     }
     Shortcut { sequence: "Left"; enabled: root.opened && !root.urlInputActive; onActivated: root.move(-1) }
     Shortcut { sequence: "Right"; enabled: root.opened && !root.urlInputActive; onActivated: root.move(1) }
-    Shortcut { sequence: "Up"; enabled: root.opened && !root.urlInputActive; onActivated: root.move(-1) }
-    Shortcut { sequence: "Down"; enabled: root.opened && !root.urlInputActive; onActivated: root.move(1) }
     Shortcut { sequence: "Return"; enabled: root.opened && !root.urlInputActive; onActivated: root.applyCurrent() }
     Shortcut { sequence: "Enter"; enabled: root.opened && !root.urlInputActive; onActivated: root.applyCurrent() }
 
@@ -307,7 +322,9 @@ Item {
     }
 
     MouseArea {
+      id: scrim
       anchors.fill: parent
+      focus: true
       acceptedButtons: Qt.AllButtons
       onClicked: root.close()
     }
@@ -507,20 +524,28 @@ Item {
           width: parent.width - Style.space(32)
           spacing: Style.space(8)
 
-          TextField {
-            id: urlField
+          Loader {
+            id: urlFieldLoader
             width: parent.width
-            visible: root.urlInputActive
-            enabled: !root.installing
-            foreground: Commons.Color.menu.text
-            placeholderText: "https://github.com/<owner>/omarchy-<name>-theme"
-            onAccepted: root.installFromInput()
-            Keys.onPressed: function(event) {
-              if (event.key === Qt.Key_Escape) {
-                root.cancelUrlInput()
-                event.accepted = true
+            // The field is destroyed when the receiver closes, so it cannot
+            // keep keyboard focus and swallow the deck's arrows on reopen.
+            active: root.urlInputActive
+            sourceComponent: Component {
+              TextField {
+                width: urlFieldLoader.width
+                enabled: !root.installing
+                foreground: Commons.Color.menu.text
+                placeholderText: "https://github.com/<owner>/omarchy-<name>-theme"
+                onAccepted: root.installFromInput()
+                Keys.onPressed: function(event) {
+                  if (event.key === Qt.Key_Escape) {
+                    root.cancelUrlInput()
+                    event.accepted = true
+                  }
+                }
               }
             }
+            onLoaded: item.forceActiveFocus()
           }
 
           Text {
