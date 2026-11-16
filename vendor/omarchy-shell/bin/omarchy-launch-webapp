@@ -15,15 +15,16 @@ shift || true
 # lives under app.slice, so match its unit explicitly.
 if [ -z "${OMARCHY_WEBAPP_SCOPED:-}" ]; then
   webapp_cgroup=$(cat /proc/self/cgroup 2>/dev/null || true)
-  case "$webapp_cgroup" in
-    *"/omarchy-shell.service"*) ;;
-    *"/app.slice/"*) ;;
-    *)
-      export OMARCHY_WEBAPP_SCOPED=1
-      exec systemd-run --user --scope --collect --quiet --slice=app.slice -- \
-        "$(readlink -f "$0")" "$url" "$@"
-      ;;
-  esac
+  # A terminal or another application's scope is already detached. The shell
+  # itself also lives under app.slice, so match its unit explicitly and scope
+  # that case rather than treating it as safe.
+  if [[ $webapp_cgroup == *"/app.slice/"* && $webapp_cgroup != *"/omarchy-shell.service"* ]]; then
+    :
+  else
+    export OMARCHY_WEBAPP_SCOPED=1
+    exec systemd-run --user --scope --collect --quiet --slice=app.slice -- \
+      "$(readlink -f "$0")" "$url" "$@"
+  fi
 fi
 
 # Chromium's PWA titlebar takes its window controls from the GTK theme. The
