@@ -45,6 +45,9 @@ in
     packages = with pkgs; [
       gamescope
       protontricks
+      # GUI-фронтенд PortProton для запуска Windows-игр вне Steam.
+      # В nixpkgs атрибут называется portprotonqt (обёрнут в steam-run-free).
+      portprotonqt
       mangohud
       # Диагностика: vulkaninfo (какой ICD реально используется) и nvtop
       # (загрузка/частоты Vega 7 прямо в терминале).
