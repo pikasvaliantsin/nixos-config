@@ -104,12 +104,10 @@ Re-check each against the new tag; the descriptions say what to keep.
   `bin/omarchy-launch-webapp` (backport from newer upstream)
   - runtime web apps: `.desktop` under `~/.local/share/applications`,
     `StartupWMClass`, and `omarchy-launch-webapp` instead of `uwsm-app`;
-  - `--disable-features=WaylandWindowDecorations` plus an empty
-    `--enable-features` (the nixpkgs Chromium wrapper enables that feature)
-    drops the client-side title bar for ordinary app windows on niri;
-  - PWA-style sites (YouTube, Discord) still force Chromium's
-    `WebAppFrameToolbarView` header; no launch flag removes it, only fullscreen,
-    a native client, or a Chromium patch;
+  - the launcher is upstream-minimal (`--app=<url>`); web apps keep Chromium's
+    own PWA title bar. Upstream keeps it deliberately (no tab strip to drag by
+    on Hyprland) and Chromium forces it for manifesto sites, so no decoration
+    flag removes it;
   - reads the page title and web app manifest for the name and the largest
     manifest icon, with apple-touch-icon / Google favicon / `/favicon.ico`
     fallbacks;

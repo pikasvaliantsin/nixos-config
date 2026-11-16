@@ -31,8 +31,6 @@ fi
 
 exec "$browser" \
   --app="$url" \
-  --disable-features=WaylandWindowDecorations \
-  --enable-features= \
   --password-store=basic \
   --ozone-platform-hint=wayland \
   --no-first-run \
