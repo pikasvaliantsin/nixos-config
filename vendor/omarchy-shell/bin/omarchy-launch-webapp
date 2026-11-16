@@ -9,6 +9,18 @@ url="${1:-}"
 [[ -n $url ]] || { echo "usage: omarchy-launch-webapp <url>" >&2; exit 2; }
 shift || true
 
+# Chromium's PWA titlebar takes its window controls from the GTK theme. The
+# Catppuccin GTK theme this desktop uses paints the close hover with its pink
+# error colour and the X disappears into it; the neutral Adwaita variant keeps
+# the icon visible. Follow the active generated theme's light/dark mode.
+theme_state="${XDG_STATE_HOME:-$HOME/.local/state}/theme/current"
+gtk_variant="Adwaita:dark"
+if [ -r "$theme_state/colors.toml" ]; then
+  theme_mode=$(awk -F'"' '/^mode[[:space:]]*=/{print $2; exit}' "$theme_state/colors.toml" 2>/dev/null || true)
+  [ "$theme_mode" = "light" ] && gtk_variant="Adwaita"
+fi
+export GTK_THEME="${GTK_THEME:-$gtk_variant}"
+
 browser="${OMARCHY_WEBAPP_BROWSER:-}"
 if [[ -n $browser && ! -x $browser ]]; then
   browser=$(command -v "$browser" 2>/dev/null || true)

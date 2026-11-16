@@ -98,6 +98,10 @@ omarchy-webapp-remove "Twitch"
   has no tab strip to drag the window by), and Chromium forces the PWA header
   for sites with a manifest. Launcher flags cannot remove it; only fullscreen,
   a native client or a Chromium patch can.
+- Chromium's PWA window controls follow the GTK theme. The launcher exports
+  `GTK_THEME=Adwaita` (or `Adwaita:dark`, matching the active theme) so the
+  close button does not inherit the Catppuccin GTK theme's pink error hover,
+  where the X disappears into the background.
 - The installer asks for the URL first, then looks up the name and the best
   icon automatically (web app manifest → apple-touch-icon → Google favicon →
   `/favicon.ico`); the icon URL is only requested if every source fails.

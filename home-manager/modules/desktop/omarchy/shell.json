@@ -46,11 +46,26 @@
           "offsetMode": "home",
           "units": "C",
           "cities": [
-            { "zone": "Europe/London", "name": "London" },
-            { "zone": "America/New_York", "name": "New York" },
-            { "zone": "Asia/Tokyo", "name": "Tokyo" },
-            { "zone": "Etc/UTC", "name": "UTC" }
-          ]
+            {
+              "name": "Homyel",
+              "zone": "Europe/Minsk",
+              "lat": 52.4345,
+              "lon": 30.9754,
+              "region": "Homyel’ Voblasc’, BY"
+            },
+            {
+              "name": "Yekaterinburg",
+              "zone": "Asia/Yekaterinburg"
+            },
+            {
+              "name": "Las Vegas",
+              "zone": "America/Los_Angeles",
+              "lat": 36.17497,
+              "lon": -115.13722,
+              "region": "Nevada, US"
+            }
+          ],
+          "hour24": true
         },
         {
           "id": "omarchy.weather"
