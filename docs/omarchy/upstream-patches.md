@@ -106,8 +106,10 @@ Re-check each against the new tag; the descriptions say what to keep.
     `StartupWMClass`, and `omarchy-launch-webapp` instead of `uwsm-app`;
   - `--disable-features=WaylandWindowDecorations` plus an empty
     `--enable-features` (the nixpkgs Chromium wrapper enables that feature)
-    drops Chromium's client-side title bar on niri, which draws no server-side
-    decorations, so web apps have no top header at all;
+    drops the client-side title bar for ordinary app windows on niri;
+  - PWA-style sites (YouTube, Discord) still force Chromium's
+    `WebAppFrameToolbarView` header; no launch flag removes it, only fullscreen,
+    a native client, or a Chromium patch;
   - reads the page title and web app manifest for the name and the largest
     manifest icon, with apple-touch-icon / Google favicon / `/favicon.ico`
     fallbacks;
