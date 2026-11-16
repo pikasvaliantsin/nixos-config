@@ -65,7 +65,8 @@
               "region": "Nevada, US"
             }
           ],
-          "hour24": true
+          "hour24": true,
+          "rfOffsetSeconds": -1
         },
         {
           "id": "omarchy.weather"

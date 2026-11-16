@@ -340,6 +340,58 @@ function rows(zones, probe, nowMs, localOffsetMinutes, hour24, words) {
   return out
 }
 
+// ---- RF City: a made-up place whose clock runs 24 game hours per real hour.
+// The game day starts at the top of each real hour, so a row needs no probe,
+// timezone or daylight offset; only the real clock.
+
+function pad2(value) {
+  return (value < 10 ? "0" : "") + String(value)
+}
+
+function rfGameParts(nowMs, offsetMs) {
+  var now = Number(nowMs) + (Number(offsetMs) || 0)
+  if (!isFinite(now)) now = Date.now()
+  var withinHour = ((now % 3600000) + 3600000) % 3600000
+  // 1 real hour = 24 game hours, so one real millisecond is 24 game ms and
+  // one real minute is 24 game minutes.
+  var minutes = withinHour / 2500
+  var hour = Math.floor(minutes / 60)
+  var minute = Math.floor(minutes % 60)
+  return {
+    minutes: minutes,
+    hour: hour,
+    minute: minute,
+    time: pad2(hour) + ":" + pad2(minute),
+    progress: minutes / 1440,
+    phase: phaseFor({ hour: hour, minute: minute })
+  }
+}
+
+// "18:00" (or "9:05") → minutes of the game day, or -1 when invalid.
+function rfAlarmMinutes(value) {
+  var match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(String(value || "").trim())
+  if (!match) return -1
+  return parseInt(match[1], 10) * 60 + parseInt(match[2], 10)
+}
+
+function rfFormatAlarm(minutes) {
+  var value = Number(minutes)
+  if (!isFinite(value) || value < 0 || value >= 1440) return ""
+  return pad2(Math.floor(value / 60)) + ":" + pad2(value % 60)
+}
+
+// The real instant this game time next appears. A game minute is 2.5 real
+// seconds, so 18:00 is at real :45:00. Returns the current game hour's instant;
+// the caller decides whether it has just passed.
+function rfAlarmDueMs(nowMs, targetMinutes, offsetMs) {
+  var offset = Number(offsetMs) || 0
+  var now = Number(nowMs)
+  if (!isFinite(now)) now = Date.now()
+  var gameNow = now + offset
+  var hourStart = Math.floor(gameNow / 3600000) * 3600000
+  return hourStart + Number(targetMinutes) * 2500 - offset
+}
+
 // ---- editing
 
 // Rows and globe cities share no index space, so they meet on (label, zone id).
@@ -1349,6 +1401,10 @@ if (typeof module !== "undefined") {
     daylightStart: daylightStart,
     daylightEnd: daylightEnd,
     rows: rows,
+    rfGameParts: rfGameParts,
+    rfAlarmMinutes: rfAlarmMinutes,
+    rfFormatAlarm: rfFormatAlarm,
+    rfAlarmDueMs: rfAlarmDueMs,
     indexOfZone: indexOfZone,
     indexOfZoneKey: indexOfZoneKey,
     labelForZoneId: labelForZoneId,

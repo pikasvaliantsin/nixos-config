@@ -49,6 +49,18 @@ Panel {
   readonly property bool globeEnabled: setting("globeEnabled", true) !== false
   // Draw the globe with less in it while it moves.
   readonly property bool smoothMotion: setting("smoothMotion", true) !== false
+  // RF City: one real hour is one 24-hour game day. The stored value is HH:MM.
+  readonly property string rfAlarm: {
+    var raw = String(setting("rfAlarm", "") || "")
+    var minutes = Model.rfAlarmMinutes(raw)
+    return minutes < 0 ? "" : Model.rfFormatAlarm(minutes)
+  }
+  // Corrects the game server's clock against the local one; -1 means the
+  // in-game clock is a second behind ours.
+  readonly property int rfOffsetMs: {
+    var value = Number(setting("rfOffsetSeconds", 0))
+    return isFinite(value) ? Math.round(value * 1000) : 0
+  }
 
   // The words the model's clocks and dates read in, from the shell's language.
   readonly property var words: {
@@ -69,6 +81,38 @@ Panel {
   function toggleHour24() { persistSettings({ hour24: !hour24 }) }
   function toggleOffsetMode() { persistSettings({ offsetMode: offsetMode === "utc" ? "home" : "utc" }) }
   function toggleUnits() { persistSettings({ units: units === "C" ? "F" : "C" }) }
+
+  // "" clears the alarm; false means the text was not HH:MM.
+  function setRfAlarm(value) {
+    var text = String(value || "").trim()
+    if (text === "") {
+      persistSettings({ rfAlarm: undefined })
+      return true
+    }
+    var minutes = Model.rfAlarmMinutes(text)
+    if (minutes < 0) return false
+    persistSettings({ rfAlarm: Model.rfFormatAlarm(minutes) })
+    return true
+  }
+
+  // Fires at the first tick of the target game minute. Both bar instances
+  // share the setting and may tick together; the fixed replace id collapses
+  // their notifications into one.
+  function checkRfAlarm() {
+    var alarm = root.rfAlarm
+    if (alarm === "") return
+    var target = Model.rfAlarmMinutes(alarm)
+    if (target < 0) return
+    var now = Date.now()
+    var due = Model.rfAlarmDueMs(now, target, root.rfOffsetMs)
+    if (now < due || now - due > 5000) return
+    Util.execArgv([
+      "omarchy-notification-send", "-r", "4242", "-g", "󰂚",
+      Commons.I18n.t("elsewhen.rfCity", "RF City"),
+      Commons.I18n.t("elsewhen.rfAlarmBody", "%1 in game").arg(alarm)
+    ])
+    root.persistSettings({ rfAlarm: undefined })
+  }
 
   function offsetTextFor(rowData) {
     if (!rowData || !rowData.ready) return ""
@@ -921,6 +965,15 @@ Panel {
     onTriggered: root.scrubMinutes = 0
   }
 
+  // The alarm must ring with the panel closed, so this timer is not gated on
+  // `opened`; it only exists while an alarm is set.
+  Timer {
+    interval: 1000
+    running: root.rfAlarm !== ""
+    repeat: true
+    onTriggered: root.checkRfAlarm()
+  }
+
   Timer {
     interval: 1000
     running: root.opened
@@ -955,6 +1008,10 @@ Panel {
       root.tick()
       return JSON.stringify(root.clockRows)
     }
+
+    function rfNow(): string { return JSON.stringify(Model.rfGameParts(Date.now(), root.rfOffsetMs)) }
+    function rfAlarmSet(value: string): string { return root.setRfAlarm(value) ? "ok" : "invalid" }
+    function rfAlarmClear(): string { return root.setRfAlarm("") ? "ok" : "invalid" }
     function add(zone: string, label: string): string {
       root.setZones(Model.addZone(root.zones, zone, label))
       return Model.serializeZones(root.zones)
@@ -1200,6 +1257,16 @@ Panel {
                     model: root.zones
 
                     CityRow { panel: root }
+                  }
+                }
+
+                RfCityRow {
+                  panel: root
+                  visible: root.zoom < 1
+
+                  transform: Translate {
+                    x: Model.knockX(root.zones.length, root.zoom, Style.space(95))
+                    y: Model.knockY(root.zones.length, root.zoom, root.knockFall)
                   }
                 }
 
