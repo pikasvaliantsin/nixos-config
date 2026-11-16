@@ -39,6 +39,7 @@
   brightnessctl,
   ddcutil,
   cups,
+  poppler-utils,
   systemd,
   wlsunset,
   foot,
@@ -82,6 +83,7 @@ let
     brightnessctl
     ddcutil
     cups
+    poppler-utils
     systemd
     wlsunset
     foot
@@ -131,6 +133,13 @@ EOF
       --prefix QT_PLUGIN_PATH : ${qt6.qtimageformats}/lib/qt-6/plugins \
       --set OMARCHY_PATH $out/share/omarchy \
       --set OMARCHY_SESSION_ID niri
+
+    # The profile exposes this helper directly, outside the shell wrapper's
+    # PATH. Wrap it so `omarchy-print preview` can find pdftoppm (and printing
+    # finds lp) when run from a terminal too.
+    wrapProgram $out/bin/omarchy-print \
+      --prefix PATH : $out/share/omarchy/bin \
+      --prefix PATH : ${lib.makeBinPath runtimeDeps}
   '';
 
   meta = {

@@ -15,6 +15,9 @@ printed document can be checked again and reprinted.
 - Check a printed row and press **Print selected** to reprint it. **Select
   new** checks all unprinted documents again, **Clear** empties the selection.
 - The number beside the bar icon is the count of unprinted/changed documents.
+- Hover a row, or move the keyboard cursor, to see its first page in the
+  preview column. PDFs are rendered on demand with `pdftoppm`, images are
+  shown directly, and text files show their first 4000 characters.
 - In the panel, Up/Down move the row cursor, Space/Enter toggles the current
   row, `r` refreshes, Escape closes.
 
@@ -49,6 +52,11 @@ are converted with headless LibreOffice when `libreoffice` is on `PATH`; this
 system does not install it, so those two are skipped with a message. Convert
 such a document to PDF before dropping it in.
 
+Previews use the first PDF page rendered by `pdftoppm` (poppler-utils, a shell
+runtime dependency). The render is cached under
+`~/.local/state/omarchy/print/preview/<sha256>.png`; changing the file changes
+the hash and makes a fresh thumbnail. DOCX/ODT have no preview.
+
 Files are copied to CUPS as they are; the folder is not a staging area and
 nothing is moved or deleted after printing.
 
@@ -80,6 +88,7 @@ omarchy-print list                    # JSON: folder, printer, documents
 omarchy-print print --new            # everything not printed at its current hash
 omarchy-print print -- file1 file2   # an explicit selection (reprints allowed)
 omarchy-print print --dry-run --new  # show the selection, send nothing
+omarchy-print preview <file>         # print a cached first-page/image preview path
 omarchy-print printer                # resolved queue name
 omarchy-print folder                 # resolved folder
 omarchy-print forget <file>          # drop one status record
@@ -101,8 +110,9 @@ short-lived; the scope is not used from the command line.
   `PrintQueue.manifest.json` — bar icon and manifest (`local.print`).
 - `home-manager/modules/desktop/omarchy/shell.json` — `local.print` in the
   right bar section.
-- `pkgs/omarchy-shell/default.nix` — `cups` runtime dependency for `lp`,
-  `lpstat` and `cancel`.
+- `pkgs/omarchy-shell/default.nix` — `cups` and `poppler-utils` runtime
+  dependencies for `lp`, `lpstat`, `cancel` and `pdftoppm`; the profile's
+  `omarchy-print` is also wrapped with that PATH.
 
 The service polls `omarchy-print list` every 20 seconds so the bar badge is
 current while the panel is closed. There is no directory-level signal for
@@ -120,3 +130,6 @@ per-monitor widget.
 - **A document prints twice** — its hash changed (or the status file was
   removed). Use `omarchy-print list` to see `printed`/`changed` for each file.
 - **DOCX/ODT skipped** — install LibreOffice or convert to PDF.
+- **Preview says "No preview for this format"** — only PDF, images and text
+  preview; convert DOCX/ODT to PDF. A broken/encrypted PDF shows the
+  `pdftoppm` error instead.

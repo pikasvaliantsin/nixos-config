@@ -211,9 +211,53 @@ print_documents() {
   [ "$failures" -eq 0 ]
 }
 
+preview_document() {
+  local file="${1:-}"
+  [ -n "$file" ] || { printf 'usage: omarchy-print preview <file>\n' >&2; return 2; }
+  local folder_real real_file hash out
+  folder_real=$(realpath -e -- "$folder" 2>/dev/null || printf '%s' "$folder")
+  real_file=$(realpath -e -- "$file" 2>/dev/null || true)
+  if [ -z "$real_file" ] || [[ $real_file != "$folder_real"/* ]]; then
+    printf 'skip: outside print folder: %s\n' "$file" >&2
+    return 1
+  fi
+
+  case "${file,,}" in
+    *.pdf)
+      hash=$(hash_of "$file")
+      [ -n "$hash" ] || return 1
+      mkdir -p "$state_dir/preview"
+      chmod 700 "$state_dir/preview"
+      out="$state_dir/preview/$hash.png"
+      if [ ! -s "$out" ]; then
+        if ! command -v pdftoppm >/dev/null 2>&1; then
+          printf 'error: pdftoppm is needed for PDF previews\n' >&2
+          return 1
+        fi
+        if ! pdftoppm -f 1 -l 1 -singlefile -scale-to 900 -png -- "$file" "$out.tmp" >/dev/null 2>&1; then
+          rm -f "$out.tmp.png"
+          printf 'error: could not render %s\n' "$(basename -- "$file")" >&2
+          return 1
+        fi
+        chmod 600 "$out.tmp.png"
+        mv "$out.tmp.png" "$out"
+      fi
+      printf '%s\n' "$out"
+      ;;
+    *.png|*.jpg|*.jpeg|*.webp|*.txt)
+      printf '%s\n' "$file"
+      ;;
+    *)
+      printf 'error: no preview for %s\n' "$(basename -- "$file")" >&2
+      return 1
+      ;;
+  esac
+}
+
 case "${1:-list}" in
   list) list_documents ;;
   print) shift; print_documents "$@" ;;
+  preview) shift; preview_document "${1:-}" ;;
   printer) printer ;;
   folder) printf '%s\n' "$folder" ;;
   status) cat "$status_file" ;;
@@ -224,7 +268,7 @@ case "${1:-list}" in
     mv "$tmp" "$status_file"
     ;;
   *)
-    echo "usage: omarchy-print [list | print [--dry-run] [--new] [--] <files...> | printer | folder | forget <file>]" >&2
+    echo "usage: omarchy-print [list | print [--dry-run] [--new] [--] <files...> | preview <file> | printer | folder | forget <file>]" >&2
     exit 2
     ;;
 esac
