@@ -80,10 +80,13 @@ in
       )
 
       (pkgs.makeDesktopItem {
-        name = "youtube-stream-chromium";
-        desktopName = "YouTube Stream (Chromium)";
+        name = "youtube";
+        desktopName = "youtube";
         exec = "${pkgs.chromium}/bin/chromium ${lib.concatStringsSep " " youtubeArgs}";
         icon = "youtube";
+        # Chromium --app заявляет окно как chrome-<host>__-Default; по этому
+        # классу shell/dock находят desktop-запись и её иконку.
+        startupWMClass = "chrome-www.youtube.com__-Default";
         categories = [
           "AudioVideo"
           "Network"
@@ -98,6 +101,11 @@ in
       pkgs.libvpx
       pkgs.libwebp
     ];
+
+    # Иконка для youtube.desktop: в установленных темах (Yaru, Papirus) имени
+    # "youtube" нет, поэтому кладём свою в hicolor. omarchy-shell индексирует
+    # ~/.local/share/icons/*/*/apps/* и берёт оттуда иконки приложений.
+    file.".local/share/icons/hicolor/scalable/apps/youtube.svg".source = ./youtube.svg;
 
     # Activation script: копирует canonical user.js во все .default*-профили Mozilla-браузеров.
     # Программы Gecko ищут user.js внутри директории профилей, поэтому нужно писать прямо туда.
