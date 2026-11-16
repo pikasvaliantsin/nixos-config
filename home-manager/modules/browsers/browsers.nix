@@ -37,6 +37,7 @@ let
   youtubeArgs = [
     "--app=https://www.youtube.com"
     "--user-data-dir=${config.home.homeDirectory}/.local/share/youtube-chromium"
+    "--use-system-title-bar"
     "--password-store=basic"
     "--start-maximized"
     "--no-first-run"
