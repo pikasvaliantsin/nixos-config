@@ -100,7 +100,8 @@ systemctl --user restart omarchy-shell
   `systemd-run --user --scope --slice=app.slice`. Do not start long-lived apps
   directly from Quickshell; they inherit `omarchy-shell.service`'s cgroup and
   a rebuild restart can kill them, or block the stop while a Chromium web app
-  shuts down.
+  shuts down. Widgets that start an application themselves (the OpenCode bar
+  button and panel) use `Util.launchScoped` for the same reason.
 - Chromium and Electron run with `--password-store=basic` (the
   `~/.local/bin` wrappers and `omarchy-launch-webapp`). The login keyring is
   locked after fingerprint login, and without this flag every app opens the

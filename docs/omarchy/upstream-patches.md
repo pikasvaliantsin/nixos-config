@@ -45,6 +45,24 @@ Re-check each against the new tag; the descriptions say what to keep.
     block) instead of loading the cream-white `agents/assets/opencode.svg`
     tile, which read as a bright block on a themed bar;
   - keep the upstream SVG geometry (240x300 frame, 60 thick, 120x120 block).
+- `shell/Custom/OpenCodePanel.qml`, `shell/plugins/bar/widgets/OpenCode.qml`
+  - the launch button and the bar's right click start
+    `ghostty -e opencode` through `Util.launchScoped`, so restarting
+    `omarchy-shell` does not take the terminal down with its service cgroup.
+- `bin/omarchy-launch-webapp`
+  - a launch that is not already inside an app scope re-runs itself under
+    `systemd-run --user --scope --slice=app.slice`. This covers callers that
+    start it from the shell service directly; `AppLibrary.launchScoped`
+    callers are left alone.
+- `shell/plugins/panels/elsewhen/Panel.qml`, `Model.js`, new `RfCityRow.qml`
+  - a synthetic RF City row in the world clock: one real hour is one 24-hour
+    game day, with the game day starting on the real hour;
+  - the row shows the game time in 24-hour form and a bell that sets a one-shot
+    notification for the next occurrence of an HH:MM game time; the alarm timer
+    keeps running with the panel closed and uses a fixed notification replace
+    id so both bar instances collapse into one toast;
+  - `rfOffsetSeconds` in the widget's shell.json entry calibrates the server
+    clock against the local one (a negative value makes the game clock slower).
 - `shell/plugins/panels/weather/Panel.qml`, `panels/weather/Model.js` and the
   `weather.*` keys in `default/i18n/{en,ru}/shell.json`
   - the panel shows a ten-hour strip and a six-day table (day, condition,

@@ -9,6 +9,23 @@ url="${1:-}"
 [[ -n $url ]] || { echo "usage: omarchy-launch-webapp <url>" >&2; exit 2; }
 shift || true
 
+# A web app started by the shell stays in omarchy-shell.service's cgroup and
+# dies when that service restarts. Put every launch in its own app.slice scope;
+# a terminal or another app scope is already detached. The shell itself also
+# lives under app.slice, so match its unit explicitly.
+if [ -z "${OMARCHY_WEBAPP_SCOPED:-}" ]; then
+  webapp_cgroup=$(cat /proc/self/cgroup 2>/dev/null || true)
+  case "$webapp_cgroup" in
+    *"/omarchy-shell.service"*) ;;
+    *"/app.slice/"*) ;;
+    *)
+      export OMARCHY_WEBAPP_SCOPED=1
+      exec systemd-run --user --scope --collect --quiet --slice=app.slice -- \
+        "$(readlink -f "$0")" "$url" "$@"
+      ;;
+  esac
+fi
+
 # Chromium's PWA titlebar takes its window controls from the GTK theme. The
 # Catppuccin GTK theme this desktop uses paints the close hover with its pink
 # error colour and the X disappears into it; the neutral Adwaita variant keeps

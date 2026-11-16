@@ -72,7 +72,7 @@ KeyboardPanel {
   }
 
   function launch() {
-    Quickshell.execDetached(["ghostty", "-e", "opencode"])
+    Util.launchScoped(["ghostty", "-e", "opencode"])
     if (root.owner && typeof root.owner.close === "function") root.owner.close()
   }
 

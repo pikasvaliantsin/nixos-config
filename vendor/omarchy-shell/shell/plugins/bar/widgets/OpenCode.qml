@@ -50,7 +50,7 @@ Panel {
     onPressed: function(button) {
       if (button === Qt.RightButton) {
         if (root.opened) root.close()
-        Quickshell.execDetached(["ghostty", "-e", "opencode"])
+        Util.launchScoped(["ghostty", "-e", "opencode"])
         return
       }
       root.toggle()

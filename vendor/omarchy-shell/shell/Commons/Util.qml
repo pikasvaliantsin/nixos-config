@@ -78,6 +78,20 @@ QtObject {
     Quickshell.execDetached(["bash", "-lc", 'exec "$@"', "bash"].concat(argv))
   }
 
+  // Run a GUI application in a transient scope under app.slice. A process
+  // started directly by Quickshell stays in omarchy-shell.service's cgroup and
+  // is killed when that service restarts; a scope also mirrors upstream's
+  // uwsm-app. Used by widgets that launch apps without going through
+  // AppLibrary.
+  function launchScoped(argv) {
+    if (!argv || argv.length === 0) return false
+    Quickshell.execDetached({
+      command: ["systemd-run", "--user", "--scope", "--collect", "--quiet",
+                "--slice=app.slice", "--"].concat(argv)
+    })
+    return true
+  }
+
   function isPlainObject(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value)
   }

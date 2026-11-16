@@ -98,6 +98,9 @@ omarchy-webapp-remove "Twitch"
   has no tab strip to drag the window by), and Chromium forces the PWA header
   for sites with a manifest. Launcher flags cannot remove it; only fullscreen,
   a native client or a Chromium patch can.
+- A web app launch from the shell is moved into its own app.slice scope, so
+  restarting `omarchy-shell` does not kill the browser. A launch from a
+  terminal or another app scope is left alone.
 - Chromium's PWA window controls follow the GTK theme. The launcher exports
   `GTK_THEME=Adwaita` (or `Adwaita:dark`, matching the active theme) so the
   close button does not inherit the Catppuccin GTK theme's pink error hover,
