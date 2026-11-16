@@ -81,7 +81,7 @@ in
 
       (pkgs.makeDesktopItem {
         name = "youtube";
-        desktopName = "youtube";
+        desktopName = "YouTube";
         exec = "${pkgs.chromium}/bin/chromium ${lib.concatStringsSep " " youtubeArgs}";
         icon = "youtube";
         # Chromium --app заявляет окно как chrome-<host>__-Default; по этому
