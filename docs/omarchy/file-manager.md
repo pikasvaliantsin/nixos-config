@@ -97,8 +97,9 @@ for `Mod+E`-style terminal work if wanted.
 - **Theme did not change in Dux** — run `theme-dms`; the file is
   `~/.cache/dms/dms-colors.json`. Dux must be running with
   `colorSource: "auto"` and `themeMode: "auto"`.
-- **No Dux window on `Mod+E`** — `dfiles ipc core.ping` should answer; use
-  `dfiles toggle` directly and inspect `journalctl --user -u dfiles` (the
-  service is normally disabled and the daemon is started on demand). Newer
-  builds with `dux-qt-base` are embedded in `dfiles`; do not look for a
-  separate `quickshell -p dfiles-shell` process there.
+- **No Dux window on `Mod+E`** — `dfiles show` or `dfiles toggle` should open
+  it; use `dfiles ipc list` to inspect the running daemon. Inspect
+  `journalctl --user -u dfiles` (the service is normally disabled and the
+  daemon is started on demand). Newer builds with `dux-qt-base` are embedded in
+  `dfiles`; do not look for a separate `quickshell -p dfiles-shell` process
+  there.
