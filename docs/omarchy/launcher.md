@@ -93,10 +93,11 @@ omarchy-webapp-remove "Twitch"
 - `omarchy-launch-webapp` selects a Chromium-based browser. Set
   `OMARCHY_WEBAPP_BROWSER` to an absolute browser path to force a different
   Chromium-based browser.
-- `omarchy-launch-webapp` also passes `--use-system-title-bar`. niri draws no
-  server-side decorations, so Chromium drops its client-side title bar and the
-  web app content fills the window; close and reopen an existing web app to
-  apply it.
+- `omarchy-launch-webapp` also clears Chromium's
+  `WaylandWindowDecorations` feature (`--disable-features` + an empty
+  `--enable-features`, which overrides the nixpkgs wrapper). Chromium then asks
+  for server-side decorations, and niri draws none, so web app windows have no
+  title bar at all. Close and reopen an existing web app to apply it.
 - The installer asks for the URL first, then looks up the name and the best
   icon automatically (web app manifest → apple-touch-icon → Google favicon →
   `/favicon.ico`); the icon URL is only requested if every source fails.

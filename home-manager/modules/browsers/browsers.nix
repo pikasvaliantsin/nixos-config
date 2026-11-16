@@ -37,7 +37,8 @@ let
   youtubeArgs = [
     "--app=https://www.youtube.com"
     "--user-data-dir=${config.home.homeDirectory}/.local/share/youtube-chromium"
-    "--use-system-title-bar"
+    "--disable-features=WaylandWindowDecorations,Translate,OptimizationHints,MediaRouter"
+    "--enable-features="
     "--password-store=basic"
     "--start-maximized"
     "--no-first-run"
@@ -49,7 +50,6 @@ let
     "--disable-breakpad"
     "--disable-crash-reporter"
     "--metrics-recording-only"
-    "--disable-features=Translate,OptimizationHints,MediaRouter"
     "--ozone-platform-hint=wayland"
   ];
 in
