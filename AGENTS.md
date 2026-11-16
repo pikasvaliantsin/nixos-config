@@ -154,6 +154,14 @@ wallpapers; only `backgrounds/intros/` is omitted). Prefer their `colors.toml`
 over inventing a new palette.
 Do not hand-edit the Nix store; edit the theme source and regenerate.
 
+Dux Files does not read the generated theme directly. `theme-set` runs
+`theme-dms`, which writes `~/.cache/dms/dms-colors.json` and
+`dms-typography.json` from the active palette. Do not edit those cache files by
+hand; change the theme source or `theme-dms.sh`. See
+[`file-manager.md`](docs/omarchy/file-manager.md). Newer Dux Files releases use
+the embedded `dux-qt-base` runtime instead of a separate upstream Quickshell
+process; treat `dfiles` as the process/CLI, not `quickshell`.
+
 ## Fingerprint
 
 `mySystem.fingerprintAuth.enable` (default `false`) gates PAM login/sudo and
@@ -211,6 +219,9 @@ Adapted from Omarchy 4.5.0's agent documentation:
   and the qalc calculator.
 - [`printing.md`](docs/omarchy/printing.md) — watched print folder, CUPS batch
   printing and per-document print status.
+- [`file-manager.md`](docs/omarchy/file-manager.md) — Dux Files as the GUI
+  file manager, `Mod+E`, MIME defaults, drag/drop bookmarks and its DMS theme
+  bridge.
 - [`auth.md`](docs/omarchy/auth.md) — graphical sudo password/fingerprint
   dialog and the PAM helper.
 - [`i18n.md`](docs/omarchy/i18n.md) — shell strings and translation catalogs.

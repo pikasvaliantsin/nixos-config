@@ -2,6 +2,7 @@
 {
   config,
   inputs,
+  lib,
   pkgs,
   ...
 }:
@@ -16,6 +17,20 @@ let
     name = "omarchy-keybinds";
     runtimeInputs = [ pkgs.python3 ];
     text = ''exec python3 ${../niri/keybinds.py} "$@"'';
+  };
+
+  # Fix the stale DankMaterialShell association (dms-open.desktop does not
+  # exist) and make the Dux file manager the handler for folders and
+  # file-manager URL schemes. Runs after every activation.
+  mimeDefaults = pkgs.writeShellApplication {
+    name = "mime-defaults";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnused
+      pkgs.xdg-utils
+      pkgs.desktop-file-utils
+    ];
+    text = builtins.readFile ./mime-defaults.sh;
   };
 in
 {
@@ -73,7 +88,11 @@ in
     };
   };
 
-  home.packages = [ keybinds ];
+  home.packages = [ keybinds mimeDefaults ];
+
+  home.activation.mimeDefaults = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
+    run ${mimeDefaults}/bin/mime-defaults || true
+  '';
 
   # Конфиг niri: основной файл и бинды. theme.kdl линкуется в themes.nix.
   xdg.configFile = {

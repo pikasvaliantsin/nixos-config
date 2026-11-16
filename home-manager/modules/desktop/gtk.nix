@@ -8,7 +8,6 @@
 
   dconf.settings = {
     "org/gnome/desktop/interface" = {
-      color-scheme = "prefer-dark";
       font-name = "Inter 10";
       text-scaling-factor = 1.0;
     };

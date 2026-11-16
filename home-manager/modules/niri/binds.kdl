@@ -163,6 +163,7 @@ binds {
     // --- applications -------------------------------------------------------
     Mod+Return hotkey-overlay-title="Terminal" { spawn "ghostty"; }
     Mod+T hotkey-overlay-title="Terminal" { spawn "ghostty"; }
+    Mod+E repeat=false hotkey-overlay-title="Files" { spawn "dfiles" "toggle"; }
     Mod+B hotkey-overlay-title="Zen browser" { spawn "zen"; }
     Mod+Ctrl+B hotkey-overlay-title="Firefox" { spawn "firefox"; }
     Super+G repeat=false hotkey-overlay-title="Steam" { spawn "steam"; }

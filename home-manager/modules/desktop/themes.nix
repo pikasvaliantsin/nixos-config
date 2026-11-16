@@ -121,6 +121,12 @@ let
     '';
   };
 
+  themeDms = pkgs.writeShellApplication {
+    name = "theme-dms";
+    runtimeInputs = [ pkgs.coreutils pkgs.jq pkgs.gawk pkgs.gnused pkgs.glib ];
+    text = builtins.readFile ./theme-dms.sh;
+  };
+
   themeSet = pkgs.writeShellApplication {
     name = "theme-set";
     runtimeInputs = [
@@ -461,6 +467,7 @@ let
       # Keep app fragments on the stable current path.
       ln -sfn "$out" "$state_dir/current"
       ln -sfn "$state_dir/current/niri.kdl" ${lib.escapeShellArg repoThemeLink}
+      ${themeDms}/bin/theme-dms || true
       # Niri reloads when a watched file changes; replacing the theme symlink
       # alone does not fire an inotify event, so bump the resolved target.
       touch "$HOME/.config/niri/theme.kdl" 2>/dev/null || true
@@ -763,6 +770,7 @@ in
     home.packages = [
       themeSet
       themeIcons
+      themeDms
       gallery
       themeInstall
       bgCycle
@@ -797,6 +805,12 @@ in
     # Home Manager links its settings.ini on every activation/login.
     home.activation.themeIcons = lib.hm.dag.entryAfter [ "linkGeneration" "themeInit" ] ''
       run ${themeIcons}/bin/theme-icons apply || true
+    '';
+
+    # Publish the active palette for Dux Files (it reads the DMS cache) and
+    # keep the portal colour scheme in sync with dark/light themes.
+    home.activation.themeDms = lib.hm.dag.entryAfter [ "linkGeneration" "themeInit" "themeIcons" ] ''
+      run ${themeDms}/bin/theme-dms || true
     '';
 
     xdg.configFile."btop/btop.conf".text = ''

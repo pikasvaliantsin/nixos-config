@@ -34,6 +34,7 @@ reimplementation is the last resort.
 | `agents/skills/motion.md` | [`motion.md`](motion.md) | Same motion rules; no Hyprland animation toggle, so `Style.reduceMotion` is currently a manual flag. |
 | `docs/theming.md` | [`theming.md`](theming.md) | Our `theme-set`/`theme-install`, native palettes, Omarchy `colors.toml`, generated fragments and state links. |
 | `docs/notifications.md` | [`notifications.md`](notifications.md) | Our custom server/center: no toasts, persisted history, actions, DND, IPC, known limitations. |
+| — | [`file-manager.md`](file-manager.md) | Dux Files: `Mod+E`, MIME defaults, drag/drop books, DMS theme bridge, portal choice and weight. |
 | — | [`printing.md`](printing.md) | Watched print folder, CUPS helper, per-document printed state and reprint flow. |
 | — | [`devtools.md`](devtools.md) | Developer toolbox overlay (`Mod+Shift+X`): pure JS engine, secure random pool, native fallbacks for large inputs. |
 | — | [`upstream-patches.md`](upstream-patches.md) | Files and hunks to re-apply when bumping the vendored Omarchy tag. |
@@ -58,7 +59,8 @@ repository; `vendor/omarchy-shell/UPSTREAM.md` records the vendored tag.
 5. Area notes: [theming](theming.md), [notifications](notifications.md),
    [devtools](devtools.md), [launcher](launcher.md), [auth](auth.md),
    [i18n](i18n.md), [testing](testing.md), [keybindings](keybindings.md),
-   [printing](printing.md), [upstream patches](upstream-patches.md).
+   [printing](printing.md), [file manager](file-manager.md),
+   [upstream patches](upstream-patches.md).
 
 ## Deliberate differences from upstream
 

@@ -100,6 +100,25 @@ and points these stable links at it:
 
 Do not hand-edit `generated/`; it is rebuilt on every `theme-set`.
 
+## Dux Files palette bridge
+
+Dux Files is a separate QML application (upstream Quickshell in the current
+stable package, embedded `dux-qt-base` in newer releases). It reads the DMS
+cache rather than Omarchy's generated theme:
+
+```text
+~/.cache/dms/dms-colors.json
+~/.cache/dms/dms-typography.json
+```
+
+`theme-dms` (from `theme-dms.sh`) derives the Material colour scheme from the
+active palette, writes those files atomically, uses Inter/JetBrains Mono, and
+sets `org.gnome.desktop.interface color-scheme` from the theme's mode.
+`theme-set` calls it after switching `current`, and Home Manager activation
+calls it again after login. The old cache was left behind by
+DankMaterialShell, which is why a theme switch previously did not reach Dux.
+See [`file-manager.md`](file-manager.md).
+
 ## Where each fragment goes
 
 - `colors.toml` — foundational palette for the shell `Color` singleton.
