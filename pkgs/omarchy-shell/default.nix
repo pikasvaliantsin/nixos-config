@@ -38,6 +38,7 @@
   desktop-file-utils,
   brightnessctl,
   ddcutil,
+  cups,
   systemd,
   wlsunset,
   foot,
@@ -80,6 +81,7 @@ let
     desktop-file-utils
     brightnessctl
     ddcutil
+    cups
     systemd
     wlsunset
     foot

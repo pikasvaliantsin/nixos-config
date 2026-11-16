@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+
+# omarchy:summary=Print the documents dropped into the print folder
+# omarchy:args=[list | print [--dry-run] [--new] [--] <files...>]
+#
+# One folder, one queue. Every file in ~/Documents/Print (or the folder in
+# ~/.config/omarchy/print/folder) is listed with its print status. "print"
+# sends selected files to CUPS and records the job and timestamp so a document
+# is not printed twice by accident; the panel can still select and reprint it.
+#
+# Supported directly by CUPS: PDF, PNG/JPEG/WebP, plain text. DOCX/ODT are
+# converted with LibreOffice when it is installed.
+
+set -euo pipefail
+
+config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/print"
+state_dir="${XDG_STATE_HOME:-$HOME/.local/state}/omarchy/print"
+status_file="$state_dir/status.json"
+
+folder="${OMARCHY_PRINT_DIR:-$HOME/Documents/Print}"
+[ -s "$config_dir/folder" ] && folder=$(head -n1 "$config_dir/folder")
+folder="${folder/#\~/$HOME}"
+mkdir -p "$folder" "$state_dir"
+if [ ! -f "$status_file" ]; then
+  printf '{}\n' >"$status_file"
+  chmod 600 "$status_file"
+fi
+
+printer() {
+  if [ -s "$config_dir/printer" ]; then
+    head -n1 "$config_dir/printer"
+    return
+  fi
+  local name
+  name=$(lpstat -d 2>/dev/null | sed -n 's/^system default destination: //p' | head -n1 || true)
+  if [ -n "$name" ]; then
+    printf '%s\n' "$name"
+    return
+  fi
+  lpstat -p 2>/dev/null | awk '/^printer / { print $2; exit }' || true
+}
+
+is_document() {
+  case "${1,,}" in
+    *.pdf|*.png|*.jpg|*.jpeg|*.webp|*.txt|*.docx|*.odt) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+hash_of() {
+  sha256sum -- "$1" 2>/dev/null | awk '{ print $1 }'
+}
+
+json_escape() {
+  printf '%s' "$1" | jq -Rsc .
+}
+
+list_documents() {
+  local out=() file name hash size mtime record printed printed_at job changed
+  while IFS= read -r -d '' file; do
+    is_document "$file" || continue
+    name=$(basename -- "$file")
+    hash=$(hash_of "$file")
+    [ -n "$hash" ] || continue
+    size=$(stat -c %s -- "$file" 2>/dev/null || echo 0)
+    mtime=$(stat -c %Y -- "$file" 2>/dev/null || echo 0)
+    record=$(jq -c --arg path "$file" '.[$path] // empty' "$status_file" 2>/dev/null || true)
+    printed=false
+    printed_at=""
+    job=""
+    changed=false
+    if [ -n "$record" ]; then
+      local saved_hash saved_at saved_job
+      saved_hash=$(printf '%s' "$record" | jq -r '.hash // empty')
+      saved_at=$(printf '%s' "$record" | jq -r '.printedAt // empty')
+      saved_job=$(printf '%s' "$record" | jq -r '.jobId // empty')
+      if [ "$saved_hash" = "$hash" ]; then
+        printed=true
+        printed_at="$saved_at"
+        job="$saved_job"
+      else
+        changed=true
+      fi
+    fi
+    out+=("$(jq -cn \
+      --arg path "$file" --arg name "$name" --arg hash "$hash" \
+      --arg printedAt "$printed_at" --arg jobId "$job" \
+      --argjson size "$size" --argjson mtime "$mtime" \
+      --argjson printed "$printed" --argjson changed "$changed" \
+      '{path:$path,name:$name,hash:$hash,printedAt:$printedAt,jobId:$jobId,size:$size,mtime:$mtime,printed:$printed,changed:$changed}')")
+  done < <(find "$folder" -maxdepth 1 -type f -print0 2>/dev/null)
+
+  local printer_name
+  printer_name=$(printer)
+  if [ ${#out[@]} -eq 0 ]; then
+    printf '%s\n' '[]' | jq -c --arg folder "$folder" --arg printer "$printer_name" \
+      '{folder:$folder,printer:$printer,documentCount:0,documents:[]}'
+  else
+    printf '%s\n' "${out[@]}" | jq -s --arg folder "$folder" --arg printer "$printer_name" \
+      '{folder:$folder,printer:$printer,documentCount:length,documents:.}'
+  fi
+}
+
+record_job() {
+  local file="$1" hash="$2" at="$3" job="$4" printer_name="$5" tmp
+  tmp=$(mktemp)
+  jq --arg path "$file" --arg hash "$hash" --arg at "$at" --arg job "$job" --arg printer "$printer_name" \
+    '.[$path] = {hash:$hash,printedAt:$at,jobId:$job,printer:$printer}' \
+    "$status_file" >"$tmp"
+  mv "$tmp" "$status_file"
+}
+
+print_one() {
+  local file="$1" dry_run="$2" printer_name="$3"
+  local target="$file" converted="" hash job out at real_file folder_real
+  folder_real=$(realpath -e -- "$folder" 2>/dev/null || printf '%s' "$folder")
+  real_file=$(realpath -e -- "$file" 2>/dev/null || true)
+  if [ -z "$real_file" ] || [[ $real_file != "$folder_real"/* ]]; then
+    printf 'skip: outside print folder: %s\n' "$file"
+    return 1
+  fi
+
+  case "${file,,}" in
+    *.docx|*.odt)
+      if ! command -v libreoffice >/dev/null 2>&1; then
+        printf 'skip: LibreOffice is needed for %s\n' "$(basename -- "$file")"
+        return 1
+      fi
+      converted=$(mktemp -d)
+      if ! libreoffice --headless --convert-to pdf --outdir "$converted" -- "$file" >/dev/null 2>&1; then
+        rm -rf "$converted"
+        printf 'skip: could not convert %s\n' "$(basename -- "$file")"
+        return 1
+      fi
+      target=$(find "$converted" -maxdepth 1 -type f -name '*.pdf' -print -quit)
+      if [ -z "$target" ]; then
+        rm -rf "$converted"
+        printf 'skip: no PDF from %s\n' "$(basename -- "$file")"
+        return 1
+      fi
+      ;;
+  esac
+
+  if [ "$dry_run" = true ]; then
+    printf 'would print: %s\n' "$(basename -- "$file")"
+    [ -n "$converted" ] && rm -rf "$converted"
+    return 0
+  fi
+
+  if [ -z "$printer_name" ]; then
+    printf 'error: no CUPS printer found\n'
+    [ -n "$converted" ] && rm -rf "$converted"
+    return 1
+  fi
+
+  if ! out=$(lp -d "$printer_name" -- "$target" 2>&1); then
+    printf 'error: %s: %s\n' "$(basename -- "$file")" "$out"
+    [ -n "$converted" ] && rm -rf "$converted"
+    return 1
+  fi
+  job=$(printf '%s\n' "$out" | sed -n 's/.*request id is \([^ ]*\).*/\1/p' | head -n1)
+  hash=$(hash_of "$file")
+  at=$(date -Iseconds)
+  record_job "$file" "$hash" "$at" "$job" "$printer_name"
+  printf 'printed: %s%s\n' "$(basename -- "$file")" "${job:+ ($job)}"
+  [ -n "$converted" ] && rm -rf "$converted"
+  return 0
+}
+
+print_documents() {
+  local dry_run=false only_new=false printer_name failures=0 count=0
+  local -a files=()
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --dry-run) dry_run=true ;;
+      --new) only_new=true ;;
+      --) shift; files+=("$@"); break ;;
+      *) files+=("$1") ;;
+    esac
+    shift
+  done
+
+  printer_name=$(printer)
+
+  if [ "$only_new" = true ]; then
+    local file hash record saved_hash
+    while IFS= read -r -d '' file; do
+      is_document "$file" || continue
+      hash=$(hash_of "$file")
+      [ -n "$hash" ] || continue
+      record=$(jq -c --arg path "$file" '.[$path] // empty' "$status_file" 2>/dev/null || true)
+      saved_hash=""
+      [ -n "$record" ] && saved_hash=$(printf '%s' "$record" | jq -r '.hash // empty')
+      [ "$saved_hash" = "$hash" ] || files+=("$file")
+    done < <(find "$folder" -maxdepth 1 -type f -print0 2>/dev/null)
+  fi
+
+  if [ ${#files[@]} -eq 0 ]; then
+    printf 'Nothing to print.\n'
+    return 0
+  fi
+
+  for file in "${files[@]}"; do
+    count=$((count + 1))
+    if ! print_one "$file" "$dry_run" "$printer_name"; then
+      failures=$((failures + 1))
+    fi
+  done
+
+  printf 'done: %d file(s), %d error(s)\n' "$count" "$failures"
+  [ "$failures" -eq 0 ]
+}
+
+case "${1:-list}" in
+  list) list_documents ;;
+  print) shift; print_documents "$@" ;;
+  printer) printer ;;
+  folder) printf '%s\n' "$folder" ;;
+  status) cat "$status_file" ;;
+  forget)
+    shift
+    tmp=$(mktemp)
+    jq --arg path "${1:-}" 'del(.[$path])' "$status_file" >"$tmp"
+    mv "$tmp" "$status_file"
+    ;;
+  *)
+    echo "usage: omarchy-print [list | print [--dry-run] [--new] [--] <files...> | printer | folder | forget <file>]" >&2
+    exit 2
+    ;;
+esac

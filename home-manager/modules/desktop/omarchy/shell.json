@@ -91,6 +91,9 @@
           "id": "local.opencode"
         },
         {
+          "id": "local.print"
+        },
+        {
           "id": "omarchy.bluetooth"
         },
         {

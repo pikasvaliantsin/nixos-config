@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "local.print",
+  "name": "Print",
+  "version": "1.0.0",
+  "author": "local",
+  "description": "Print the documents in the watched print folder",
+  "kinds": ["bar-widget"],
+  "entryPoints": {
+    "barWidget": "PrintQueue.qml"
+  },
+  "barWidget": {
+    "displayName": "Print",
+    "description": "Print new documents, see what was printed, reprint a document",
+    "category": "System",
+    "defaultSection": "right",
+    "allowMultiple": false
+  }
+}

@@ -209,6 +209,8 @@ Adapted from Omarchy 4.5.0's agent documentation:
   center, history, actions, DND.
 - [`launcher.md`](docs/omarchy/launcher.md) — Omarchy menu, dsearch file search
   and the qalc calculator.
+- [`printing.md`](docs/omarchy/printing.md) — watched print folder, CUPS batch
+  printing and per-document print status.
 - [`auth.md`](docs/omarchy/auth.md) — graphical sudo password/fingerprint
   dialog and the PAM helper.
 - [`i18n.md`](docs/omarchy/i18n.md) — shell strings and translation catalogs.
