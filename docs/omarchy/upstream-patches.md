@@ -43,6 +43,10 @@ Re-check each against the new tag; the descriptions say what to keep.
 - `shell/plugins/bar/widgets/Tray.qml`, `shell/plugins/menu/Menu.qml`
   - app menu footer has Pin/Unpin and Hide;
   - the menu has a hidden-tray provider for `System → Tray icons`.
+- `shell/plugins/bar/widgets/NotificationBell.qml`
+  - use the Material Design bell codepoints (`U+F009A`/`U+F009C`) instead of
+    `U+F049A`/`U+F049C`, which Symbols Nerd Font draws as a shopping bag and a
+    shredder; this keeps the bell distinct from the printer icon.
 - `shell/plugins/bar/widgets/OpenCode.qml`
   - the bar mark is drawn in the bar foreground (frame plus a dimmed lower
     block) instead of loading the cream-white `agents/assets/opencode.svg`
