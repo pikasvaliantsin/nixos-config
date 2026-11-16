@@ -18,7 +18,7 @@ These are new files; a wholesale vendor replacement should keep them:
 | `shell/plugins/port-forward/*` | vendored plugin, disabled |
 | `bin/omarchy-tray` | hidden-tray helper |
 | `shell/Custom/Calc.qml`, `FileSearch.qml`, `KeyboardOsd.qml`, `Idle.qml`, `NightLight.qml`, `AuthAgent.qml` | port-specific panels and services (qalc, dsearch, OSD, lock/idle, auth) |
-| `shell/Custom/PrintService.qml`, `PrintPanel.qml` | watched print folder: polling, selection, CUPS batch and reprint UI |
+| `shell/Custom/PrintService.qml`, `PrintPanel.qml`, `PrintPreviewOverlay.qml` | watched print folder: polling, selection, inline hover preview, natural-size reader and CUPS batch/reprint UI |
 | `shell/plugins/bar/widgets/PrintQueue.qml`, `PrintQueue.manifest.json` | `local.print` bar icon and manifest |
 | `bin/omarchy-print` | print folder helper: `list`, `print`, printed-state JSON |
 

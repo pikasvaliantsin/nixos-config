@@ -20,9 +20,9 @@ KeyboardPanel {
   focusTarget: keyCatcher
 
   // Keyboard cursor over the document rows: Up/Down move, Space/Enter pick the
-  // row for the next batch. Mouse clicks stay independent of it.
+  // row for the next batch. Hovering a row also moves the cursor, so the
+  // preview stays on the document the pointer last visited without a click.
   property int cursor: -1
-  property string hoveredPath: ""
 
   // Preview state. `previewToken` rejects a render that finishes after the
   // pointer has already moved to another row.
@@ -31,13 +31,12 @@ KeyboardPanel {
   property string previewText: ""
   property string previewError: ""
   property bool previewLoading: false
+  property real fullscreenCooldownUntil: 0
+
+  signal fullscreenRequested(var doc)
 
   readonly property var previewDoc: {
     var docs = PrintService.documents
-    var hovered = root.hoveredPath
-    for (var i = 0; i < docs.length; i++) {
-      if (hovered !== "" && docs[i].path === hovered) return docs[i]
-    }
     if (root.cursor >= 0 && root.cursor < docs.length) return docs[root.cursor]
     return null
   }
@@ -71,11 +70,27 @@ KeyboardPanel {
   }
 
   function setHovered(doc) {
-    if (doc && root.hoveredPath !== doc.path) root.hoveredPath = doc.path
+    if (doc) {
+      for (var i = 0; i < PrintService.documents.length; i++) {
+        if (PrintService.documents[i].path === doc.path) {
+          root.cursor = i
+          return
+        }
+      }
+    }
   }
 
-  function clearHovered(doc) {
-    if (doc && root.hoveredPath === doc.path) root.hoveredPath = ""
+  function canFullscreen() {
+    var doc = root.previewDoc
+    return !!doc && /\.(pdf|png|jpe?g|webp)$/i.test(String(doc.name || ""))
+  }
+
+  function openFullscreen() {
+    var doc = root.previewDoc
+    if (!root.canFullscreen()) return
+    if (Date.now() < root.fullscreenCooldownUntil) return
+    if (fullscreenHover) fullscreenHover.stop()
+    root.fullscreenRequested(doc)
   }
 
   function loadPreview() {
@@ -119,11 +134,8 @@ KeyboardPanel {
     if (open) {
       PrintService.clearMessage()
       PrintService.refresh()
-      root.hoveredPath = ""
       root.cursor = PrintService.documents.length > 0 ? 0 : -1
       root.loadPreview()
-    } else {
-      root.hoveredPath = ""
     }
   }
 
@@ -187,7 +199,13 @@ KeyboardPanel {
       cursorShape: Qt.PointingHandCursor
       onClicked: row.toggled()
       onEntered: root.setHovered(row.doc)
-      onExited: root.clearHovered(row.doc)
+    }
+
+    // MouseArea hover can be shadowed by the row's text/checkbox children in
+    // some styles; the handler sees the whole row regardless and pins the
+    // preview to this document without a click.
+    HoverHandler {
+      onHoveredChanged: if (hovered) root.setHovered(row.doc)
     }
 
     // Drawn rather than a glyph: the checkbox must keep the same weight and
@@ -266,6 +284,8 @@ KeyboardPanel {
         if (text === "r") {
           PrintService.clearMessage()
           PrintService.refresh()
+        } else if (text === "f") {
+          root.openFullscreen()
         }
       }
 
@@ -509,24 +529,39 @@ KeyboardPanel {
               anchors.margins: Style.space(10)
               spacing: Style.space(8)
 
-              Text {
-                id: previewTitle
+              RowLayout {
+                id: previewHeader
                 width: parent.width
-                text: root.previewDoc
-                  ? String(root.previewDoc.name || "")
-                  : "PREVIEW"
-                textFormat: Text.PlainText
-                elide: Text.ElideMiddle
-                color: root.previewDoc ? Commons.Color.foreground : Commons.Color.muted
-                font.family: Style.font.family
-                font.pixelSize: Style.font.caption
-                font.bold: true
+                spacing: Style.space(4)
+
+                Text {
+                  id: previewTitle
+                  Layout.fillWidth: true
+                  text: root.previewDoc
+                    ? String(root.previewDoc.name || "")
+                    : "PREVIEW"
+                  textFormat: Text.PlainText
+                  elide: Text.ElideMiddle
+                  color: root.previewDoc ? Commons.Color.foreground : Commons.Color.muted
+                  font.family: Style.font.family
+                  font.pixelSize: Style.font.caption
+                  font.bold: true
+                }
+
+                PanelActionButton {
+                  iconText: "\uf065"
+                  tooltipText: "Fullscreen preview"
+                  foreground: Commons.Color.foreground
+                  enabled: root.canFullscreen()
+                  onClicked: root.openFullscreen()
+                }
               }
 
               Item {
                 id: previewStage
                 width: parent.width
-                height: Math.max(0, parent.height - previewTitle.implicitHeight - Style.space(8))
+                height: Math.max(0, parent.height - previewHeader.implicitHeight
+                                 - previewHint.implicitHeight - Style.space(16))
                 clip: true
 
                 Image {
@@ -574,6 +609,29 @@ KeyboardPanel {
                   font.family: Style.font.family
                   font.pixelSize: Style.font.bodySmall
                 }
+
+                MouseArea {
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: root.canFullscreen() ? Qt.PointingHandCursor : Qt.ArrowCursor
+                  onEntered: if (root.canFullscreen()
+                                 && Date.now() >= root.fullscreenCooldownUntil)
+                               fullscreenHover.restart()
+                  onExited: fullscreenHover.stop()
+                  onClicked: root.openFullscreen()
+                }
+              }
+
+              Text {
+                id: previewHint
+                width: parent.width
+                visible: root.canFullscreen()
+                text: "Hover or click for fullscreen"
+                textFormat: Text.PlainText
+                elide: Text.ElideRight
+                color: Commons.Color.muted
+                font.family: Style.font.family
+                font.pixelSize: Style.font.caption
               }
             }
           }
@@ -637,6 +695,15 @@ KeyboardPanel {
         if (code !== 0 && root.previewError === "")
           root.previewError = "Cannot read preview"
       }
+    }
+
+    // The full-screen reader lives in the bar widget, not here: closing this
+    // KeyboardPanel must not take its layer surface down with it.
+    Timer {
+      id: fullscreenHover
+      interval: 500
+      repeat: false
+      onTriggered: root.openFullscreen()
     }
 
     // Lives inside the content item: KeyboardPanel's default property is its

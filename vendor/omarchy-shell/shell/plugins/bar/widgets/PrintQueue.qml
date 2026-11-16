@@ -12,6 +12,8 @@ Panel {
   implicitWidth: button.implicitWidth
   implicitHeight: button.implicitHeight
 
+  property var pendingDoc: null
+
   BarIconButton {
     id: button
     bar: root.bar
@@ -38,5 +40,37 @@ Panel {
     bar: root.bar
     owner: root
     open: root.opened
+
+    onFullscreenRequested: function(doc) {
+      root.pendingDoc = doc
+      // Open after the click has been released. A layer surface opened in the
+      // same frame receives that release and can dismiss itself immediately.
+      fullscreenOpenTimer.restart()
+    }
+  }
+
+  // Lives in the bar widget, not in the lazily built panel: closing the panel
+  // must not unmap the reader's layer surface with it.
+  PrintPreviewOverlay {
+    id: fullscreen
+
+    targetScreen: root.QsWindow.window ? root.QsWindow.window.screen : null
+
+    onClosed: {
+      root.pendingDoc = null
+      panel.fullscreenCooldownUntil = Date.now() + 700
+    }
+  }
+
+  Timer {
+    id: fullscreenOpenTimer
+    interval: 80
+    repeat: false
+    onTriggered: {
+      if (!root.pendingDoc) return
+      var doc = root.pendingDoc
+      root.pendingDoc = null
+      if (fullscreen.open(doc)) root.close()
+    }
   }
 }

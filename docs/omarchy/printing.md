@@ -15,9 +15,12 @@ printed document can be checked again and reprinted.
 - Check a printed row and press **Print selected** to reprint it. **Select
   new** checks all unprinted documents again, **Clear** empties the selection.
 - The number beside the bar icon is the count of unprinted/changed documents.
-- Hover a row, or move the keyboard cursor, to see its first page in the
-  preview column. PDFs are rendered on demand with `pdftoppm`, images are
-  shown directly, and text files show their first 4000 characters.
+- Hovering a row pins the preview to that document (the keyboard cursor moves
+  with the pointer, so the preview stays after the pointer leaves the row).
+- Hover the preview, click it, press its expand button, or press `f` to open a
+  document-sized reader. A4 is shown at its natural 96 dpi width, not stretched
+  across the monitor. The reader scrolls with the wheel/touchpad, arrows,
+  PageUp/PageDown, Space, Home and End. Escape or a click outside closes it.
 - In the panel, Up/Down move the row cursor, Space/Enter toggles the current
   row, `r` refreshes, Escape closes.
 
@@ -52,10 +55,13 @@ are converted with headless LibreOffice when `libreoffice` is on `PATH`; this
 system does not install it, so those two are skipped with a message. Convert
 such a document to PDF before dropping it in.
 
-Previews use the first PDF page rendered by `pdftoppm` (poppler-utils, a shell
-runtime dependency). The render is cached under
-`~/.local/state/omarchy/print/preview/<sha256>.png`; changing the file changes
-the hash and makes a fresh thumbnail. DOCX/ODT have no preview.
+Previews use `pdftoppm` (poppler-utils, a shell runtime dependency). The inline
+thumbnail is the first page at low resolution, cached as
+`~/.local/state/omarchy/print/preview/<sha256>.png`. The natural-size reader
+renders every page at 150 dpi into
+`~/.local/state/omarchy/print/preview/<sha256>-150/page-*.png` and displays it
+at 96 dpi scale. Changing the file changes the hash and makes a fresh render.
+DOCX/ODT have no preview.
 
 Files are copied to CUPS as they are; the folder is not a staging area and
 nothing is moved or deleted after printing.
@@ -88,7 +94,8 @@ omarchy-print list                    # JSON: folder, printer, documents
 omarchy-print print --new            # everything not printed at its current hash
 omarchy-print print -- file1 file2   # an explicit selection (reprints allowed)
 omarchy-print print --dry-run --new  # show the selection, send nothing
-omarchy-print preview <file>         # print a cached first-page/image preview path
+omarchy-print preview <file>         # cached first-page thumbnail path
+omarchy-print pages <file>           # JSON: natural-size page images, count, scale
 omarchy-print printer                # resolved queue name
 omarchy-print folder                 # resolved folder
 omarchy-print forget <file>          # drop one status record
@@ -105,7 +112,10 @@ short-lived; the scope is not used from the command line.
 - `vendor/omarchy-shell/bin/omarchy-print` — list/print/status helper.
 - `vendor/omarchy-shell/shell/Custom/PrintService.qml` — polling, selection
   and print process (one per shell, shared by both bars).
-- `vendor/omarchy-shell/shell/Custom/PrintPanel.qml` — panel UI.
+- `vendor/omarchy-shell/shell/Custom/PrintPanel.qml` — panel UI and inline
+  hover preview.
+- `vendor/omarchy-shell/shell/Custom/PrintPreviewOverlay.qml` — natural-size
+  multi-page reader (Escape/outside click, wheel and key scrolling).
 - `vendor/omarchy-shell/shell/plugins/bar/widgets/PrintQueue.qml`,
   `PrintQueue.manifest.json` — bar icon and manifest (`local.print`).
 - `home-manager/modules/desktop/omarchy/shell.json` — `local.print` in the
@@ -129,7 +139,10 @@ per-monitor widget.
   `lpstat -o` and the CUPS journal. Successfully recorded files stay printed.
 - **A document prints twice** — its hash changed (or the status file was
   removed). Use `omarchy-print list` to see `printed`/`changed` for each file.
-- **DOCX/ODT skipped** — install LibreOffice or convert to PDF.
+- **DOCX/ODT skipped** — install LibreOffice or convert to PDF. Printing uses
+  LibreOffice when it is installed, but this system does not include it, so
+  DOCX/ODT currently have neither printing nor preview. Legacy `.doc` is not
+  supported either.
 - **Preview says "No preview for this format"** — only PDF, images and text
-  preview; convert DOCX/ODT to PDF. A broken/encrypted PDF shows the
-  `pdftoppm` error instead.
+  preview inline; the natural-size reader supports PDF and images. Convert
+  DOCX/ODT to PDF. A broken/encrypted PDF shows the `pdftoppm` error instead.

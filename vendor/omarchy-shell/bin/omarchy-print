@@ -254,10 +254,69 @@ preview_document() {
   esac
 }
 
+pages_document() {
+  local file="${1:-}"
+  [ -n "$file" ] || { printf 'usage: omarchy-print pages <file>\n' >&2; return 2; }
+  local folder_real real_file hash out tmp
+  folder_real=$(realpath -e -- "$folder" 2>/dev/null || printf '%s' "$folder")
+  real_file=$(realpath -e -- "$file" 2>/dev/null || true)
+  if [ -z "$real_file" ] || [[ $real_file != "$folder_real"/* ]]; then
+    printf 'skip: outside print folder: %s\n' "$file" >&2
+    return 1
+  fi
+
+  case "${file,,}" in
+    *.pdf)
+      hash=$(hash_of "$file")
+      [ -n "$hash" ] || return 1
+      mkdir -p "$state_dir/preview"
+      chmod 700 "$state_dir/preview"
+      out="$state_dir/preview/$hash-150"
+      if [ ! -d "$out" ] || [ -z "$(find "$out" -maxdepth 1 -type f -name '*.png' -print -quit)" ]; then
+        if ! command -v pdftoppm >/dev/null 2>&1; then
+          printf 'error: pdftoppm is needed for PDF previews\n' >&2
+          return 1
+        fi
+        tmp="$state_dir/preview/.pages-$hash-$$"
+        rm -rf "$tmp"
+        mkdir -p "$tmp"
+        if ! pdftoppm -r 150 -png -- "$file" "$tmp/page" >/dev/null 2>&1; then
+          rm -rf "$tmp"
+          printf 'error: could not render %s\n' "$(basename -- "$file")" >&2
+          return 1
+        fi
+        find "$tmp" -maxdepth 1 -type f -name '*.png' -exec chmod 600 {} +
+        chmod 700 "$tmp"
+        rm -rf "$out"
+        mv "$tmp" "$out"
+      fi
+      local -a pages=()
+      while IFS= read -r page; do
+        pages+=("$page")
+      done < <(find "$out" -maxdepth 1 -type f -name '*.png' | sort -V)
+      if [ ${#pages[@]} -eq 0 ]; then
+        printf 'error: no pages rendered\n' >&2
+        return 1
+      fi
+      printf '%s\n' "${pages[@]}" \
+        | jq -Rsc --argjson count "${#pages[@]}" \
+          '{count:$count,scale:(96/150),pages:(split("\n")|map(select(length>0)))}'
+      ;;
+    *.png|*.jpg|*.jpeg|*.webp)
+      jq -cn --arg path "$file" '{count:1,scale:1,pages:[$path]}'
+      ;;
+    *)
+      printf 'error: no page preview for %s\n' "$(basename -- "$file")" >&2
+      return 1
+      ;;
+  esac
+}
+
 case "${1:-list}" in
   list) list_documents ;;
   print) shift; print_documents "$@" ;;
   preview) shift; preview_document "${1:-}" ;;
+  pages) shift; pages_document "${1:-}" ;;
   printer) printer ;;
   folder) printf '%s\n' "$folder" ;;
   status) cat "$status_file" ;;
@@ -268,7 +327,7 @@ case "${1:-list}" in
     mv "$tmp" "$status_file"
     ;;
   *)
-    echo "usage: omarchy-print [list | print [--dry-run] [--new] [--] <files...> | preview <file> | printer | folder | forget <file>]" >&2
+    echo "usage: omarchy-print [list | print [--dry-run] [--new] [--] <files...> | preview <file> | pages <file> | printer | folder | forget <file>]" >&2
     exit 2
     ;;
 esac
