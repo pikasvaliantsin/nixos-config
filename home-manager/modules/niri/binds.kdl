@@ -161,6 +161,12 @@ binds {
     Mod+Shift+E hotkey-overlay-title="Quit niri" { quit; }
 
     // --- applications -------------------------------------------------------
+    // Jarvis voice assistant. Talking is a toggle because niri has no
+    // press/release binds: press once to talk, again to stop.
+    Ctrl+Shift+J hotkey-overlay-title="Jarvis: talk" { spawn "jarvis" "talk"; }
+    Ctrl+Shift+H hotkey-overlay-title="Jarvis: talk" { spawn "jarvis" "talk"; }
+    Ctrl+Shift+K hotkey-overlay-title="Jarvis: dictation" { spawn "jarvis" "dictate" "toggle"; }
+    Ctrl+Alt+Shift+J hotkey-overlay-title="Jarvis: wake word" { spawn "jarvis" "wake" "toggle"; }
     Mod+Return hotkey-overlay-title="Terminal" { spawn "ghostty"; }
     Mod+T hotkey-overlay-title="Terminal" { spawn "ghostty"; }
     Mod+E repeat=false hotkey-overlay-title="Files" { spawn "dfiles" "toggle"; }

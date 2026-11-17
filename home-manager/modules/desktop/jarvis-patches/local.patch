@@ -1,0 +1,1169 @@
+diff --git a/bin/jarvis b/bin/jarvis
+index 985ae2a..1e05b0f 100755
+--- a/bin/jarvis
++++ b/bin/jarvis
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ # jarvis — controla o serviço voice-launcher.service
+ #
+ # uso:
+@@ -182,11 +182,11 @@ cmd_wake() {
+     esac
+     if [ "$action" = off ]; then
+         touch "$WAKE_OFF"
+-        python3 "$bindir/jarvis_config.py" set wake_word_enabled false >/dev/null
++        "$(env_python)" "$bindir/jarvis_config.py" set wake_word_enabled false >/dev/null
+         echo "wake word off — só atalhos (push-to-talk/ditado)"
+     else
+         rm -f "$WAKE_OFF"
+-        python3 "$bindir/jarvis_config.py" set wake_word_enabled true >/dev/null
++        "$(env_python)" "$bindir/jarvis_config.py" set wake_word_enabled true >/dev/null
+         cmd_on
+         echo "wake word on — escutando \"hey jarvis\""
+     fi
+@@ -255,11 +255,11 @@ cmd_app() {
+         if command -v quickshell >/dev/null 2>&1; then
+             exec quickshell -p "$appdir/qs"
+         fi
+-        if python3 -c 'import PySide6' 2>/dev/null; then
+-            exec python3 "$bindir/jarvis-panel.py" "$appdir"
++        if "$(env_python)" -c 'import PySide6' 2>/dev/null; then
++            exec "$(env_python)" "$bindir/jarvis-panel.py" "$appdir"
+         fi
+     fi
+-    launch_tui "Jarvis" python3 "$bindir/jarvis-app.py"
++    launch_tui "Jarvis" "$(env_python)" "$bindir/jarvis-app.py"
+ }
+ 
+ cmd_config() {
+@@ -268,10 +268,10 @@ cmd_config() {
+     local bindir
+     bindir="$(dirname "$(readlink -f "$0")")"
+     if [ $# -eq 0 ]; then
+-        launch_tui "Jarvis — configuração" python3 "$bindir/jarvis-config.py"
++        launch_tui "Jarvis — configuração" "$(env_python)" "$bindir/jarvis-config.py"
+         return
+     fi
+-    exec python3 "$bindir/jarvis_config.py" "$@"
++    exec "$(env_python)" "$bindir/jarvis_config.py" "$@"
+ }
+ 
+ env_python() {
+diff --git a/bin/jarvis_agent_policy.py b/bin/jarvis_agent_policy.py
+index 81b5ea7..884761d 100644
+--- a/bin/jarvis_agent_policy.py
++++ b/bin/jarvis_agent_policy.py
+@@ -22,7 +22,7 @@ def subscription_env() -> dict[str, str]:
+ 
+ def system_prompt(access: str | None = None) -> str:
+     cfg = jarvis_config.load()
+-    lang = jarvis_i18n.norm_lang(cfg['language'])
++    lang = jarvis_i18n.norm_lang(cfg.get('speech_language') or cfg['language'])
+     jarvis_i18n.set_address(cfg.get('address', ''))
+     access = access or cfg['system_access']
+     dev = Path(cfg['dev_dir']).expanduser()
+diff --git a/bin/jarvis_config.py b/bin/jarvis_config.py
+index b814f6b..dbb73aa 100644
+--- a/bin/jarvis_config.py
++++ b/bin/jarvis_config.py
+@@ -72,8 +72,11 @@ def mask(value: str) -> str:
+ SETTINGS: list[Setting] = [
+     # --- principais -------------------------------------------------
+     Setting("language", "en", "Idioma",
+-            "Idioma em que o Jarvis fala e entende. Define também a voz padrão e o idioma do reconhecimento.",
++            "Idioma da interface. Define também a voz padrão e o idioma do reconhecimento quando speech_language está vazio.",
+             group="Geral", choices=jarvis_i18n.LANGUAGES),
++    Setting("speech_language", "", "Speech language",
++            "Language for speech recognition, TTS and model answers. Empty uses language; en, pt-BR or ru.",
++            group="Geral", choices=["", "en", "pt-BR", "ru"]),
+     Setting("wake_word_enabled", True, "Escuta da palavra-chave",
+             "on = fica escutando \"hey jarvis\"; off = mic fechado quando ocioso — só o "
+             "push-to-talk (Ctrl+Shift+H) e o ditado (Ctrl+Shift+K/L) ativam. `jarvis wake` alterna na hora.",
+@@ -141,8 +144,14 @@ SETTINGS: list[Setting] = [
+             "legacy mantém o executor de compatibilidade.",
+             group="Roteamento", choices=["auto", "legacy"]),
+     Setting("quick_provider", "codex", "Agente por assinatura",
+-            "codex = OpenAI Codex CLI (login ChatGPT); claude = Claude Code CLI.",
+-            group="Modelos", choices=["codex", "claude"]),
++            "codex = OpenAI Codex CLI (login ChatGPT); claude = Claude Code CLI; opencode = OpenCode CLI.",
++            group="Modelos", choices=["codex", "claude", "opencode"]),
++    Setting("opencode_model", "", "OpenCode model",
++            "Empty uses the OpenCode default. Only with the opencode provider.",
++            group="Modelos", free_choices=True),
++    Setting("opencode_agent", "plan", "OpenCode agent",
++            "Agent used by opencode run; plan keeps it read-only for voice conversation.",
++            group="Modelos", choices=["plan", "build"]),
+     Setting("system_access", "ask", "Acesso ao computador",
+             "ask = o modelo não tem shell nem acesso a arquivos: cada comando que ele quiser "
+             "rodar (até ler um arquivo) aparece numa janela pra você autorizar; full = sem "
+@@ -181,6 +190,15 @@ SETTINGS: list[Setting] = [
+     Setting("voice_length_scale", 1.15, "Velocidade da voz",
+             ">1 mais lento e formal; <1 mais rápido.",
+             group="Voz", min=0.7, max=1.8, step=0.05),
++    Setting("tts_backend", "piper", "TTS engine",
++            "piper = offline; edge = Microsoft neural voice (more natural, needs internet).",
++            group="Voz", choices=["piper", "edge"]),
++    Setting("edge_voice", "ru-RU-DmitryNeural", "Edge voice",
++            "Microsoft neural voice for tts_backend = edge: ru-RU-DmitryNeural or ru-RU-SvetlanaNeural.",
++            group="Voz", free_choices=True),
++    Setting("edge_rate", "-6%", "Edge rate",
++            "Prosody rate for edge-tts, e.g. -6% for a calmer assistant. A negative pitch breaks the current edge-tts.",
++            group="Voz", free_choices=True),
+     Setting("greeting", "", "Saudação",
+             "Frase falada quando a palavra-chave dispara. Vazio = padrão do idioma.",
+             group="Voz"),
+@@ -349,13 +367,13 @@ GROUP_EN = {"Roteamento": "Routing", "Geral": "General", "Escuta": "Listening",
+ 
+ def text_for(setting: Setting, lang: str) -> tuple[str, str]:
+     """(rótulo, ajuda) no idioma da configuração."""
+-    if jarvis_i18n.norm_lang(lang) == "en":
++    if jarvis_i18n.norm_lang(lang) in ("en", "ru"):
+         return jarvis_i18n.SETTING_TEXT_EN.get(setting.key, (setting.label, setting.help))
+     return setting.label, setting.help
+ 
+ 
+ def group_for(group: str, lang: str) -> str:
+-    return GROUP_EN.get(group, group) if jarvis_i18n.norm_lang(lang) == "en" else group
++    return GROUP_EN.get(group, group) if jarvis_i18n.norm_lang(lang) in ("en", "ru") else group
+ 
+ 
+ def defaults() -> dict:
+diff --git a/bin/jarvis_events.py b/bin/jarvis_events.py
+index 3dbb8d1..d3c7faf 100644
+--- a/bin/jarvis_events.py
++++ b/bin/jarvis_events.py
+@@ -47,6 +47,15 @@ def parse_line(provider: str, line: str):
+     except json.JSONDecodeError:
+         return None
+ 
++    if provider == "opencode":
++        t = ev.get("type", "")
++        part = ev.get("part") or {}
++        if t == "text":
++            return ("text", part.get("text", ""))
++        if t in ("tool", "tool_use"):
++            return ("tool", _short(part.get("tool") or part.get("name") or "tool"))
++        return None
++
+     if provider == "codex":
+         t = ev.get("type", "")
+         item = ev.get("item") or {}
+diff --git a/bin/jarvis_i18n.py b/bin/jarvis_i18n.py
+index 95b1aab..e8a5ac0 100644
+--- a/bin/jarvis_i18n.py
++++ b/bin/jarvis_i18n.py
+@@ -12,17 +12,17 @@ tela de configuração. O idioma é a chave `language` do config.
+ 
+ from __future__ import annotations
+ 
+-LANGUAGES = ["pt-BR", "en"]
++LANGUAGES = ["pt-BR", "en", "ru"]
+ 
+ # código do idioma pro reconhecimento de fala (whisper / OpenAI)
+-STT_LANG = {"pt-BR": "pt", "en": "en"}
++STT_LANG = {"pt-BR": "pt", "en": "en", "ru": "ru"}
+ 
+ # voz Piper padrão por idioma (arquivo em ~/.local/share/piper-voices)
+-DEFAULT_VOICE = {"pt-BR": "pt_BR-faber-medium", "en": "en_US-lessac-medium"}
++DEFAULT_VOICE = {"pt-BR": "pt_BR-faber-medium", "en": "en_US-lessac-medium", "ru": "ru_RU-ruslan-medium"}
+ 
+ # Como o Jarvis se dirige ao usuário nas falas fixas e no prompt ({address}).
+ # A chave `address` do config sobrescreve para todos os idiomas (set_address).
+-DEFAULT_ADDRESS = {"pt-BR": "senhor", "en": "sir"}
++DEFAULT_ADDRESS = {"pt-BR": "senhor", "en": "sir", "ru": "сэр"}
+ _ADDRESS_OVERRIDE = ""
+ 
+ 
+@@ -305,6 +305,8 @@ def norm_lang(lang: str | None) -> str:
+     lang = (lang or "").strip()
+     if lang.lower().startswith("pt"):
+         return "pt-BR"
++    if lang.lower().startswith("ru"):
++        return "ru"
+     return "en" if lang.lower().startswith("en") else "pt-BR"
+ 
+ 
+@@ -592,3 +594,162 @@ SELF_NARRATION_NOTES = {
+         "waits; keep them under 12 words and without markdown."
+     ),
+ }
++
++
++# --- Russian speech tables -------------------------------------------------
++# The UI stays English; speech_language selects these strings for STT, TTS and
++# the model prompt. Markers stay in the same protocol as the other languages.
++STRINGS["ru"] = {
++    "routing_uncertain": "Не удалось подтвердить результат. Сессия сохранена, запрос повторно не отправлялся; проверьте терминал.",
++    "routing_error": "Не удалось выполнить запрос. Проверьте состояние Jarvis перед повтором.",
++    "native_handoff": "Задача продолжается в той же сессии. Откройте терминал, чтобы следить за ней.",
++    "native_handoff_voice": "Задача продолжается в терминале, в той же беседе.",
++    "route_agent": "Агент · подписка",
++    "route_api": "Ответ API",
++    "route_initial_model": "Начальная модель",
++    "route_local_classifier": "Локальный классификатор",
++    "route_direct": "Напрямую",
++    "route_selecting": "{router} · выбор маршрута…",
++    "route_same_session": "Та же сессия",
++    "route_computer": "компьютер",
++    "route_web": "поиск в интернете",
++    "route_conversation": "беседа",
++    "route_key_missing": "нет ключа",
++    "route_api_unconfigured": "API не настроен",
++    "route_web_disabled": "поиск отключён",
++    "route_unavailable": "недоступно",
++    "route_api_fallback": "ошибка ({reason}) → агент · подписка",
++    "route_native": "Интерактивная сессия",
++    "route_legacy": "Режим совместимости",
++    "open_session": "Открыть терминал",
++    "route_fallback": "Маршрут недоступен; используется агент.",
++    "route_reconnecting": "Переподключение к той же сессии без повторной отправки.",
++    "route_terminal_failed": "Не удалось открыть терминал. Сессия сохранена.",
++    "route_compatibility_notice": "Нативная сессия CLI недоступна; используется режим совместимости.",
++    "route_queued": "Голосовой запрос в очереди.",
++    "greeting": "Чем займёмся, {address}?",
++    "not_heard": "Не расслышал, {address}.",
++    "not_understood": "Не понял, {address}.",
++    "thinking": "Думаю, {address}.",
++    "yes_sir": "Да, {address}?",
++    "done": "Готово, {address}.",
++    "problem": "Возникла проблема, {address}. Повторите, пожалуйста.",
++    "handoff": "Это занимает больше времени, {address}. Я оставил задачу в отдельном терминале.",
++    "handoff_window": "(долгая задача — продолжается в отдельном терминале)",
++    "handoff_history": "(долгий ответ передан в отдельный терминал)",
++    "interrupted": "(прервано)",
++    "action_done": "(действие выполнено)",
++    "action": "(действие)",
++    "cmd_label": "команда",
++    "suspend": "приостановить компьютер",
++    "opening_project": "открываю проект {name}",
++    "opening_app": "открываю {name}",
++    "project_not_found": "Не нашёл проект {name}.",
++    "app_not_found": "Не нашёл приложение {name}.",
++    "test_answer": "[тест] тестовый ответ",
++    "consent_needed": "Нужно разрешение, {address}. Посмотрите на экран.",
++    "consent_title": "Jarvis просит разрешение",
++    "consent_question": "вы попросили:",
++    "consent_tool": "модель хочет использовать {tool}:",
++    "consent_command": "модель хочет выполнить:",
++    "consent_cwd": "каталог:",
++    "consent_key_allow": "разрешить",
++    "consent_key_allow_all": "разрешить всё для этого запроса",
++    "consent_key_deny": "запретить",
++    "consent_timeout": "нет ответа за {s}с → запрещено · разрешает только y (не Enter) · Esc/q запрещает",
++    "consent_scroll": "[j/k/space] прокрутите до конца, чтобы разрешить (+{more} строк)",
++    "consent_allow": "разрешено",
++    "consent_allow_all": "разрешено — всё до конца этого запроса",
++    "consent_deny": "запрещено",
++    "consent_denied_spoken": "Не разрешено, {address}.",
++    "access_unavailable": "Доступ к компьютеру недоступен: установленный {cli} слишком старый для безопасного режима. Отвечу из знаний.",
++    "ph_consent": ("РАЗРЕШЕНИЕ", "модель просит выполнить действие — решите в открытом окне (y/a/n)"),
++    "you": "вы",
++    "empty": "(беседа появится здесь)",
++    "ph_listening": ("СЛУШАЮ", "говорите, {address} · скажите «закончить», когда захотите · q закрывает"),
++    "ph_recording": ("ЗАПИСЬ", "говорите свободно — пауза завершит ход"),
++    "ph_transcribing": ("РАСПОЗНАЮ", "секунду…"),
++    "ph_thinking": ("ДУМАЮ", "перебейте меня, чтобы отменить и задать другой вопрос · q закрывает"),
++    "ph_speaking": ("ОТВЕЧАЮ", "перебейте меня, и я остановлюсь · «пауза» выключает звук"),
++    "ph_followup": ("ВАШ ХОД", "продолжайте говорить · «закрыть беседу», «это всё», «пока» завершают · q закрывает"),
++    "ph_handoff": ("В ТЕРМИНАЛЕ", "долгая задача продолжается в отдельном терминале"),
++    "ph_dictating": ("ДИКТОВКА", "Ctrl+Shift+K остановит и вставит · любая другая клавиша отменяет"),
++    "ph_polishing": ("ОБРАБОТКА", "исходный текст в буфере · Esc пропускает обработку"),
++    "ph_delivering": ("ОТПРАВЛЯЮ", "отправляю текст в выбранный вывод…"),
++    "ph_pasted": ("ВСТАВЛЕНО", "текст вставлен в активное окно и в историю буфера"),
++    "ph_copied": ("СКОПИРОВАНО", "текст в начале истории буфера"),
++    "ph_cancelled": ("ОТМЕНЕНО", "диктовка отменена"),
++    "dict_empty": "(ничего не распознано)",
++    "dict_live_hint": "подтверждённый текст на паузах · Ctrl+Shift+K завершает · держите поле выбранным",
++    "dict_live_blocked": "ввод остановлен: фокус изменился или поле недоступно · полный текст будет в буфере",
++    "dict_live_cancelled": "диктовка остановлена · уже вставленный текст остаётся в поле",
++    "handoff_title": "Jarvis — долгая работа",
++    "handoff_question": "вопрос:",
++    "handoff_running": "выполняется… (здесь появляется работа модели)",
++    "handoff_answer": "ответ:",
++    "handoff_close": "готово — любая клавиша закрывает",
++    "model_output_cut": "Работа прервана Jarvis: {reason}.",
++    "ev_tool": "выполняю",
++    "ev_thinking": "думаю",
++    "ev_text": "говорю",
++    "ev_narr": "комментирую",
++    "narr_read": "читаю файл",
++    "narr_search": "ищу в коде",
++    "narr_web": "ищу в интернете",
++    "narr_command": "выполняю команду",
++    "narr_thinking": "думаю",
++    "narr_dry": "всё ещё думаю",
++    "cfg_title": "Jarvis — настройки",
++    "cfg_modified": "(изменено)",
++    "cfg_main": "Основные",
++    "cfg_advanced": "Дополнительно",
++    "cfg_expand": "Enter раскрывает/сворачивает дополнительные параметры.",
++    "cfg_default": "по умолчанию",
++    "cfg_keys1": "q / Esc  выход      s  сохранить и применить      d  сбросить пункт      D  сбросить всё",
++    "cfg_keys2": "↑↓ навигация   ←→ / Enter изменить   p  сохранить профиль   o  открыть профиль   e  изменить файл",
++    "cfg_on": "включено",
++    "cfg_off": "выключено",
++    "cfg_secret_empty": "(пусто — используется OPENAI_API_KEY окружения)",
++    "cfg_saved_restart": "сохранено — Jarvis перезапущен с новой конфигурацией",
++    "cfg_saved_off": "сохранено (Jarvis выключен; применится при запуске)",
++    "cfg_saved": "сохранено",
++    "cfg_profile_name": "имя профиля",
++    "cfg_profile_saved": "профиль сохранён в {path}",
++    "cfg_no_profiles": "ошибка: нет сохранённых профилей (p создаёт)",
++    "cfg_profile_pick": "профиль ({names})",
++    "cfg_profile_missing": "ошибка: профиль {name!r} не существует",
++    "cfg_profile_loaded": "профиль {name!r} загружен — s применяет",
++    "cfg_all_defaults": "всё по умолчанию — s применяет",
++    "cfg_reloaded": "файл перезагружен",
++    "cfg_quit_prompt": "есть несохранённые изменения — [s] сохранить и выйти  [n] выйти без сохранения  [Esc] вернуться",
++    "cfg_error": "ошибка",
++}
++
++SYSTEM_PROMPT["ru"] = (
++    "Ты Jarvis, персональный ГОЛОСОВОЙ ассистент — это разговор вслух, а не текст. "
++    "Отвечай ВСЕГДА по-русски, естественной разговорной прозой: без markdown, списков, "
++    "кода, эмодзи и URL. Говори по существу, тоном компетентного и сдержанного дворецкого; "
++    "в большинстве случаев не больше трёх предложений. Если данных много (погода на дни, "
++    "рейтинги, таблицы), не перечисляй всё вслух: назови общий тренд и главное. Если нужен "
++    "полный текст, сначала дай короткое резюме, затем строку --- и детали для экрана. "
++    "Ты работаешь на компьютере пользователя, но доступ к машине управляется режимом "
++    "system_access; не выдумывай результаты команд. Текст приходит из распознавания речи: "
++    "терпи ошибки транскрипции и понимай намерение. Обращайся к пользователю только как "
++    "\"{address}\" и не используй его имя. Если вопрос требует доступа к компьютеру, а он "
++    "выключен, скажи об этом одной фразой."
++)
++ACTIONS_PROTOCOL["ru"] = (
++    "\n\nACTIONS. You decide the user's intent; some actions are executed by the system when "
++    "you include the matching marker at the end of your reply, each on its own line. The spoken "
++    "part comes first and stays short:\n"
++    "- <<ABRIR_PROJETO: name>> opens a project development layout. Existing projects: {projects}.\n"
++    "- <<ABRIR_APP: name>> opens an installed application.\n"
++    "- <<DORMIR>> suspends the computer only when clearly requested.\n"
++    "- <<FIM>> ends the conversation.\n"
++    "Without a marker the conversation simply continues."
++)
++ACCESS_NOTES["ru"] = {
++    "ask": "\n\nAUTHORIZATION. You have no shell or file tools of your own; the only way to act on the machine is the `run` tool with an exact command, which the user must authorize.",
++    "off": "\n\nNO ACCESS. Computer access is OFF. Answer from knowledge only; if the request needs the machine, say so in one sentence.",
++}
++ENVIRONMENT_NOTES["ru"] = "\n\nENVIRONMENT. You are on the user's Linux desktop. Do not assume direct shell access unless the current Jarvis mode grants it."
+diff --git a/bin/jarvis_routing.py b/bin/jarvis_routing.py
+index a2f75aa..a6ecfce 100644
+--- a/bin/jarvis_routing.py
++++ b/bin/jarvis_routing.py
+@@ -62,11 +62,15 @@ RouterCall = Callable[[RouteRequest], RouteDecision]
+ def build_profiles(cfg: dict) -> dict[str, ExecutionProfile]:
+     provider = cfg.get('quick_provider', 'codex')
+     codex = provider == 'codex'
+-    base = ExecutionProfile(
+-        'agent_default', 'agent', provider,
+-        cfg.get('codex_model' if codex else 'claude_quick_model', '' if codex else 'sonnet'),
+-        cfg.get('codex_effort' if codex else 'claude_quick_effort', 'low'),
+-        cfg.get('system_access', 'ask'), bool(cfg.get('codex_fast', True)) if codex else False)
++    if provider == 'opencode':
++        base = ExecutionProfile('agent_default', 'agent', 'opencode',
++                                cfg.get('opencode_model', ''), '', 'off', False)
++    else:
++        base = ExecutionProfile(
++            'agent_default', 'agent', provider,
++            cfg.get('codex_model' if codex else 'claude_quick_model', '' if codex else 'sonnet'),
++            cfg.get('codex_effort' if codex else 'claude_quick_effort', 'low'),
++            cfg.get('system_access', 'ask'), bool(cfg.get('codex_fast', True)) if codex else False)
+     profiles = {base.name: base}
+     if cfg.get('agent_strong_model', '').strip():
+         profiles['agent_strong'] = replace(base, name='agent_strong', model=cfg['agent_strong_model'],
+diff --git a/bin/jarvis_stt.py b/bin/jarvis_stt.py
+index c28ac68..3fcd4b5 100644
+--- a/bin/jarvis_stt.py
++++ b/bin/jarvis_stt.py
+@@ -133,14 +133,21 @@ class LocalWhisper:
+         self.hotwords = ", ".join(terms) if terms else None
+         try:
+             compute = "float16" if device == "cuda" else "int8"
++            kwargs = whisper_kwargs(model)
++            if device == "cpu":
++                # O CTranslate2 usa 4 threads por padrão; em CPU isso deixava a
++                # transcrição 30-50% mais lenta do que usar todos os núcleos.
++                kwargs["cpu_threads"] = os.cpu_count() or 4
+             self.model = WhisperModel(model, device=device, compute_type=compute,
+-                                      **whisper_kwargs(model))
++                                      **kwargs)
+         except Exception as e:
+             if device == "cuda":
+                 log(f"CUDA falhou ({str(e)[:80]}); usando CPU")
+                 device, model = "cpu", ("small" if model.startswith("large") else model)
++                kwargs = whisper_kwargs(model)
++                kwargs["cpu_threads"] = os.cpu_count() or 4
+                 self.model = WhisperModel(model, device="cpu", compute_type="int8",
+-                                          **whisper_kwargs(model))
++                                          **kwargs)
+             else:
+                 raise
+         self.device = device
+diff --git a/bin/voice-launcher b/bin/voice-launcher
+index 8c634f1..4fb8095 100755
+--- a/bin/voice-launcher
++++ b/bin/voice-launcher
+@@ -1,4 +1,4 @@
+-#!/bin/bash
++#!/usr/bin/env bash
+ # wrapper: runs voice-launcher.py inside the Jarvis Python environment — the
+ # venv created by install.sh from the hash-locked requirements. Nothing else
+ # (no conda, no system site-packages) is used.
+diff --git a/bin/voice-launcher.py b/bin/voice-launcher.py
+index 3817201..0782e23 100755
+--- a/bin/voice-launcher.py
++++ b/bin/voice-launcher.py
+@@ -32,9 +32,11 @@ import os
+ import signal
+ import difflib
+ import re
++import hashlib
+ import shlex
+ import shutil
+ import subprocess
++import sys
+ import tempfile
+ import threading
+ import time
+@@ -72,15 +74,21 @@ def _hits(spec: str) -> tuple[int, int]:
+ SAMPLE_RATE = 16000
+ CHUNK = 1280  # 80ms @ 16kHz (openWakeWord default)
+ LANG = jarvis_i18n.norm_lang(CFG["language"])
++SPEECH_LANG = jarvis_i18n.norm_lang(CFG.get("speech_language") or LANG)
+ jarvis_i18n.set_address(CFG.get("address", ""))   # "senhor"/"sir" ou o tratamento escolhido
+ DEV_DIR = Path(CFG["dev_dir"]).expanduser()
+-VOICE_NAME = CFG["voice"] if CFG["voice"] != "auto" else jarvis_i18n.DEFAULT_VOICE[LANG]
++VOICE_NAME = CFG["voice"] if CFG["voice"] != "auto" else jarvis_i18n.DEFAULT_VOICE[SPEECH_LANG]
+ VOICE = jarvis_config.VOICES_DIR / f"{VOICE_NAME}.onnx"
+ VOICE_LENGTH_SCALE = CFG["voice_length_scale"]
++TTS_BACKEND = CFG.get("tts_backend", "piper")
++EDGE_VOICE = CFG.get("edge_voice", "ru-RU-DmitryNeural")
++EDGE_RATE = CFG.get("edge_rate", "-6%")
++EDGE_BIN = shutil.which("edge-tts") or str(Path(sys.executable).with_name("edge-tts"))
++EDGE_CACHE_DIR = Path.home() / ".cache" / "jarvis" / "tts"
+ LAYOUT_SCRIPT = Path(CFG["layout_script"]).expanduser()
+ WAKE_WORD = CFG["wake_word"]
+ WAKE_THRESHOLD = CFG["wake_threshold"]
+-GREETING = CFG["greeting"] or T(LANG, "greeting")
++GREETING = CFG["greeting"] or T(SPEECH_LANG, "greeting")
+ 
+ # Captura por VAD: fim de fala = silêncio contínuo, não tempo fixo.
+ VAD_FRAME = 2560              # 160ms @ 16kHz — múltiplo de 512 exigido pelo silero
+@@ -154,7 +162,7 @@ NARRATION_INTERVAL_QUICK = CFG["narration_interval_quick"]
+ NARRATION_INTERVAL_DEEP = CFG["narration_interval_deep"]
+ 
+ # Prompt de sistema compartilhado pelos dois provedores (vazio = padrão do idioma).
+-CLAUDE_SYSTEM = jarvis_i18n.system_prompt(LANG, CFG["system_prompt"])
++CLAUDE_SYSTEM = jarvis_i18n.system_prompt(SPEECH_LANG, CFG["system_prompt"])
+ 
+ # Perguntas rápidas (não-deep): "codex" (Codex CLI) ou "claude" (Claude Code CLI).
+ QUICK_PROVIDER = CFG["quick_provider"]
+@@ -454,15 +462,15 @@ def action_protocol(access: str, provider: str) -> str:
+     permissão por tool (servidor MCP); o Codex fica em sandbox e propõe
+     comandos pela tool `run` do servidor MCP, que pede consentimento."""
+     projects = ", ".join(list_projects()) or "(none)"
+-    text = jarvis_i18n.ACTIONS_PROTOCOL[LANG].format(projects=projects)
++    text = jarvis_i18n.ACTIONS_PROTOCOL[SPEECH_LANG].format(projects=projects)
+     if access in ("full", "ask"):
+-        text += jarvis_i18n.ENVIRONMENT_NOTES[LANG]
++        text += jarvis_i18n.ENVIRONMENT_NOTES[SPEECH_LANG]
+     if access == "ask":
+-        text += jarvis_i18n.ACCESS_NOTES[LANG]["ask"]
++        text += jarvis_i18n.ACCESS_NOTES[SPEECH_LANG]["ask"]
+     elif access == "off":
+-        text += jarvis_i18n.ACCESS_NOTES[LANG]["off"]
++        text += jarvis_i18n.ACCESS_NOTES[SPEECH_LANG]["off"]
+     if NARRATION_MODE == "self":
+-        text += jarvis_i18n.SELF_NARRATION_NOTES[LANG]
++        text += jarvis_i18n.SELF_NARRATION_NOTES[SPEECH_LANG]
+     return text
+ 
+ 
+@@ -508,7 +516,10 @@ def with_context(question: str, history: list[tuple[str, str]]) -> str:
+     for q, a in history[-MAX_HISTORY_EXCHANGES:]:
+         lines.append(f"Usuário: {q}")
+         lines.append(f"Jarvis: {a[:1200]}")
+-    if LANG == "en":
++    if SPEECH_LANG == "ru":
++        return ("Продолжение голосовой беседы. Предыдущие реплики:\n" + "\n".join(lines)
++                + f"\n\nНовое сообщение пользователя (ответьте только на него): {question}")
++    if SPEECH_LANG == "en":
+         lines = [l.replace("Usuário:", "User:", 1) for l in lines]
+         return ("Ongoing voice conversation. Previous exchanges:\n" + "\n".join(lines)
+                 + f"\n\nNew user message (answer only this one): {question}")
+@@ -688,6 +699,8 @@ _cli_ok_cache: dict[str, bool] = {}
+ 
+ 
+ def cli_supports_safe_mode(provider: str) -> bool:
++    if provider == "opencode":
++        return True
+     if provider in _cli_ok_cache:
+         return _cli_ok_cache[provider]
+     args = [provider, "--help"] if provider == "claude" else ["codex", "exec", "--help"]
+@@ -727,6 +740,13 @@ def _build_ask_call(question: str, profile: jarvis_routing.ExecutionProfile, ans
+                                       ensure_ascii=False))
+         popen["cwd"] = str(ASK_WORKDIR)
+         popen["env"] = {**os.environ, "JARVIS_CTX": str(mcp_ctx)}
++    if profile.provider == "opencode":
++        system = CLAUDE_SYSTEM + action_protocol("off", "opencode")
++        cmd = ["opencode", "run", "--format", "json", "--agent", CFG.get("opencode_agent", "plan")]
++        if profile.model:
++            cmd += ["--model", profile.model]
++        cmd.append(system + "\n\nUser said:\n" + question)
++        return cmd, "opencode", popen
+     if profile.provider == "claude":
+         system = CLAUDE_SYSTEM + action_protocol(access, "claude")
+         model = profile.model
+@@ -804,7 +824,7 @@ def run_action(kind: str, arg: str, args, window) -> tuple[str, bool]:
+     if kind == "ABRIR_PROJETO":
+         project = match_project(arg)
+         if not project:
+-            return T(LANG, "project_not_found", name=arg), False
++            return T(SPEECH_LANG, "project_not_found", name=arg), False
+         window.add_exchange(T(LANG, "action"), T(LANG, "opening_project", name=project), T(LANG, "cmd_label"))
+         if args.test:
+             print(f"[test] NAO lancou dev-layout {project}")
+@@ -818,7 +838,7 @@ def run_action(kind: str, arg: str, args, window) -> tuple[str, bool]:
+     if kind == "ABRIR_APP":
+         app = match_application(arg)
+         if not app:
+-            return T(LANG, "app_not_found", name=arg), False
++            return T(SPEECH_LANG, "app_not_found", name=arg), False
+         name, cmd, terminal = app
+         launch_cmd = tui_launch_cmd(cmd) if terminal else cmd
+         window.add_exchange(T(LANG, "action"), T(LANG, "opening_app", name=name), T(LANG, "cmd_label"))
+@@ -848,7 +868,7 @@ def ask_model(question: str, profile: jarvis_routing.ExecutionProfile | None = N
+     unit = f"jarvis-model-{os.getpid()}-{int(time.time() * 1000) % 10**8}"
+     provider_guess = profile.provider
+     if profile.system_access != "full" and not cli_supports_safe_mode(provider_guess):
+-        return (T(LANG, "access_unavailable", cli=provider_guess), None)
++        return (T(SPEECH_LANG, "access_unavailable", cli=provider_guess), None)
+     ans = private_tmp("jarvis-ans-", ".txt")
+     ev = private_tmp("jarvis-ev-", ".jsonl")
+     err = private_tmp("jarvis-err-", ".txt")
+@@ -894,7 +914,7 @@ def ask_model(question: str, profile: jarvis_routing.ExecutionProfile | None = N
+             except OSError:
+                 pass
+         try:
+-            ans.write_text(T(LANG, "model_output_cut", reason=reason))
++            ans.write_text(T(SPEECH_LANG, "model_output_cut", reason=reason))
+         except OSError:
+             pass
+ 
+@@ -1156,33 +1176,40 @@ class BargeInListener:
+             print(f"   [listener erro: {e}]")
+ 
+ 
+-def tts(text: str, listener: "BargeInListener | None" = None, stop_when=None) -> bool:
+-    """Fala texto via piper -> paplay. Retorna True se interrompido pelo listener.
+-    `stop_when()` verdadeiro corta a fala sem contar como interrupção (narração
+-    de progresso quando a resposta chega)."""
+-    wav_path = private_tmp("jarvis-tts-", ".wav")
+-    wav = str(wav_path)
+-    try:
+-        subprocess.run(
+-            ["piper", "-m", str(VOICE),
+-             "--length-scale", str(VOICE_LENGTH_SCALE),
+-             "-f", wav],
+-            input=text.encode(),
+-            check=True, capture_output=True, timeout=15,
+-        )
+-    except Exception as e:
+-        print(f"   [tts gen falhou: {e}]")
+-        wav_path.unlink(missing_ok=True)
+-        return False
++_PIPER_LOCK = threading.Lock()
++_PIPER_VOICE = None
++_PIPER_CONFIG = None
++
++
++def _load_piper():
++    """Carrega o PiperVoice uma vez; o CLI recarregava 60 MB por frase."""
++    global _PIPER_VOICE, _PIPER_CONFIG
++    with _PIPER_LOCK:
++        if _PIPER_VOICE is None:
++            from piper import PiperVoice, SynthesisConfig
++            _PIPER_VOICE = PiperVoice.load(str(VOICE))
++            _PIPER_CONFIG = SynthesisConfig(length_scale=VOICE_LENGTH_SCALE)
++        return _PIPER_VOICE
++
++
++def _synthesize_wav(text: str, path: Path) -> None:
++    import wave
++    voice = _load_piper()
++    with _PIPER_LOCK:
++        with wave.open(str(path), "wb") as wav_file:
++            voice.synthesize_wav(text, wav_file, syn_config=_PIPER_CONFIG)
++
+ 
++def _play_file(path: Path, command: list[str], listener: "BargeInListener | None", stop_when) -> bool:
++    """Toca um arquivo já sintetizado, com barge-in e corte por stop_when()."""
+     try:
+-        proc = subprocess.Popen(["paplay", wav])
++        proc = subprocess.Popen(command)
+     except FileNotFoundError:
+-        wav_path.unlink(missing_ok=True)
++        path.unlink(missing_ok=True)
+         return False
+-    if PICOH_ENABLED:
+-        jarvis_picoh.publish_tts(wav_path)   # boca do robô segue o volume da fala
+-    threading.Thread(target=_unlink_after, args=(proc, wav_path), daemon=True).start()
++    if PICOH_ENABLED and path.suffix == ".wav":
++        jarvis_picoh.publish_tts(path)   # boca do robô segue o volume da fala
++    threading.Thread(target=_unlink_after, args=(proc, path), daemon=True).start()
+ 
+     def cut() -> None:
+         proc.terminate()
+@@ -1215,7 +1242,7 @@ def tts(text: str, listener: "BargeInListener | None" = None, stop_when=None) ->
+                     proc.kill()
+                 return True
+             if time.monotonic() > deadline:
+-                print("   [tts: timeout absoluto, matando paplay]")
++                print("   [tts: timeout absoluto, matando o player]")
+                 proc.kill()
+                 return False
+             time.sleep(0.05)
+@@ -1224,6 +1251,102 @@ def tts(text: str, listener: "BargeInListener | None" = None, stop_when=None) ->
+         listener.tts_playing = False
+ 
+ 
++def _tts_piper(text: str, listener: "BargeInListener | None", stop_when) -> bool:
++    wav_path = private_tmp("jarvis-tts-", ".wav")
++    try:
++        _synthesize_wav(text, wav_path)
++    except Exception as e:
++        print(f"   [piper tts falhou: {e}]")
++        wav_path.unlink(missing_ok=True)
++        return False
++    return _play_file(wav_path, ["paplay", str(wav_path)], listener, stop_when)
++
++
++def _edge_cache_path(text: str) -> Path:
++    key = hashlib.sha256(f"{EDGE_VOICE}\0{EDGE_RATE}\0{text}".encode()).hexdigest()
++    return EDGE_CACHE_DIR / f"{key}.mp3"
++
++
++def _edge_generate(text: str, dest: Path, timeout: float = 6.0,
++                   attempts: int = 2) -> None:
++    last = None
++    for attempt in range(attempts):
++        dest.unlink(missing_ok=True)
++        try:
++            subprocess.run(
++                [EDGE_BIN, "-v", EDGE_VOICE, "--rate", EDGE_RATE,
++                 "-t", text, "--write-media", str(dest), "--no-progress"],
++                check=True, capture_output=True, timeout=timeout,
++            )
++            if dest.exists() and dest.stat().st_size:
++                return
++            last = RuntimeError("áudio vazio")
++        except Exception as e:
++            last = e
++        if attempt + 1 < attempts:
++            time.sleep(0.25 * (attempt + 1))
++    raise last or RuntimeError("edge tts falhou")
++
++
++def _edge_warm(text: str) -> None:
++    """Gera e guarda uma frase fixa para o primeiro "hey jarvis" não esperar."""
++    cached = _edge_cache_path(text)
++    if cached.exists() and cached.stat().st_size:
++        return
++    tmp = None
++    try:
++        EDGE_CACHE_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
++        tmp = EDGE_CACHE_DIR / f".{cached.stem}.{os.getpid()}-{threading.get_ident()}.tmp"
++        _edge_generate(text, tmp, timeout=15.0, attempts=3)
++        tmp.replace(cached)
++    except Exception as e:
++        print(f"   [edge warm falhou: {e}]")
++        if tmp is not None:
++            tmp.unlink(missing_ok=True)
++
++
++def _tts_edge(text: str, listener: "BargeInListener | None", stop_when) -> bool | None:
++    """Microsoft neural TTS (edge-tts). None = indisponível; cai no Piper."""
++    cached = _edge_cache_path(text)
++    mp3_path = private_tmp("jarvis-tts-", ".mp3")
++    if cached.exists() and cached.stat().st_size:
++        try:
++            shutil.copyfile(cached, mp3_path)
++        except OSError as e:
++            print(f"   [edge cache falhou: {e}]")
++            mp3_path.unlink(missing_ok=True)
++            return None
++    else:
++        try:
++            _edge_generate(text, mp3_path)
++            try:
++                EDGE_CACHE_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
++                tmp = EDGE_CACHE_DIR / f".{cached.stem}.{os.getpid()}-{threading.get_ident()}.tmp"
++                shutil.copyfile(mp3_path, tmp)
++                tmp.replace(cached)
++            except OSError:
++                pass
++        except Exception as e:
++            print(f"   [edge tts falhou: {e}]")
++            mp3_path.unlink(missing_ok=True)
++            return None
++    return _play_file(
++        mp3_path,
++        ["mpv", "--no-config", "--no-video", "--no-terminal", "--really-quiet", str(mp3_path)],
++        listener, stop_when,
++    )
++
++
++def tts(text: str, listener: "BargeInListener | None" = None, stop_when=None) -> bool:
++    """Fala texto pelo backend configurado. True = interrompido pelo listener."""
++    if TTS_BACKEND == "edge":
++        result = _tts_edge(text, listener, stop_when)
++        if result is not None:
++            return result
++        print("   [edge indisponível — usando Piper]")
++    return _tts_piper(text, listener, stop_when)
++
++
+ def _unlink_after(proc: subprocess.Popen, path: Path) -> None:
+     try:
+         proc.wait(timeout=90)
+@@ -1399,7 +1522,7 @@ def run_conversation(stream, wake, stt, vad_model, args) -> None:
+                     print("[conv] janela de follow-up expirou — conversa encerrada")
+                     chime(660, 440, ms=100, vol=0.12)
+                 else:
+-                    tts(T(LANG, "not_heard"))
++                    tts(T(SPEECH_LANG, "not_heard"))
+                 return
+ 
+             window.update(phase="transcribing")
+@@ -1429,7 +1552,7 @@ def run_conversation(stream, wake, stt, vad_model, args) -> None:
+                     # provavelmente ruído captado na janela — encerra sem drama
+                     print("[conv] transcrição vazia no follow-up — conversa encerrada")
+                     return
+-                tts(T(LANG, "not_understood"))
++                tts(T(SPEECH_LANG, "not_understood"))
+                 return
+ 
+             # kind == "ask"
+@@ -1441,7 +1564,7 @@ def run_conversation(stream, wake, stt, vad_model, args) -> None:
+             if args.test:
+                 chime(880, 1320, ms=100, vol=0.15)
+                 window.add_exchange(question, T(LANG, "test_answer"), label)
+-                tts(T(LANG, "test_answer"))
++                tts(T(SPEECH_LANG, "test_answer"))
+                 followup = True
+                 flush_stream(stream)
+                 continue
+@@ -1514,7 +1637,7 @@ def run_conversation(stream, wake, stt, vad_model, args) -> None:
+                     consent_seen = pend.get("id")
+                     print(f"[ask]  autorização pendente: {_txt(pend.get('summary', ''), 120)}")
+                     window.update(phase="consent")
+-                    if tts(T(LANG, "consent_needed"), listener):
++                    if tts(T(SPEECH_LANG, "consent_needed"), listener):
+                         interrupted = True
+                         break
+                     narrator.spoke()
+@@ -1545,9 +1668,9 @@ def run_conversation(stream, wake, stt, vad_model, args) -> None:
+                 except jarvis_routing.RouterCancelled:
+                     resposta, handoff, allow_actions = "", None, False
+                 except (jarvis_routing.ExecutionUncertain, jarvis_conversation_routing.sessions.SubmissionUnknown):
+-                    resposta, handoff, allow_actions = T(LANG, "routing_uncertain"), None, False
++                    resposta, handoff, allow_actions = T(SPEECH_LANG, "routing_uncertain"), None, False
+                 except Exception:
+-                    resposta, handoff, allow_actions = T(LANG, "routing_error"), None, False
++                    resposta, handoff, allow_actions = T(SPEECH_LANG, "routing_error"), None, False
+                 elapsed = time.time() - t0
+ 
+                 if handoff is not None:
+@@ -1555,9 +1678,9 @@ def run_conversation(stream, wake, stt, vad_model, args) -> None:
+                     print(f"[ans]  handoff após {elapsed:.0f}s [{label}] — terminal rascunho")
+                     if not handoff.get("native"):
+                         open_handoff_terminal(handoff)
+-                    window.set_answer_at(exchange_index, T(LANG, "native_handoff" if handoff.get("native") else "handoff_window"), label)
++                    window.set_answer_at(exchange_index, T(SPEECH_LANG, "native_handoff" if handoff.get("native") else "handoff_window"), label)
+                     window.update(phase="handoff", detail=label)
+-                    interrupted = tts(T(LANG, "native_handoff_voice" if handoff.get("native") else "handoff"), listener)
++                    interrupted = tts(T(SPEECH_LANG, "native_handoff_voice" if handoff.get("native") else "handoff"), listener)
+                 else:
+                     resposta, actions = parse_actions(resposta) if allow_actions else (resposta, [])
+                     actions = allowed_actions(actions, question, SYSTEM_ACCESS)
+@@ -1575,10 +1698,10 @@ def run_conversation(stream, wake, stt, vad_model, args) -> None:
+                     parts = re.split(r"\n\s*-{3,}\s*\n", resposta, maxsplit=1)
+                     spoken_answer = " ".join([parts[0].strip()] + notices).strip() or resposta
+                     if not spoken_answer and actions:
+-                        spoken_answer = T(LANG, "done")
++                        spoken_answer = T(SPEECH_LANG, "done")
+                     window.update(phase="speaking", detail=label)
+                     with history_lock:
+-                        history.append((question, resposta or T(LANG, "action_done")))
++                        history.append((question, resposta or T(SPEECH_LANG, "action_done")))
+                     interrupted = tts(spoken_answer, listener) if spoken_answer else False
+                     if interrupted:
+                         print("[int]  resposta interrompida")
+@@ -1607,7 +1730,7 @@ def run_conversation(stream, wake, stt, vad_model, args) -> None:
+                     )
+                 else:
+                     print("[int]  wake word — escutando de novo")
+-                    tts(T(LANG, "yes_sir"))
++                    tts(T(SPEECH_LANG, "yes_sir"))
+                     flush_stream(stream)
+             else:
+                 flush_stream(stream)
+@@ -1815,17 +1938,30 @@ def main() -> None:
+     wake = WakeModel(wakeword_models=[WAKE_WORD], inference_framework="onnx")
+ 
+     print(">> carregando reconhecimento de fala...")
+-    stt = jarvis_stt.build_transcriber(CFG, terms=stt_terms(), language=jarvis_i18n.STT_LANG[LANG])
++    stt = jarvis_stt.build_transcriber(CFG, terms=stt_terms(), language=jarvis_i18n.STT_LANG[SPEECH_LANG])
+     print(f">> reconhecimento: {stt.label}")
+ 
+     print(">> carregando VAD (silero / faster-whisper)...")
+     vad_model = get_vad_model()
++    # Pré-carrega a voz em segundo plano: o primeiro "hey jarvis" não espera
++    # o ONNX de 60 MB carregar no meio da saudação.
++    if TTS_BACKEND == "piper":
++        threading.Thread(target=_load_piper, daemon=True).start()
++    else:
++        def _warm_edge_phrases() -> None:
++            for phrase in (GREETING, T(SPEECH_LANG, "yes_sir"),
++                           T(SPEECH_LANG, "not_heard"),
++                           T(SPEECH_LANG, "not_understood"),
++                           T(SPEECH_LANG, "done")):
++                _edge_warm(phrase)
++        threading.Thread(target=_warm_edge_phrases, daemon=True).start()
+ 
+     projs = list_projects()
+     print(f">> projetos ({len(projs)}): {', '.join(projs)}")
+     print(">> script de layout:", LAYOUT_SCRIPT, "(existe)" if LAYOUT_SCRIPT.exists() else "(AUSENTE!)")
+     print(">> viewer da janela:", VIEWER_SCRIPT, "(existe)" if VIEWER_SCRIPT.exists() else "(AUSENTE!)")
+     print(">> voz:", VOICE, "(existe)" if VOICE.exists() else "(AUSENTE!)")
++    print(f">> tts: {TTS_BACKEND}" + (f" | edge: {EDGE_VOICE} {EDGE_RATE}" if TTS_BACKEND == "edge" else " | piper local"))
+     print(f">> roteamento: {CFG['routing_mode']} | agente: {model_label()}")
+     print(f">> modo: {'TEST (dry-run)' if args.test else 'REAL'}")
+     signal.signal(signal.SIGUSR1, _on_sigusr1)
+@@ -1931,7 +2067,7 @@ def main() -> None:
+                 except Exception as e:
+                     print(f"[wake handler erro: {type(e).__name__}: {e}]")
+                     try:
+-                        tts(T(LANG, "problem"))
++                        tts(T(SPEECH_LANG, "problem"))
+                     except Exception:
+                         pass
+ 
+diff --git a/install.sh b/install.sh
+index 8c3969f..4d9a614 100755
+--- a/install.sh
++++ b/install.sh
+@@ -145,7 +145,7 @@ if (( ! UPDATE_ONLY )); then
+   need pactl || missing+=(pipewire-pulse)
+   need wl-copy || missing+=(wl-clipboard)
+   need wtype || missing+=(wtype)
+-  ldconfig -p 2>/dev/null | grep -q libportaudio || missing+=(portaudio)
++  if ! ls /nix/store/*portaudio*/lib/libportaudio.so* >/dev/null 2>&1; then missing+=(portaudio); fi
+   if (( ${#missing[@]} )); then
+     if need omarchy; then
+       say "Installing: ${missing[*]} (via omarchy pkg add)"
+diff --git a/BarWidget.qml b/BarWidget.qml
+index ebbb357..59dee73 100644
+--- a/BarWidget.qml
++++ b/BarWidget.qml
+@@ -1,6 +1,7 @@
+ import QtQuick
+ import Quickshell
+ import qs.Commons
++import qs.Commons as Commons
+ import qs.Ui
+ import "app/qs" as Shared
+ 
+@@ -58,7 +59,7 @@ BarWidget {
+     text: poller.dictating ? "󰍬" : root.isOn ? "󰧑" : root.isPaused ? "󱍎" : "󱍄"
+     active: poller.serviceState === "on" || poller.dictating  // modo manual: cérebro sem cor de ativo
+     // Active state in the theme accent (the bar default falls back to `urgent`, red).
+-    activeColor: poller.dictating ? Color.urgent : Color.accent
++    activeColor: poller.dictating ? Commons.Color.urgent : Commons.Color.accent
+     tooltipText: root.popupOpen ? "" : "Jarvis — " + root.stateWord
+ 
+     onPressed: function(b) {
+diff --git a/app/qs/ConversationContent.qml b/app/qs/ConversationContent.qml
+index 6073b0b..e714ff2 100644
+--- a/app/qs/ConversationContent.qml
++++ b/app/qs/ConversationContent.qml
+@@ -1,5 +1,6 @@
+ import QtQuick
+ import qs.Commons
++import qs.Commons as Commons
+ 
+ // Conteúdo da janela gráfica da conversa — o MESMO QML nos dois hosts:
+ //   - quickshell (conversation.qml, janela em layer-shell no Omarchy);
+@@ -22,15 +23,15 @@ Item {
+   signal openSessionRequested(string sessionId)
+ 
+   // --- paleta: tema do Omarchy quando disponível, senão a fixa do shim ------
+-  property color background: Color.popups.background
+-  property color foreground: Color.popups.text
+-  property color accent: Color.accent
+-  property color urgent: Color.urgent
++  property color background: Commons.Color.popups.background
++  property color foreground: Commons.Color.popups.text
++  property color accent: Commons.Color.accent
++  property color urgent: Commons.Color.urgent
+   property color green: "#7fd18a"
+   property color amber: "#d9a441"
+-  property color blue: Color.accent
+-  property color muted: Qt.darker(Color.popups.text, 1.6)
+-  property color raised: Qt.lighter(Color.popups.background, 1.35)
++  property color blue: Commons.Color.accent
++  property color muted: Qt.darker(Commons.Color.popups.text, 1.6)
++  property color raised: Qt.lighter(Commons.Color.popups.background, 1.35)
+ 
+   onThemeRawChanged: applyTheme(themeRaw)
+   function applyTheme(raw) {
+diff --git a/app/qs/PanelContent.qml b/app/qs/PanelContent.qml
+index be6d3df..893cfe7 100644
+--- a/app/qs/PanelContent.qml
++++ b/app/qs/PanelContent.qml
+@@ -1,5 +1,6 @@
+ import QtQuick
+ import qs.Commons
++import qs.Commons as Commons
+ import qs.Ui
+ 
+ // Conteúdo do painel do Jarvis — o MESMO QML nos dois lugares:
+@@ -53,12 +54,12 @@ Item {
+   // Section tints derive from the theme accent so every theme stays coherent:
+   // voice = accent, dictation = accent rotated one way, keys = the other way.
+   // Achromatic accents (gray themes) get a minimum saturation.
+-  readonly property color fg: Color.popups.text
+-  readonly property color voiceColor: Color.accent
+-  readonly property color dictColor: panel.tone(Color.accent, -0.22)
+-  readonly property color keysColor: panel.tone(Color.accent, 0.38)
++  readonly property color fg: Commons.Color.popups.text
++  readonly property color voiceColor: Commons.Color.accent
++  readonly property color dictColor: panel.tone(Commons.Color.accent, -0.22)
++  readonly property color keysColor: panel.tone(Commons.Color.accent, 0.38)
+   readonly property color pausedColor: "#d9a441"
+-  readonly property color stateColor: dictating ? Color.urgent : isOn ? Color.accent : isPaused ? pausedColor : Qt.darker(fg, 1.6)
++  readonly property color stateColor: dictating ? Commons.Color.urgent : isOn ? Commons.Color.accent : isPaused ? pausedColor : Qt.darker(fg, 1.6)
+ 
+   function tone(base, shift) {
+     var h = base.hslHue < 0 ? 0.08 : base.hslHue
+@@ -164,7 +165,7 @@ Item {
+     property string title: ""
+     property string meta: ""
+     property color metaColor: Qt.darker(panel.fg, 1.5)
+-    property color tint: Color.accent
++    property color tint: Commons.Color.accent
+     property int pad: Style.space(12)
+     property int bodySpacing: Style.space(6)
+     default property alias body: bodyCol.data
+@@ -227,7 +228,7 @@ Item {
+   component PanelSwitch: Item {
+     id: sw
+     property bool checked: false
+-    property color accent: Color.accent
++    property color accent: Commons.Color.accent
+     signal toggled()
+ 
+     readonly property int trackH: Style.space(22)
+@@ -497,7 +498,7 @@ Item {
+             }
+             PanelSwitch {
+               checked: panel.serviceChecked
+-              accent: Color.accent
++              accent: Commons.Color.accent
+               onToggled: panel.toggleService()
+             }
+           }
+@@ -515,7 +516,7 @@ Item {
+             }
+             PanelSwitch {
+               checked: panel.wakeChecked
+-              accent: Color.accent
++              accent: Commons.Color.accent
+               onToggled: panel.toggleWake()
+             }
+           }
+@@ -543,7 +544,7 @@ Item {
+       Chip { label: panel.str.chipDeep;  value: panel.config.routing_mode || "";      tint: panel.keysColor }
+       // machine access mode: "full" is the only one without a consent step, so it stands out
+       Chip { label: panel.str.chipAccess; value: panel.config.system_access || "";
+-             tint: panel.config.system_access === "full" ? Color.urgent : panel.fg }
++             tint: panel.config.system_access === "full" ? Commons.Color.urgent : panel.fg }
+     }
+ 
+     // ---- Voice conversation guide.
+@@ -583,7 +584,7 @@ Item {
+         title: panel.str.dictTitle
+         tint: panel.dictColor
+         meta: panel.dictating ? "● " + panel.str.dictRecording : panel.isOn ? panel.str.dictReady : panel.str.dictNeedsOn
+-        metaColor: panel.dictating ? Color.urgent : panel.isOn ? panel.dictColor : Qt.darker(panel.fg, 1.5)
++        metaColor: panel.dictating ? Commons.Color.urgent : panel.isOn ? panel.dictColor : Qt.darker(panel.fg, 1.5)
+ 
+         Text {
+           width: parent.width
+@@ -610,8 +611,8 @@ Item {
+           selected: panel.dictating
+           enabled: panel.isOn
+           opacity: enabled ? 1.0 : 0.45
+-          foreground: panel.dictating ? Color.urgent : panel.dictColor
+-          accent: panel.dictating ? Color.urgent : panel.dictColor
++          foreground: panel.dictating ? Commons.Color.urgent : panel.dictColor
++          accent: panel.dictating ? Commons.Color.urgent : panel.dictColor
+           fontFamily: panel.fontFamily
+           fontSize: Style.font.bodySmall
+           onClicked: if (panel.isOn) panel.run("jarvis dictate toggle", false)
+@@ -651,7 +652,7 @@ Item {
+ 
+         FooterAction {
+           iconText: "󰐥"
+-          hoverColor: panel.isOn ? Color.urgent : Color.accent
++          hoverColor: panel.isOn ? Commons.Color.urgent : Commons.Color.accent
+           tooltipText: panel.isOn ? panel.str.tipOff : panel.str.tipOn
+           onClicked: panel.toggleService()
+         }
+@@ -666,7 +667,7 @@ Item {
+           iconText: panel.dictating ? "󰓛" : "󰍬"
+           enabled: panel.isOn
+           opacity: enabled ? 1.0 : 0.4
+-          hoverColor: panel.dictating ? Color.urgent : panel.dictColor
++          hoverColor: panel.dictating ? Commons.Color.urgent : panel.dictColor
+           tooltipText: panel.dictating ? panel.str.tipDictateStop : panel.str.tipDictate
+           onClicked: if (panel.isOn) panel.run("jarvis dictate toggle", false)
+         }
+diff --git a/app/qs/Ui/Button.qml b/app/qs/Ui/Button.qml
+index ff2582f..1cb4c75 100644
+--- a/app/qs/Ui/Button.qml
++++ b/app/qs/Ui/Button.qml
+@@ -1,5 +1,6 @@
+ import QtQuick
+ import qs.Commons
++import qs.Commons as Commons
+ 
+ // Shim de qs.Ui.Button (subconjunto usado pelo PanelContent).
+ Rectangle {
+@@ -8,8 +9,8 @@ Rectangle {
+   property string iconText: ""
+   property bool bordered: false
+   property bool selected: false
+-  property color foreground: Color.foreground
+-  property color accent: Color.accent
++  property color foreground: Commons.Color.foreground
++  property color accent: Commons.Color.accent
+   property string fontFamily: Style.font.family
+   property real fontSize: Style.font.body
+   property real iconSize: Style.font.icon
+diff --git a/app/qs/Ui/PanelActionButton.qml b/app/qs/Ui/PanelActionButton.qml
+index a44d7ab..2d89b1c 100644
+--- a/app/qs/Ui/PanelActionButton.qml
++++ b/app/qs/Ui/PanelActionButton.qml
+@@ -1,12 +1,13 @@
+ import QtQuick
+ import qs.Commons
++import qs.Commons as Commons
+ 
+ // Shim de qs.Ui.PanelActionButton (subconjunto usado pelo PanelContent).
+ Rectangle {
+   id: root
+   property string iconText: ""
+   property string tooltipText: ""
+-  property color foreground: Color.foreground
++  property color foreground: Commons.Color.foreground
+   property color hoverColor: foreground
+   property string fontFamily: Style.font.family
+   property real fontSize: Style.font.icon
+@@ -46,14 +47,14 @@ Rectangle {
+     width: tipText.implicitWidth + 12
+     height: tipText.implicitHeight + 8
+     radius: Style.cornerRadius > 0 ? 4 : 0
+-    color: Color.background
++    color: Commons.Color.background
+     border.width: 1
+-    border.color: Util.alpha(Color.foreground, 0.4)
++    border.color: Util.alpha(Commons.Color.foreground, 0.4)
+     Text {
+       id: tipText
+       anchors.centerIn: parent
+       text: root.tooltipText
+-      color: Color.foreground
++      color: Commons.Color.foreground
+       font.family: root.fontFamily
+       font.pixelSize: Style.font.bodySmall
+     }
+diff --git a/app/qs/Ui/PanelSeparator.qml b/app/qs/Ui/PanelSeparator.qml
+index 71899a5..3235f4a 100644
+--- a/app/qs/Ui/PanelSeparator.qml
++++ b/app/qs/Ui/PanelSeparator.qml
+@@ -1,9 +1,10 @@
+ import QtQuick
+ import qs.Commons
++import qs.Commons as Commons
+ 
+ Rectangle {
+   id: root
+-  property color foreground: Color.foreground
++  property color foreground: Commons.Color.foreground
+   property real strength: 0.12
+   width: parent ? parent.width : implicitWidth
+   implicitWidth: 100
+diff --git a/app/qs/Ui/ToggleSwitch.qml b/app/qs/Ui/ToggleSwitch.qml
+index 17dcd31..5d14fcd 100644
+--- a/app/qs/Ui/ToggleSwitch.qml
++++ b/app/qs/Ui/ToggleSwitch.qml
+@@ -1,12 +1,13 @@
+ import QtQuick
+ import qs.Commons
++import qs.Commons as Commons
+ 
+ // Shim de qs.Ui.ToggleSwitch (subconjunto usado pelo PanelContent).
+ Item {
+   id: root
+   property bool checked: false
+-  property color foreground: Color.foreground
+-  property color accent: Color.accent
++  property color foreground: Commons.Color.foreground
++  property color accent: Commons.Color.accent
+   signal toggled()
+ 
+   readonly property int trackHeight: 22
+diff --git a/app/qs/main.qml b/app/qs/main.qml
+index e568048..a70e5a6 100644
+--- a/app/qs/main.qml
++++ b/app/qs/main.qml
+@@ -1,6 +1,7 @@
+ import QtQuick
+ import QtQuick.Window
+ import qs.Commons
++import qs.Commons as Commons
+ 
+ // Janela standalone do painel do Jarvis via Qt puro (PySide6) — o caminho pra
+ // fora do Omarchy (Ubuntu etc., onde não há quickshell). Carregada por
+@@ -9,7 +10,7 @@ Window {
+   id: win
+   visible: true
+   title: "Jarvis"
+-  color: Color.popups.background
++  color: Commons.Color.popups.background
+   width: panel.implicitWidth + 36
+   height: panel.implicitHeight + 32
+ 
+diff --git a/app/qs/shell.qml b/app/qs/shell.qml
+index e70943c..8cc91e2 100644
+--- a/app/qs/shell.qml
++++ b/app/qs/shell.qml
+@@ -1,6 +1,7 @@
+ import QtQuick
+ import Quickshell
+ import qs.Commons
++import qs.Commons as Commons
+ 
+ // Janela standalone do painel do Jarvis rodando em quickshell (Omarchy/Arch):
+ //   quickshell -p <este diretório>
+@@ -11,7 +12,7 @@ ShellRoot {
+   FloatingWindow {
+     id: win
+     title: "Jarvis"
+-    color: Color.popups.background
++    color: Commons.Color.popups.background
+     implicitWidth: panel.implicitWidth + 36
+     implicitHeight: panel.implicitHeight + 32
+ 
