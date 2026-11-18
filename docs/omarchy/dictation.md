@@ -19,33 +19,8 @@ The Home Manager module installs:
 - the `superwhisper.service` user service (`superwhisper daemon`);
 - no update timer: Nix owns updates (`SUPERWHISPER_UPDATE_DISABLED=1`).
 
-`home-manager/modules/desktop/superwhisper-ptt.py` adds Right Alt
-push-to-talk. niri 26.04 has neither key-release binds nor the GlobalShortcuts
-portal that Superwhisper uses on Hyprland/KDE/GNOME, so the helper reads the
-keyboard devices directly (the user is in the `input` group) and calls:
-
-```text
-press Right Alt   -> superwhisper record start
-release Right Alt -> superwhisper record stop
-```
-
-`Alt+Space` is the app-search shortcut in this configuration, so it is not a
-dictation toggle. Superwhisper's own shortcut registration is paused
-(`superwhisper shortcuts pause on`); the evdev helper owns Right Alt.
-
-### niri-git
-
-nixpkgs unstable still ships niri 26.04, which lacks press/release binds and
-the GlobalShortcuts portal. The configuration therefore builds the compositor
-from `github:niri-wm/niri` (`inputs.niri-git`) and sets:
-
-```nix
-programs.niri.package = inputs.niri-git.packages.${pkgs.stdenv.hostPlatform.system}.niri;
-```
-
-After switching and logging into the new niri, the evdev bridge becomes
-redundant. Replace it with a native bind and disable
-`superwhisper-ptt.service`:
+Right Alt push-to-talk is a native niri bind in
+`home-manager/modules/niri/binds.kdl`:
 
 ```kdl
 Alt_R {
@@ -54,10 +29,30 @@ Alt_R {
 }
 ```
 
-Until that login, keep the evdev bridge: niri 26.04 rejects the `press {}` /
-`release {}` syntax. The XKB `compose:ralt` option was moved to
-`compose:menu` so Right Alt is free for dictation; Compose now lives on the
-Menu key.
+`Alt+Space` is the app-search shortcut in this configuration, so it is not a
+dictation toggle. Superwhisper's own shortcut registration is paused
+(`superwhisper shortcuts pause on`) so Right Alt has a single owner.
+
+### niri-git
+
+nixpkgs unstable still ships niri 26.04, which lacks press/release binds and
+the GlobalShortcuts portal. The configuration therefore builds niri from
+`github:niri-wm/niri` (`inputs.niri-git`) through its overlay:
+
+```nix
+nixpkgs.overlays = [ inputs.niri-git.overlays.default ];
+programs.niri.package = pkgs.niri;
+```
+
+The overlay is essential: the flake's own `packages.niri` linked glibc 2.42,
+while the switched system's `/run/opengl-driver` Mesa required glibc 2.43.
+That left the greeter on a black screen. Building through the system nixpkgs
+links niri against the system glibc/Mesa.
+
+The XKB `compose:ralt` option was moved to `compose:menu` so Right Alt is free
+for dictation; Compose now lives on the Menu key. niri 26.04 or older rejects
+`press {}` / `release {}`, so this bind only works after logging into
+niri-git.
 
 ## Configuration
 
@@ -86,16 +81,16 @@ link a licence. Audio/transcript handling follows Superwhisper's own terms.
 
 ## Build and apply
 
-The flake input and Home Manager module are committed, but the running system
-still uses the manually started runtime units until the next switch:
+The flake input and Home Manager module are installed by the normal system
+switch:
 
 ```bash
 nixos-rebuild switch --flake .#asus-expertbook --option substituters https://cache.nixos.org
 ```
 
-After the switch, HM installs the package, desktop entry and the same user
-services. The runtime units in `~/.config/systemd/user/` are replaced by the
-Home Manager generation.
+Home Manager owns the package, desktop entry, icons and the
+`superwhisper.service` user unit. There is no updater timer; bump the flake
+input to update Superwhisper.
 
 ## Tests performed
 
