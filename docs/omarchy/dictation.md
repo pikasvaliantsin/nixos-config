@@ -33,6 +33,32 @@ release Right Alt -> superwhisper record stop
 dictation toggle. Superwhisper's own shortcut registration is paused
 (`superwhisper shortcuts pause on`); the evdev helper owns Right Alt.
 
+### niri-git
+
+nixpkgs unstable still ships niri 26.04, which lacks press/release binds and
+the GlobalShortcuts portal. The configuration therefore builds the compositor
+from `github:niri-wm/niri` (`inputs.niri-git`) and sets:
+
+```nix
+programs.niri.package = inputs.niri-git.packages.${pkgs.stdenv.hostPlatform.system}.niri;
+```
+
+After switching and logging into the new niri, the evdev bridge becomes
+redundant. Replace it with a native bind and disable
+`superwhisper-ptt.service`:
+
+```kdl
+Alt_R {
+    press { spawn "/etc/profiles/per-user/valen/bin/superwhisper" "record" "start"; }
+    release { spawn "/etc/profiles/per-user/valen/bin/superwhisper" "record" "stop"; }
+}
+```
+
+Until that login, keep the evdev bridge: niri 26.04 rejects the `press {}` /
+`release {}` syntax. The XKB `compose:ralt` option was moved to
+`compose:menu` so Right Alt is free for dictation; Compose now lives on the
+Menu key.
+
 ## Configuration
 
 The runtime configuration is in `~/.config/superwhisper/`:

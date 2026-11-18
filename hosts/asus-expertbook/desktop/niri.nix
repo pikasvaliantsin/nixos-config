@@ -17,7 +17,7 @@
   programs = {
     niri = {
       enable = true;
-      package = pkgs.niri;
+      package = inputs.niri-git.packages.${pkgs.stdenv.hostPlatform.system}.niri;
     };
 
     dms-greeter = {
@@ -41,7 +41,7 @@
             keyboard {
                 xkb {
                     layout "us,ru"
-                    options "grp:win_space_toggle,compose:ralt,ctrl:nocaps"
+                    options "grp:win_space_toggle,compose:menu,ctrl:nocaps"
                 }
                 numlock
                 track-layout "window"
@@ -131,7 +131,7 @@
     # Niri input (layout/options) задан в modules/niri/config.kdl.
     xserver.xkb = {
       layout = "us,ru";
-      options = "grp:win_space_toggle,compose:ralt,ctrl:nocaps";
+      options = "grp:win_space_toggle,compose:menu,ctrl:nocaps";
     };
   };
 
@@ -139,7 +139,7 @@
   environment = {
     sessionVariables = {
       XKB_DEFAULT_LAYOUT = "us,ru";
-      XKB_DEFAULT_OPTIONS = "grp:win_space_toggle,compose:ralt,ctrl:nocaps";
+      XKB_DEFAULT_OPTIONS = "grp:win_space_toggle,compose:menu,ctrl:nocaps";
       XKB_CONFIG_ROOT = "${pkgs.xkeyboard_config}/share/X11/xkb";
       XDG_DATA_DIRS = [
         "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}"

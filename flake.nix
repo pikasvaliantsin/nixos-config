@@ -31,6 +31,9 @@
     # Без follows: niri-unstable требует пакеты, которых уже нет в нашем
     # nixpkgs (libdisplay-info_0_2), поэтому собирается со своим пином.
     niri.url = "github:sodiboo/niri-flake";
+    # Niri main: press/release binds and the GlobalShortcuts portal landed
+    # after 26.04. Used only for programs.niri.package.
+    niri-git.url = "github:niri-wm/niri";
     # Superwhisper Linux: official flake with a Home Manager module. The
     # package carries its own nixpkgs with an allowUnfree predicate.
     superwhisper.url = "github:superultrainc/superwhisper-linux-releases";
