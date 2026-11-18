@@ -1,5 +1,5 @@
 # XDG-порталы: скринкасты и file chooser под Niri.
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 
 {
   xdg.portal = {
@@ -11,7 +11,7 @@
     configPackages = with pkgs; [
       xdg-desktop-portal-gtk
       xdg-desktop-portal-gnome
-      niri
+      inputs.niri-git.packages.${pkgs.stdenv.hostPlatform.system}.niri
     ];
     config = {
       common = {
