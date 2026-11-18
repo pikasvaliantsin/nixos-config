@@ -88,14 +88,7 @@ in
     };
   };
 
-  home.packages = [ keybinds mimeDefaults ] ++ (with pkgs; [
-    # Jarvis voice assistant runtime dependencies (pactl/notify-send already
-    # come from the desktop profile).
-    python3
-    alacritty
-    wtype
-    portaudio
-  ]);
+  home.packages = [ keybinds mimeDefaults ];
 
   home.activation.mimeDefaults = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     run ${mimeDefaults}/bin/mime-defaults || true
