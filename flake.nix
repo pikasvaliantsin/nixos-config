@@ -31,6 +31,9 @@
     # Без follows: niri-unstable требует пакеты, которых уже нет в нашем
     # nixpkgs (libdisplay-info_0_2), поэтому собирается со своим пином.
     niri.url = "github:sodiboo/niri-flake";
+    # Superwhisper Linux: official flake with a Home Manager module. The
+    # package carries its own nixpkgs with an allowUnfree predicate.
+    superwhisper.url = "github:superultrainc/superwhisper-linux-releases";
     disko.url = "github:nix-community/disko";
     pyroclear.url = "github:shreyanth-sureshkrishnaa/pyroclear";
     sops-nix.url = "github:Mic92/sops-nix";

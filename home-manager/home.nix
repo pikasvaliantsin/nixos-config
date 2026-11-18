@@ -4,6 +4,7 @@
 {
   imports = [
     inputs.nixvim.homeModules.nixvim
+    inputs.superwhisper.homeManagerModules.default
     ./modules/core.nix
     ./modules/core/secrets.nix
     ./modules/shell.nix
@@ -19,4 +20,8 @@
     ./modules/games/rf4.nix
     ./modules/games/fs25.nix
   ];
+
+  # Superwhisper dictation (Omarchy's default backend). The module installs
+  # the package, desktop entry and systemd user service.
+  services.superwhisper.enable = true;
 }

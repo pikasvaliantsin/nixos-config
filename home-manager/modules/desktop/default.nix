@@ -90,6 +90,24 @@ in
 
   home.packages = [ keybinds mimeDefaults ];
 
+  # niri 26.04 has no key-release binds and its GlobalShortcuts portal is too
+  # old for Superwhisper, so drive the CLI from the keyboard devices.
+  systemd.user.services.superwhisper-ptt = {
+    Unit = {
+      Description = "Superwhisper Right Alt push-to-talk";
+      After = [ "graphical-session.target" "superwhisper.service" ];
+      PartOf = [ "graphical-session.target" ];
+      Wants = [ "superwhisper.service" ];
+    };
+    Service = {
+      Type = "simple";
+      ExecStart = "${pkgs.python3.withPackages (ps: [ ps.evdev ])}/bin/python3 ${./superwhisper-ptt.py} ${lib.getExe config.services.superwhisper.package}";
+      Restart = "always";
+      RestartSec = 2;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
+  };
+
   home.activation.mimeDefaults = lib.hm.dag.entryAfter [ "linkGeneration" ] ''
     run ${mimeDefaults}/bin/mime-defaults || true
   '';

@@ -362,6 +362,22 @@
     },
     "nixpkgs_13": {
       "locked": {
+        "lastModified": 1793540411,
+        "narHash": "sha256-fiPJ88izTVucjeo2EQ3jk4aWmLg03I1D4vxnX2QjEgE=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "0bb2eedc20e4739f29e8045034f2828ad7054f8f",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_14": {
+      "locked": {
         "lastModified": 1794042290,
         "narHash": "sha256-ziZn2PvCJE5JEEpqTdxXwJpPB+L3YqoCpTAMCzyaP3U=",
         "owner": "nixos",
@@ -557,6 +573,7 @@
         "nixvim": "nixvim",
         "pyroclear": "pyroclear",
         "sops-nix": "sops-nix",
+        "superwhisper": "superwhisper",
         "tg_owt": "tg_owt_2",
         "zen-browser": "zen-browser"
       }
@@ -576,6 +593,24 @@
       "original": {
         "owner": "Mic92",
         "repo": "sops-nix",
+        "type": "github"
+      }
+    },
+    "superwhisper": {
+      "inputs": {
+        "nixpkgs": "nixpkgs_13"
+      },
+      "locked": {
+        "lastModified": 1794863940,
+        "narHash": "sha256-CbJod9IjuHdP5U9G97wDuxILWRDBQ8vpsTgOskKaE5Y=",
+        "owner": "superultrainc",
+        "repo": "superwhisper-linux-releases",
+        "rev": "a9d98f48c2f81723ed11db096215aeb762fa0e16",
+        "type": "github"
+      },
+      "original": {
+        "owner": "superultrainc",
+        "repo": "superwhisper-linux-releases",
         "type": "github"
       }
     },
@@ -619,7 +654,7 @@
     },
     "tg_owt_2": {
       "inputs": {
-        "nixpkgs": "nixpkgs_13"
+        "nixpkgs": "nixpkgs_14"
       },
       "locked": {
         "lastModified": 1794487200,

@@ -35,8 +35,8 @@ reimplementation is the last resort.
 | `docs/theming.md` | [`theming.md`](theming.md) | Our `theme-set`/`theme-install`, native palettes, Omarchy `colors.toml`, generated fragments and state links. |
 | `docs/notifications.md` | [`notifications.md`](notifications.md) | Our custom server/center: no toasts, persisted history, actions, DND, IPC, known limitations. |
 | — | [`file-manager.md`](file-manager.md) | Dux Files: `Mod+E`, MIME defaults, drag/drop books, DMS theme bridge, portal choice and weight. |
-| — | [`jarvis.md`](jarvis.md) | Jarvis voice assistant: local STT/TTS, Russian speech, OpenCode answers, hotkeys, runtime patch set and non-declarative install. |
 | — | [`printing.md`](printing.md) | Watched print folder, CUPS helper, per-document printed state and reprint flow. |
+| — | [`dictation.md`](dictation.md) | Superwhisper dictation: official Nix flake, Home Manager service, Russian cloud/offline models and the Right Alt evdev push-to-talk bridge. |
 | — | [`devtools.md`](devtools.md) | Developer toolbox overlay (`Mod+Shift+X`): pure JS engine, secure random pool, native fallbacks for large inputs. |
 | — | [`upstream-patches.md`](upstream-patches.md) | Files and hunks to re-apply when bumping the vendored Omarchy tag. |
 | — | [`keybindings.md`](keybindings.md) | Searchable keybinding sheet (`Mod+Shift+Slash`), fed from the live niri binds file. |
@@ -61,7 +61,7 @@ repository; `vendor/omarchy-shell/UPSTREAM.md` records the vendored tag.
    [devtools](devtools.md), [launcher](launcher.md), [auth](auth.md),
    [i18n](i18n.md), [testing](testing.md), [keybindings](keybindings.md),
    [printing](printing.md), [file manager](file-manager.md),
-   [Jarvis voice assistant](jarvis.md),
+   [dictation](dictation.md),
    [upstream patches](upstream-patches.md).
 
 ## Deliberate differences from upstream
