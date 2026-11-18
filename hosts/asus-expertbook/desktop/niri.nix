@@ -11,13 +11,18 @@
     inputs.dank-greeter.nixosModules.default
   ];
 
+  # Build niri main against this system's nixpkgs (glibc/Mesa), not the
+  # niri flake's older pin. The flake's own package used glibc 2.42 while
+  # /run/opengl-driver already needed 2.43, which left the greeter black.
+  nixpkgs.overlays = [ inputs.niri-git.overlays.default ];
+
   # ========================================
   # COMPOSITOR
   # ========================================
   programs = {
     niri = {
       enable = true;
-      package = inputs.niri-git.packages.${pkgs.stdenv.hostPlatform.system}.niri;
+      package = pkgs.niri;
     };
 
     dms-greeter = {

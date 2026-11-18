@@ -11,7 +11,7 @@
     configPackages = with pkgs; [
       xdg-desktop-portal-gtk
       xdg-desktop-portal-gnome
-      inputs.niri-git.packages.${pkgs.stdenv.hostPlatform.system}.niri
+      niri
     ];
     config = {
       common = {
