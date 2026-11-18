@@ -165,8 +165,8 @@ binds {
     // Superwhisper push-to-talk. niri-git guarantees the release action runs
     // whenever the press action ran. Compose is on the Menu key now.
     Alt_R {
-        press { spawn "/etc/profiles/per-user/valen/bin/superwhisper" "record" "start"; }
-        release { spawn "/etc/profiles/per-user/valen/bin/superwhisper" "record" "stop"; }
+        press { spawn "/etc/profiles/per-user/valen/bin/superwhisper" "start"; }
+        release { spawn "/etc/profiles/per-user/valen/bin/superwhisper" "stop"; }
     }
     Mod+T hotkey-overlay-title="Terminal" { spawn "ghostty"; }
     Mod+E repeat=false hotkey-overlay-title="Files" { spawn "dfiles" "toggle"; }

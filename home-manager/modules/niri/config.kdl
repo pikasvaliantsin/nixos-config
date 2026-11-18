@@ -4,6 +4,32 @@
 include optional=false "binds.kdl"
 include optional=true "theme.kdl"
 
+// Keep motion explicit: the defaults are animated, but this makes the
+// compositor independent of any theme/config that could disable them.
+animations {
+    window-open { duration-ms 220; curve "ease-out-expo"; }
+    window-close { duration-ms 180; curve "ease-out-quad"; }
+
+    workspace-switch {
+        spring damping-ratio=1.0 stiffness=900 epsilon=0.0001
+    }
+    horizontal-view-movement {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+    window-movement {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+    window-resize {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+    overview-open-close {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.0001
+    }
+    recent-windows-close {
+        spring damping-ratio=1.0 stiffness=800 epsilon=0.001
+    }
+}
+
 screenshot-path "~/Pictures/Screenshots/%Y-%m-%d_%H-%M-%S.png"
 
 input {
