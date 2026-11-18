@@ -79,6 +79,33 @@ Current setup:
 The free cloud tier is limited; for long-term use choose offline in Settings or
 link a licence. Audio/transcript handling follows Superwhisper's own terms.
 
+## Mixed Russian and English terms
+
+The language stays fixed to `ru`; switching to `auto` makes ordinary Russian
+dictation less reliable. English product names and slang are handled with
+Superwhisper's vocabulary instead:
+
+```bash
+superwhisper vocab add NIRI
+superwhisper vocab add OpenCode
+superwhisper vocab pronounce NIRI 'нири,в мире,ни ри'
+superwhisper vocab pronounce OpenCode 'опенкод,опен код'
+superwhisper vocab replace 'нири' 'NIRI'
+superwhisper vocab replace 'опенкод' 'OpenCode'
+superwhisper vocab preview 'оконный менеджер в мире'
+```
+
+The current list also covers Omarchy, Wayland, NixOS, Ghostty and Hyprland.
+`vocab preview` is the quick check: the example above returns
+`оконный менеджер NIRI` through vocabulary correction rather than a literal
+replacement. The cloud backend reports `asr_hints=false`, so these hints are
+applied by Superwhisper's local vocabulary pass after transcription; they still
+work for the cloud model.
+
+Vocabulary is deliberately short: too many terms can confuse the model.
+The `в мире` pronunciation is global, so it will also rewrite an ordinary
+"в мире" to NIRI; remove that entry if normal prose matters more.
+
 ## Build and apply
 
 The flake input and Home Manager module are installed by the normal system
