@@ -5,8 +5,8 @@
 # фиксированного релиза.
 #
 #   rf4-install /путь/к/установщику.exe   — однократная установка игры
-#   rf4                                    — игра: Xwayland + lsfg 2x
-#   rf4-gamescope                          — 1680x720 + FSR + lsfg 2x (апскейл)
+#   rf4                                    — игра: Xwayland + lsfg 3x
+#   rf4-gamescope                          — 1600x900 + FSR + lsfg 3x (апскейл)
 #   rf4-native                             — псевдоним rf4
 #   bite-alarm                             — звук при появлении значка рыбки
 #
@@ -79,14 +79,18 @@ let
   '';
 
   # Окружение генератора кадров (только для rf4; rf4-native его не получает).
+  # Значения по умолчанию повторяют PortProtonQt (PW_USE_LS_FRAME_GEN=1):
+  # multiplier 3, flow_scale 0.5, performance_mode 1. При базе ~40 FPS это
+  # даёт ~120 FPS на выходе; при 2x из 30 FPS получалось только 50–60.
+  # Качество можно поднять вручную: RF4_LSFG_FLOW_SCALE=0.75.
   lsfgEnv = ''
     # Слой lsfg-vk и его DLL (DLL можно переопределить через RF4_LOSSLESS_DLL).
     export XDG_DATA_DIRS="${lsfg}/share''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
     export LSFGVK_ENV="1"
     export LSFGVK_DLL_PATH="''${RF4_LOSSLESS_DLL:-${lsfg}/share/lsfg/Lossless.dll}"
-    export LSFGVK_MULTIPLIER="''${RF4_LSFG_MULTIPLIER:-2}"
-    export LSFGVK_FLOW_SCALE="''${RF4_LSFG_FLOW_SCALE:-0.6}"
-    export LSFGVK_PERFORMANCE_MODE="1"
+    export LSFGVK_MULTIPLIER="''${RF4_LSFG_MULTIPLIER:-3}"
+    export LSFGVK_FLOW_SCALE="''${RF4_LSFG_FLOW_SCALE:-0.5}"
+    export LSFGVK_PERFORMANCE_MODE="''${RF4_LSFG_PERFORMANCE_MODE:-1}"
 
     # Выключить генерацию, оставив gamescope+FSR: RF4_LSFG=0 rf4
     if [ "''${RF4_LSFG:-1}" = "0" ]; then
@@ -107,11 +111,11 @@ let
     fi
   '';
 
-  # Основной режим: Xwayland + генерация кадров 2x.
+  # Основной режим: Xwayland + генерация кадров 3x.
   #
-  #   rf4                             — Xwayland + lsfg 2x (по умолчанию)
+  #   rf4                             — Xwayland + lsfg 3x (по умолчанию)
   #   env RF4_LSFG=0 rf4              — без генерации
-  #   env RF4_LSFG_MULTIPLIER=3 rf4
+  #   env RF4_LSFG_MULTIPLIER=2 rf4
   #   env RF4_WAYLAND=1 rf4           — через winewayland (с lsfg нестабилен)
   rf4 = pkgs.writeShellScriptBin "rf4" ''
     set -eu
@@ -166,13 +170,13 @@ let
     exec ${rf4}/bin/rf4 "$@"
   '';
 
-  # 1600x900 (16:9) -> 2240x960 через gamescope + FSR, плюс lsfg 2x.
+  # 1600x900 (16:9) -> 2240x960 через gamescope + FSR, плюс lsfg 3x.
   # gamescope запускается через security-wrapper с CAP_SYS_NICE.
   #
   # LSFG must be loaded ONLY in the game, never in gamescope: two copies
   # insert frames twice, then gamescope's fixed refresh skips/tears them.
-  # Defaults are for a stable 120 Hz output with 2x generation: VRR off,
-  # game base capped at 60, no MangoHud layer.
+  # Defaults match the PortProtonQt LSFG profile (3x / 0.5 / performance)
+  # on a 120 Hz output: VRR off, game base capped at 40, no MangoHud layer.
   #
   #   rf4-gamescope
   #   env RF4_LSFG=0 rf4-gamescope          — без генерации
@@ -189,8 +193,8 @@ let
     # LSFG включён только для игры. gamescope получает жёсткий disable,
     # а команда после -- снимает его обратно для umu/Wine.
     LSFG_OFF="''${DISABLE_LSFGVK:-0}"
-    MULT="''${RF4_LSFG_MULTIPLIER:-2}"
-    if ! [[ "$MULT" =~ ^[1-9][0-9]*$ ]]; then MULT=2; fi
+    MULT="''${RF4_LSFG_MULTIPLIER:-3}"
+    if ! [[ "$MULT" =~ ^[1-9][0-9]*$ ]]; then MULT=3; fi
 
     GAME_ENV=(${pkgs.coreutils}/bin/env)
     GAME_ENV+=(-u VK_LOADER_LAYERS_DISABLE)
