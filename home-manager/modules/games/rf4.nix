@@ -5,8 +5,8 @@
 # фиксированного релиза.
 #
 #   rf4-install /путь/к/установщику.exe   — однократная установка игры
-#   rf4                                    — игра: Xwayland + lsfg 3x
-#   rf4-gamescope                          — 1600x900 + FSR + lsfg 3x (апскейл)
+#   rf4                                    — игра: Xwayland + lsfg 2x
+#   rf4-gamescope                          — 1600x900 + FSR + lsfg 2x (апскейл)
 #   rf4-native                             — псевдоним rf4
 #   bite-alarm                             — звук при появлении значка рыбки
 #
@@ -69,8 +69,9 @@ let
     export GAMEID="0"
     export WINEPREFIX="${prefix}"
 
-    # Твои твики DXVK. tearFree (FIFO) нужен для lsfg, заодно убирает разрывы.
-    export DXVK_CONFIG="d3d11.samplerAnisotropy=0;d3d11.maxTessFactor=0;d3d11.disableMsaa=True;dxvk.maxChunkSize=32;dxvk.gpl=True;dxgi.tearFree=True"
+    # Твои твики DXVK. tearFree не ставим: с VRR и lsfg он форсирует FIFO
+    # и ломает адаптивную синхронизацию (в PortProton dxvk.conf по умолчанию).
+    export DXVK_CONFIG="d3d11.samplerAnisotropy=0;d3d11.maxTessFactor=0;d3d11.disableMsaa=True;dxvk.maxChunkSize=32;dxvk.gpl=True"
 
     # Лаунчер RF4 — это QtWebEngine (Chromium). Под Wine он инициализирует
     # D3D11 через DXVK/Vulkan, и слой lsfg в этом процессе роняет heap
@@ -79,18 +80,18 @@ let
   '';
 
   # Окружение генератора кадров (только для rf4; rf4-native его не получает).
-  # Значения по умолчанию повторяют PortProtonQt (PW_USE_LS_FRAME_GEN=1):
-  # multiplier 3, flow_scale 0.5, performance_mode 1. При базе ~40 FPS это
-  # даёт ~120 FPS на выходе; при 2x из 30 FPS получалось только 50–60.
-  # Качество можно поднять вручную: RF4_LSFG_FLOW_SCALE=0.75.
+  # Качество важнее множителя: 2x/1.0/без performance даёт заметно меньше
+  # «воды», чем PortProton-профиль 3x/0.5/performance. Если базы не хватает,
+  # вернуть профиль PortProton: RF4_LSFG_MULTIPLIER=3 RF4_LSFG_FLOW_SCALE=0.5
+  # RF4_LSFG_PERFORMANCE_MODE=1.
   lsfgEnv = ''
     # Слой lsfg-vk и его DLL (DLL можно переопределить через RF4_LOSSLESS_DLL).
     export XDG_DATA_DIRS="${lsfg}/share''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
     export LSFGVK_ENV="1"
     export LSFGVK_DLL_PATH="''${RF4_LOSSLESS_DLL:-${lsfg}/share/lsfg/Lossless.dll}"
-    export LSFGVK_MULTIPLIER="''${RF4_LSFG_MULTIPLIER:-3}"
-    export LSFGVK_FLOW_SCALE="''${RF4_LSFG_FLOW_SCALE:-0.5}"
-    export LSFGVK_PERFORMANCE_MODE="''${RF4_LSFG_PERFORMANCE_MODE:-1}"
+    export LSFGVK_MULTIPLIER="''${RF4_LSFG_MULTIPLIER:-2}"
+    export LSFGVK_FLOW_SCALE="''${RF4_LSFG_FLOW_SCALE:-1.0}"
+    export LSFGVK_PERFORMANCE_MODE="''${RF4_LSFG_PERFORMANCE_MODE:-0}"
 
     # Выключить генерацию, оставив gamescope+FSR: RF4_LSFG=0 rf4
     if [ "''${RF4_LSFG:-1}" = "0" ]; then
@@ -111,11 +112,11 @@ let
     fi
   '';
 
-  # Основной режим: Xwayland + генерация кадров 3x.
+  # Основной режим: Xwayland + генерация кадров 2x.
   #
-  #   rf4                             — Xwayland + lsfg 3x (по умолчанию)
+  #   rf4                             — Xwayland + lsfg 2x (по умолчанию)
   #   env RF4_LSFG=0 rf4              — без генерации
-  #   env RF4_LSFG_MULTIPLIER=2 rf4
+  #   env RF4_LSFG_MULTIPLIER=3 RF4_LSFG_FLOW_SCALE=0.5 rf4
   #   env RF4_WAYLAND=1 rf4           — через winewayland (с lsfg нестабилен)
   rf4 = pkgs.writeShellScriptBin "rf4" ''
     set -eu
@@ -143,7 +144,9 @@ let
 
     ${lsfgEnv}
 
-    exec ${umu} "$exe"
+    # gamemoderun включает game-power-tune (performance profile, DPM high,
+    # swappiness=100) на время игры и возвращает всё после выхода.
+    exec ${pkgs.gamemode}/bin/gamemoderun ${umu} "$exe"
   '';
 
   # Старое имя основного режима — оставлено для совместимости.
@@ -170,19 +173,21 @@ let
     exec ${rf4}/bin/rf4 "$@"
   '';
 
-  # 1600x900 (16:9) -> 2240x960 через gamescope + FSR, плюс lsfg 3x.
+  # 1600x900 (16:9) -> 2240x960 через gamescope + FSR, плюс lsfg 2x.
   # gamescope запускается через security-wrapper с CAP_SYS_NICE.
   #
   # LSFG must be loaded ONLY in the game, never in gamescope: two copies
   # insert frames twice, then gamescope's fixed refresh skips/tears them.
-  # Defaults match the PortProtonQt LSFG profile (3x / 0.5 / performance)
-  # on a 120 Hz output: VRR off, game base capped at 40, no MangoHud layer.
+  # Defaults are quality-first (2x / flow 1.0 / no performance mode) with
+  # VRR on and the game base capped at 60, no MangoHud layer.
+  # PortProton parity: RF4_LSFG_MULTIPLIER=3 RF4_LSFG_FLOW_SCALE=0.5
+  # RF4_LSFG_PERFORMANCE_MODE=1.
   #
   #   rf4-gamescope
   #   env RF4_LSFG=0 rf4-gamescope          — без генерации
   #   env RF4_GS_FILTER=sgsr rf4-gamescope
   #   env RF4_GS_OUT_W=1920 RF4_GS_OUT_H=1080 rf4-gamescope — 16:9-выход
-  #   env RF4_GS_ADAPTIVE=1 rf4-gamescope   — вернуть VRR (обычно хуже с LSFG)
+  #   env RF4_GS_ADAPTIVE=0 RF4_VRR=0 rf4-gamescope — выключить VRR
   #   env RF4_GS_MANGO=1 rf4-gamescope      — вернуть MangoHud
   rf4-gamescope = pkgs.writeShellScriptBin "rf4-gamescope" ''
     set -eu
@@ -194,8 +199,8 @@ let
     # LSFG включён только для игры. gamescope получает жёсткий disable,
     # а команда после -- снимает его обратно для umu/Wine.
     LSFG_OFF="''${DISABLE_LSFGVK:-0}"
-    MULT="''${RF4_LSFG_MULTIPLIER:-3}"
-    if ! [[ "$MULT" =~ ^[1-9][0-9]*$ ]]; then MULT=3; fi
+    MULT="''${RF4_LSFG_MULTIPLIER:-2}"
+    if ! [[ "$MULT" =~ ^[1-9][0-9]*$ ]]; then MULT=2; fi
 
     GAME_ENV=(${pkgs.coreutils}/bin/env)
     GAME_ENV+=(-u VK_LOADER_LAYERS_DISABLE)
@@ -219,9 +224,11 @@ let
       )
     fi
 
-    # VRR is off for LSFG by default; gamescope's fixed refresh does pacing.
+    # VRR/adaptive sync включён по умолчанию: LSFG редко попадает ровно
+    # в 120, и без VRR разница 100–120 ощущается как ступеньки. Отключить:
+    # RF4_GS_ADAPTIVE=0 RF4_VRR=0.
     if command -v niri >/dev/null 2>&1; then
-      if [ "''${RF4_VRR:-0}" = "1" ] || [ "''${RF4_GS_ADAPTIVE:-0}" = "1" ]; then
+      if [ "''${RF4_VRR:-1}" = "1" ] || [ "''${RF4_GS_ADAPTIVE:-1}" = "1" ]; then
         niri msg output "''${RF4_OUTPUT:-HDMI-A-1}" vrr on >/dev/null 2>&1 || true
       else
         niri msg output "''${RF4_OUTPUT:-HDMI-A-1}" vrr off >/dev/null 2>&1 || true
@@ -272,7 +279,7 @@ let
     # --framerate-limit is applied by some gamescope versions to the output.
     ARGS+=(--framerate-limit "$GS_R")
 
-    if [ "''${RF4_GS_ADAPTIVE:-0}" = "1" ]; then
+    if [ "''${RF4_GS_ADAPTIVE:-1}" = "1" ]; then
       ARGS+=(--adaptive-sync)
     fi
     if [ "''${RF4_GS_MANGO:-0}" = "1" ]; then
@@ -286,7 +293,8 @@ let
     exec ${pkgs.coreutils}/bin/env \
       DISABLE_LSFGVK=1 \
       VK_LOADER_LAYERS_DISABLE=VK_LAYER_LSFGVK_frame_generation \
-      "$GS" "''${ARGS[@]}" -f --force-grab-cursor -- "''${GAME_ENV[@]}" ${umu} "$exe"
+      "$GS" "''${ARGS[@]}" -f --force-grab-cursor -- "''${GAME_ENV[@]}" \
+      ${pkgs.gamemode}/bin/gamemoderun ${umu} "$exe"
   '';
 
   # D-pad -> F13–F16 (input-remapper), демон превращает их в XTEST-колесо.
