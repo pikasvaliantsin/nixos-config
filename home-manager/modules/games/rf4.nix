@@ -240,15 +240,15 @@ let
       ARGS+=(-F "$GS_FILTER" --fsr-sharpness "$GS_SHARP")
     fi
 
-    # For 2x LSFG at 120 Hz the game must render at 60: generated frames
-    # then fill the refresh instead of being dropped by gamescope.
+    # The DXVK base cap follows the LSFG multiplier: 60 for 2x on 120 Hz,
+    # 40 for 3x, 30 for 4x. gamescope's own limit stays at the output
+    # refresh; generated frames must not be clipped to the base rate.
     if [ "$LSFG_OFF" = "1" ]; then
       GS_LIMIT="''${RF4_GS_LIMIT:-0}"
     else
       GS_LIMIT="''${RF4_GS_LIMIT:-$((GS_R / MULT))}"
     fi
     if [ -n "$GS_LIMIT" ] && [ "$GS_LIMIT" != "0" ] && [ "$GS_LIMIT" != "off" ]; then
-      ARGS+=(--framerate-limit "$GS_LIMIT")
       if [ "$LSFG_OFF" != "1" ]; then
         # Redundant cap at the DXVK swapchain. Some gamescope versions
         # ignore --framerate-limit; without this the game runs above the
@@ -256,6 +256,11 @@ let
         export DXVK_CONFIG="$DXVK_CONFIG;dxgi.maxFrameRate=$GS_LIMIT"
       fi
     fi
+
+    # gamescope's limit must sit at the output refresh, not at the LSFG base:
+    # a 30 FPS base with 4x generation still has to present 120 FPS, and
+    # --framerate-limit is applied by some gamescope versions to the output.
+    ARGS+=(--framerate-limit "$GS_R")
 
     if [ "''${RF4_GS_ADAPTIVE:-0}" = "1" ]; then
       ARGS+=(--adaptive-sync)
