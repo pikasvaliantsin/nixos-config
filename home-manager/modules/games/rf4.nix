@@ -200,6 +200,19 @@ let
       GAME_ENV+=(-u DISABLE_LSFGVK)
     fi
     GAME_ENV+=(ENABLE_GAMESCOPE_WSI=0)
+    if [ "$LSFG_OFF" != "1" ]; then
+      # Re-assert the layer environment for the child: gamescope can filter
+      # or rewrite its environment, and the implicit layer needs both the
+      # manifest path and the opt-in variable to be present.
+      GAME_ENV+=(
+        LSFGVK_ENV=1
+        "XDG_DATA_DIRS=$XDG_DATA_DIRS"
+        "LSFGVK_DLL_PATH=$LSFGVK_DLL_PATH"
+        "LSFGVK_MULTIPLIER=$LSFGVK_MULTIPLIER"
+        "LSFGVK_FLOW_SCALE=$LSFGVK_FLOW_SCALE"
+        "LSFGVK_PERFORMANCE_MODE=$LSFGVK_PERFORMANCE_MODE"
+      )
+    fi
 
     # VRR is off for LSFG by default; gamescope's fixed refresh does pacing.
     if command -v niri >/dev/null 2>&1; then
@@ -236,6 +249,12 @@ let
     fi
     if [ -n "$GS_LIMIT" ] && [ "$GS_LIMIT" != "0" ] && [ "$GS_LIMIT" != "off" ]; then
       ARGS+=(--framerate-limit "$GS_LIMIT")
+      if [ "$LSFG_OFF" != "1" ]; then
+        # Redundant cap at the DXVK swapchain. Some gamescope versions
+        # ignore --framerate-limit; without this the game runs above the
+        # base rate, LSFG generates too many frames and gamescope drops them.
+        export DXVK_CONFIG="$DXVK_CONFIG;dxgi.maxFrameRate=$GS_LIMIT"
+      fi
     fi
 
     if [ "''${RF4_GS_ADAPTIVE:-0}" = "1" ]; then
