@@ -181,6 +181,7 @@ let
   #   rf4-gamescope
   #   env RF4_LSFG=0 rf4-gamescope          — без генерации
   #   env RF4_GS_FILTER=sgsr rf4-gamescope
+  #   env RF4_GS_OUT_W=1920 RF4_GS_OUT_H=1080 rf4-gamescope — 16:9-выход
   #   env RF4_GS_ADAPTIVE=1 rf4-gamescope   — вернуть VRR (обычно хуже с LSFG)
   #   env RF4_GS_MANGO=1 rf4-gamescope      — вернуть MangoHud
   rf4-gamescope = pkgs.writeShellScriptBin "rf4-gamescope" ''
@@ -235,11 +236,16 @@ let
 
     GS_W="''${RF4_GS_W:-1600}"
     GS_H="''${RF4_GS_H:-900}"
+    # Output resolution: the monitor runs a custom 2240x960@120 mode, but
+    # for a clean 16:9 picture use RF4_GS_OUT_W=1920 RF4_GS_OUT_H=1080
+    # together with the monitor's native 1920x1080@120 mode.
+    GS_OUT_W="''${RF4_GS_OUT_W:-2240}"
+    GS_OUT_H="''${RF4_GS_OUT_H:-960}"
     GS_R="''${RF4_GS_R:-120}"
     GS_FILTER="''${RF4_GS_FILTER:-fsr}"
     GS_SHARP="''${RF4_GS_SHARPNESS:-5}"
 
-    ARGS=(-w "$GS_W" -h "$GS_H" -W 2240 -H 960 -r "$GS_R" -S "''${RF4_GS_SCALER:-fit}")
+    ARGS=(-w "$GS_W" -h "$GS_H" -W "$GS_OUT_W" -H "$GS_OUT_H" -r "$GS_R" -S "''${RF4_GS_SCALER:-fit}")
     if [ "$GS_FILTER" != "none" ]; then
       ARGS+=(-F "$GS_FILTER" --fsr-sharpness "$GS_SHARP")
     fi
