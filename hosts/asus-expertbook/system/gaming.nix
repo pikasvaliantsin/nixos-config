@@ -183,6 +183,11 @@ in
           command = "${gamePowerTune}/bin/game-power-tune";
           options = [ "NOPASSWD" ];
         }
+        {
+          # rf4/rf4-gamescope вызывают стабильный путь из системного профиля.
+          command = "/run/current-system/sw/bin/game-power-tune";
+          options = [ "NOPASSWD" ];
+        }
       ];
     }
   ];

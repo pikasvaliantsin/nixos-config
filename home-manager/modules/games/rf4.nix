@@ -99,6 +99,20 @@ let
     fi
   '';
 
+  # Привилегированный тюнинг APU на время игры. Скрипт ставит
+  # platform_profile=performance, amdgpu DPM high и swappiness=100,
+  # а на выходе возвращает сохранённые значения. sudo -n разрешён
+  # только на этот скрипт (см. hosts/asus-expertbook/system/gaming.nix).
+  powerTune = ''
+    SUDO="/run/wrappers/bin/sudo"
+    TUNE_BIN="/run/current-system/sw/bin/game-power-tune"
+    if [ "''${RF4_POWER_TUNE:-1}" = "1" ] \
+    && [ -x "$SUDO" ] && [ -x "$TUNE_BIN" ] \
+    && "$SUDO" -n "$TUNE_BIN" start >/dev/null 2>&1; then
+      trap '"$SUDO" -n "$TUNE_BIN" stop >/dev/null 2>&1 || true' EXIT INT TERM HUP
+    fi
+  '';
+
   # Поиск лаунчера (установщик может положить игру в другой каталог).
   findExe = ''
     exe="${prefix}/pfx/drive_c/Games/RF4/RF4Launcher.exe"
@@ -143,10 +157,9 @@ let
     fi
 
     ${lsfgEnv}
+    ${powerTune}
 
-    # gamemoderun включает game-power-tune (performance profile, DPM high,
-    # swappiness=100) на время игры и возвращает всё после выхода.
-    exec ${pkgs.gamemode}/bin/gamemoderun ${umu} "$exe"
+    ${umu} "$exe"
   '';
 
   # Старое имя основного режима — оставлено для совместимости.
@@ -195,6 +208,7 @@ let
     ${lsfgEnv}
 
     ${findExe}
+    ${powerTune}
 
     # LSFG включён только для игры. gamescope получает жёсткий disable,
     # а команда после -- снимает его обратно для umu/Wine.
@@ -290,11 +304,11 @@ let
     # DXVK HUD не нужен: MangoHud только по запросу.
     unset DXVK_HUD
 
-    exec ${pkgs.coreutils}/bin/env \
+    ${pkgs.coreutils}/bin/env \
       DISABLE_LSFGVK=1 \
       VK_LOADER_LAYERS_DISABLE=VK_LAYER_LSFGVK_frame_generation \
       "$GS" "''${ARGS[@]}" -f --force-grab-cursor -- "''${GAME_ENV[@]}" \
-      ${pkgs.gamemode}/bin/gamemoderun ${umu} "$exe"
+      ${umu} "$exe"
   '';
 
   # D-pad -> F13–F16 (input-remapper), демон превращает их в XTEST-колесо.
