@@ -166,13 +166,19 @@ let
     exec ${rf4}/bin/rf4 "$@"
   '';
 
-  # Апскейл 1680x720 -> 2240x960 через gamescope + FSR, плюс lsfg 2x.
-  # gamescope запускается через security-wrapper с CAP_SYS_NICE: без него
-  # композитор пейсит кадры с обычным приоритетом и картинка рвётся.
+  # 1600x900 (16:9) -> 2240x960 через gamescope + FSR, плюс lsfg 2x.
+  # gamescope запускается через security-wrapper с CAP_SYS_NICE.
   #
-  #   rf4-gamescope                      — FSR + lsfg 2x + MangoHud
-  #   env RF4_LSFG=0 rf4-gamescope       — без генерации
+  # LSFG must be loaded ONLY in the game, never in gamescope: two copies
+  # insert frames twice, then gamescope's fixed refresh skips/tears them.
+  # Defaults are for a stable 120 Hz output with 2x generation: VRR off,
+  # game base capped at 60, no MangoHud layer.
+  #
+  #   rf4-gamescope
+  #   env RF4_LSFG=0 rf4-gamescope          — без генерации
   #   env RF4_GS_FILTER=sgsr rf4-gamescope
+  #   env RF4_GS_ADAPTIVE=1 rf4-gamescope   — вернуть VRR (обычно хуже с LSFG)
+  #   env RF4_GS_MANGO=1 rf4-gamescope      — вернуть MangoHud
   rf4-gamescope = pkgs.writeShellScriptBin "rf4-gamescope" ''
     set -eu
     ${commonEnv}
@@ -180,15 +186,28 @@ let
 
     ${findExe}
 
-    # Счётчик FPS рисует MangoHud (gamescope --mangoapp), DXVK HUD не нужен.
-    unset DXVK_HUD
+    # LSFG включён только для игры. gamescope получает жёсткий disable,
+    # а команда после -- снимает его обратно для umu/Wine.
+    LSFG_OFF="''${DISABLE_LSFGVK:-0}"
+    MULT="''${RF4_LSFG_MULTIPLIER:-2}"
+    if ! [[ "$MULT" =~ ^[1-9][0-9]*$ ]]; then MULT=2; fi
 
-    # gamescope ищет mangoapp в PATH.
-    export PATH="${lib.makeBinPath [ pkgs.mangohud ]}:$PATH"
+    GAME_ENV=(${pkgs.coreutils}/bin/env)
+    GAME_ENV+=(-u VK_LOADER_LAYERS_DISABLE)
+    if [ "$LSFG_OFF" = "1" ]; then
+      GAME_ENV+=(DISABLE_LSFGVK=1)
+    else
+      GAME_ENV+=(-u DISABLE_LSFGVK)
+    fi
+    GAME_ENV+=(ENABLE_GAMESCOPE_WSI=0)
 
-    # VRR на выходе монитора.
-    if [ "''${RF4_VRR:-1}" = "1" ] && command -v niri >/dev/null 2>&1; then
-      niri msg output "''${RF4_OUTPUT:-HDMI-A-1}" vrr on >/dev/null 2>&1 || true
+    # VRR is off for LSFG by default; gamescope's fixed refresh does pacing.
+    if command -v niri >/dev/null 2>&1; then
+      if [ "''${RF4_VRR:-0}" = "1" ] || [ "''${RF4_GS_ADAPTIVE:-0}" = "1" ]; then
+        niri msg output "''${RF4_OUTPUT:-HDMI-A-1}" vrr on >/dev/null 2>&1 || true
+      else
+        niri msg output "''${RF4_OUTPUT:-HDMI-A-1}" vrr off >/dev/null 2>&1 || true
+      fi
     fi
 
     # Wrapper с cap_sys_nice; если его нет — обычный бинарь из store.
@@ -197,8 +216,8 @@ let
       GS="${lib.getExe pkgs.gamescope}"
     fi
 
-    GS_W="''${RF4_GS_W:-1680}"
-    GS_H="''${RF4_GS_H:-720}"
+    GS_W="''${RF4_GS_W:-1600}"
+    GS_H="''${RF4_GS_H:-900}"
     GS_R="''${RF4_GS_R:-120}"
     GS_FILTER="''${RF4_GS_FILTER:-fsr}"
     GS_SHARP="''${RF4_GS_SHARPNESS:-5}"
@@ -207,14 +226,33 @@ let
     if [ "$GS_FILTER" != "none" ]; then
       ARGS+=(-F "$GS_FILTER" --fsr-sharpness "$GS_SHARP")
     fi
-    if [ -n "''${RF4_GS_LIMIT:-}" ]; then
-      ARGS+=(--framerate-limit "$RF4_GS_LIMIT")
+
+    # For 2x LSFG at 120 Hz the game must render at 60: generated frames
+    # then fill the refresh instead of being dropped by gamescope.
+    if [ "$LSFG_OFF" = "1" ]; then
+      GS_LIMIT="''${RF4_GS_LIMIT:-0}"
+    else
+      GS_LIMIT="''${RF4_GS_LIMIT:-$((GS_R / MULT))}"
     fi
-    if [ "''${RF4_GS_ADAPTIVE:-1}" = "1" ]; then
-      ARGS+=(--adaptive-sync)
+    if [ -n "$GS_LIMIT" ] && [ "$GS_LIMIT" != "0" ] && [ "$GS_LIMIT" != "off" ]; then
+      ARGS+=(--framerate-limit "$GS_LIMIT")
     fi
 
-    exec "$GS" "''${ARGS[@]}" -f --force-grab-cursor --mangoapp -- ${umu} "$exe"
+    if [ "''${RF4_GS_ADAPTIVE:-0}" = "1" ]; then
+      ARGS+=(--adaptive-sync)
+    fi
+    if [ "''${RF4_GS_MANGO:-0}" = "1" ]; then
+      export PATH="${lib.makeBinPath [ pkgs.mangohud ]}:$PATH"
+      ARGS+=(--mangoapp)
+    fi
+
+    # DXVK HUD не нужен: MangoHud только по запросу.
+    unset DXVK_HUD
+
+    exec ${pkgs.coreutils}/bin/env \
+      DISABLE_LSFGVK=1 \
+      VK_LOADER_LAYERS_DISABLE=VK_LAYER_LSFGVK_frame_generation \
+      "$GS" "''${ARGS[@]}" -f --force-grab-cursor -- "''${GAME_ENV[@]}" ${umu} "$exe"
   '';
 
   # D-pad -> F13–F16 (input-remapper), демон превращает их в XTEST-колесо.
