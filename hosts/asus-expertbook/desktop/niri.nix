@@ -75,7 +75,7 @@
         }
 
         output "HDMI-A-1" {
-            mode "2240x960@119.898"
+            mode "1920x1080@120.000"
             scale 1
             position x=0 y=0
             variable-refresh-rate
@@ -84,7 +84,7 @@
         output "eDP-1" {
             mode "1920x1080@60.164"
             scale 1
-            position x=2240 y=0
+            position x=1920 y=0
         }
       '';
     };
