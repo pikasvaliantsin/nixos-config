@@ -356,6 +356,7 @@
   "monitor.level.solarFlare": "Солнечная вспышка",
   "monitor.level.sunBlast": "Солнечный удар",
   "monitor.resolution": "РАЗРЕШЕНИЕ",
+  "monitor.resolutionBlocked": "Сначала закрой полноэкранное окно",
   "monitor.scale": "МАСШТАБ",
   "monitor.textSize": "РАЗМЕР ТЕКСТА",
   "multiSelect.exited": "Команда вариантов завершилась: %1",

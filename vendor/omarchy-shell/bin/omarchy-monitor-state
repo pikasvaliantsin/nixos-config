@@ -6,6 +6,8 @@ set -euo pipefail
 
 outputs=$(niri msg --json outputs 2>/dev/null || echo '{}')
 focused=$(niri msg --json focused-output 2>/dev/null | jq -r '.name // ""')
+windows=$(niri msg --json windows 2>/dev/null || echo '[]')
+workspaces=$(niri msg --json workspaces 2>/dev/null || echo '[]')
 
 brightness=$(omarchy-brightness-display --monitor "$focused" 2>/dev/null || true)
 [[ -n $brightness ]] || brightness="unavailable"
@@ -24,7 +26,8 @@ internal_enabled=$(printf '%s' "$outputs" | jq -r --arg n "$internal" '
 scale=$(printf '%s' "$outputs" | jq -r --arg n "$focused" '
   if $n != "" then (.[$n].logical.scale // "" | tostring) else "" end')
 
-displays=$(printf '%s' "$outputs" | jq -c --arg focused "$focused" '
+displays=$(printf '%s' "$outputs" | jq -c --arg focused "$focused" --argjson windows "$windows" --argjson workspaces "$workspaces" '
+  ($workspaces | map({key: (.id | tostring), value: .output}) | from_entries) as $wsout |
   [to_entries[] |
     .key as $name |
     .value as $v |
@@ -36,6 +39,14 @@ displays=$(printf '%s' "$outputs" | jq -c --arg focused "$focused" '
       width: ($cur.width // 0),
       height: ($cur.height // 0),
       resolution: (if $cur == null then "" else "\($cur.width)x\($cur.height)" end),
+      fullscreen: (
+        [ $windows[] |
+          select(($wsout[(.workspace_id | tostring)] // "") == $name) |
+          select(.layout != null) |
+          select((.layout.window_size[0] // 0) >= (($v.logical.width // 0) * 0.98)) |
+          select((.layout.window_size[1] // 0) >= (($v.logical.height // 0) * 0.98))
+        ] | length
+      ),
       resolutions: (
         [ $v.modes[] | {width, height, refresh_rate} ]
         | group_by([.width, .height])

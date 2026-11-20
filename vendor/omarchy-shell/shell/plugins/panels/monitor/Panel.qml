@@ -326,6 +326,19 @@ Panel {
       if (displays[i] && displays[i].name === name) { display = displays[i]; break }
     }
     if (!display) return
+
+    // Changing the mode under a fullscreen window resizes its swapchain;
+    // RF4 and Zen both crashed when this happened. Ask the user to close
+    // the fullscreen app first instead of pulling the rug out.
+    if (Number(display.fullscreen || 0) > 0) {
+      notifyProc.command = ["notify-send", "-a", Commons.I18n.t("monitor.display"),
+        "-u", "normal", Commons.I18n.t("monitor.display"),
+        Commons.I18n.t("monitor.resolutionBlocked")]
+      if (!notifyProc.running) notifyProc.running = true
+      Qt.callLater(function() { root.refresh() })
+      return
+    }
+
     var mode = Model.modeString(display, resolution)
     if (!mode) return
     actionProc.command = ["niri", "msg", "output", name, "mode", mode]
@@ -456,6 +469,11 @@ Panel {
     id: actionProc
     stdout: StdioCollector { waitForEnd: true }
     onRunningChanged: if (!running) root.refresh()
+  }
+
+  Process {
+    id: notifyProc
+    stdout: StdioCollector { waitForEnd: true }
   }
 
   // Applies text size via the CLI, which rewrites the shell override file;

@@ -334,6 +334,7 @@
   "monitor.level.solarFlare": "Solar flare",
   "monitor.level.sunBlast": "Sun blast",
   "monitor.resolution": "RESOLUTION",
+  "monitor.resolutionBlocked": "Close the fullscreen window before changing the resolution",
   "monitor.scale": "SCALE",
   "monitor.textSize": "TEXT SIZE",
   "multiSelect.exited": "Options command exited %1",
