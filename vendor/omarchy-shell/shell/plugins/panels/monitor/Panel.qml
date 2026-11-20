@@ -314,6 +314,24 @@ Panel {
     if (!actionProc.running) actionProc.running = true
   }
 
+  function resolutionOptions(display) {
+    return Model.resolutionOptions(display)
+  }
+
+  // Resolution picker is per output: choose the mode for this monitor.
+  // Refresh rate is the highest available for the chosen resolution.
+  function setResolution(name, resolution) {
+    var display = null
+    for (var i = 0; i < displays.length; i++) {
+      if (displays[i] && displays[i].name === name) { display = displays[i]; break }
+    }
+    if (!display) return
+    var mode = Model.modeString(display, resolution)
+    if (!mode) return
+    actionProc.command = ["niri", "msg", "output", name, "mode", mode]
+    if (!actionProc.running) actionProc.running = true
+  }
+
   // ---- Text size (shell base font + GTK text-scaling, via one CLI) ----
   function nearestTextStop(px) {
     var best = 0
@@ -818,13 +836,32 @@ Panel {
             Repeater {
               model: root.displays
 
-              MonitorRow {
+              Column {
                 required property var modelData
                 required property int index
 
                 width: panelColumn.width
-                display: modelData
-                rowIndex: index
+                spacing: Style.space(8)
+
+                MonitorRow {
+                  width: parent.width
+                  display: modelData
+                  rowIndex: index
+                }
+
+                // Resolution is a per-monitor choice: the highest refresh
+                // available for the selected resolution is applied.
+                Dropdown {
+                  width: parent.width
+                  visible: modelData.enabled
+                  label: Commons.I18n.t("monitor.resolution")
+                  fontFamily: root.bar.fontFamily
+                  foreground: root.bar.foreground
+                  accent: Commons.Color.accent
+                  options: root.resolutionOptions(modelData)
+                  value: modelData.resolution || ""
+                  onChanged: function(v) { root.setResolution(modelData.name, v) }
+                }
               }
             }
           }

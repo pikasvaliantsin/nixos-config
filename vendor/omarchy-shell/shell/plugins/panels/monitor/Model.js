@@ -114,6 +114,63 @@ function parseDisplays(raw) {
   }
 }
 
+// Pad the fractional part of a milli-Hz value to the three digits niri
+// expects in a mode string ("120.000", "119.880").
+function pad3(value) {
+  var s = String(value)
+  while (s.length < 3) s = "0" + s
+  return s
+}
+
+function fixedHz(refreshRate) {
+  var n = Number(refreshRate)
+  if (!isFinite(n) || n <= 0) return ""
+  var whole = Math.floor(n / 1000)
+  var frac = Math.round(n - whole * 1000)
+  if (frac >= 1000) { whole += 1; frac -= 1000 }
+  return whole + "." + pad3(frac)
+}
+
+// Human-readable refresh rate without trailing zeros: 120000 -> "120",
+// 119880 -> "119.88".
+function shortHz(refreshRate) {
+  var value = fixedHz(refreshRate)
+  if (!value) return ""
+  value = value.replace(/0+$/, "")
+  value = value.replace(/\.$/, "")
+  return value
+}
+
+// Dropdown options for a display: one entry per resolution, using the
+// highest refresh rate available for it. `display.resolutions` comes from
+// omarchy-monitor-state.
+function resolutionOptions(display) {
+  var options = []
+  if (!display || !Array.isArray(display.resolutions)) return options
+  for (var i = 0; i < display.resolutions.length; i++) {
+    var mode = display.resolutions[i]
+    if (!mode || !mode.width || !mode.height) continue
+    var value = mode.width + "x" + mode.height
+    options.push({
+      value: value,
+      label: value + " · " + shortHz(mode.refresh_rate) + " Hz"
+    })
+  }
+  return options
+}
+
+// Build the exact "WxH@R" argument for `niri msg output <name> mode`.
+function modeString(display, resolution) {
+  if (!display || !Array.isArray(display.resolutions)) return ""
+  for (var i = 0; i < display.resolutions.length; i++) {
+    var mode = display.resolutions[i]
+    if (!mode) continue
+    if ((mode.width + "x" + mode.height) !== resolution) continue
+    return resolution + "@" + fixedHz(mode.refresh_rate)
+  }
+  return ""
+}
+
 if (typeof module !== "undefined") {
   module.exports = {
     clampBrightness: clampBrightness,
@@ -122,6 +179,10 @@ if (typeof module !== "undefined") {
     matchingScaleIndex: matchingScaleIndex,
     availableScales: availableScales,
     brightnessName: brightnessName,
-    parseDisplays: parseDisplays
+    parseDisplays: parseDisplays,
+    fixedHz: fixedHz,
+    shortHz: shortHz,
+    resolutionOptions: resolutionOptions,
+    modeString: modeString
   }
 }

@@ -28,12 +28,20 @@ displays=$(printf '%s' "$outputs" | jq -c --arg focused "$focused" '
   [to_entries[] |
     .key as $name |
     .value as $v |
+    (if $v.current_mode == null then null else $v.modes[$v.current_mode] end) as $cur |
     {
       name: $name,
       enabled: ($v.logical != null),
       focused: ($name == $focused),
-      width: (($v.modes[$v.current_mode].width) // 0),
-      height: (($v.modes[$v.current_mode].height) // 0)
+      width: ($cur.width // 0),
+      height: ($cur.height // 0),
+      resolution: (if $cur == null then "" else "\($cur.width)x\($cur.height)" end),
+      resolutions: (
+        [ $v.modes[] | {width, height, refresh_rate} ]
+        | group_by([.width, .height])
+        | map(max_by(.refresh_rate))
+        | sort_by(-(.width * .height), -.width, -.height)
+      )
     }]')
 
 printf '%s\n' "$brightness"
