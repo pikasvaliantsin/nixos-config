@@ -66,10 +66,12 @@
 ## Основные команды
 
 ```bash
-# Пересобрать систему
-nh os switch .#asus-expertbook
+# Пересобрать систему (nh покажет план сборки и diff пакетов)
+nh os switch .#asus-expertbook --diff always \
+  -- --option substituters https://cache.nixos.org
 # (эквивалент)
-sudo nixos-rebuild switch --flake .#asus-expertbook
+sudo nixos-rebuild switch --flake .#asus-expertbook \
+  --option substituters https://cache.nixos.org
 
 # Обновить inputs
 nix flake update

@@ -272,7 +272,7 @@ _:
       tree = "lsd --tree";
       edit = "nvim";
       cat = "bat";
-      update = "cd ~/nixos-config && nh os switch .#asus-expertbook";
+      update = "cd ~/nixos-config && nh os switch .#asus-expertbook --diff always -- --option substituters https://cache.nixos.org";
       clear = "pyroclear";
     };
   };

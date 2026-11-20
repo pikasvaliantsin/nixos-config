@@ -69,17 +69,20 @@ the bar widgets are ported/backported Omarchy code, not local inventions.
 Always include the substituter because the local cache endpoint may be down.
 
 ```bash
-nixos-rebuild build --flake .#asus-expertbook --option substituters https://cache.nixos.org
-nixos-rebuild switch --flake .#asus-expertbook --option substituters https://cache.nixos.org
+nh os build .#asus-expertbook -- --option substituters https://cache.nixos.org
+nh os switch .#asus-expertbook --diff always -- --option substituters https://cache.nixos.org
 systemctl --user restart omarchy-shell
 ```
 
-- `nixos-rebuild build` validates Nix evaluation without activating.
-- `switch` needs root; do not assume passwordless sudo is enabled. When
-  `sudo -n true` succeeds, run `switch` in the same turn and verify that
-  `readlink -f /run/current-system` equals the build path, the user units are
-  active, and the changed UI/config is live. The user grants sudo periodically,
-  so retry it on later turns instead of leaving a build unapplied.
+- `nh os build` validates Nix evaluation without activating.
+- `nh os switch --diff always` shows the package diff and the nom build
+  graph, so it is clear what is being rebuilt before it is activated.
+- `switch` needs root; `nh` elevates through sudo. Do not assume passwordless
+  sudo is enabled. When `sudo -n true` succeeds, run `switch` in the same turn
+  and verify that `readlink -f /run/current-system` equals the build path, the
+  user units are active, and the changed UI/config is live. The user grants
+  sudo periodically, so retry it on later turns instead of leaving a build
+  unapplied.
 - QML is not compiled by Nix. A successful build only proves the package
   built, not that the QML loads. Start the shell and read its journal/log.
 - The shell package path can be checked with:
