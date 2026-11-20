@@ -141,14 +141,29 @@ function shortHz(refreshRate) {
   return value
 }
 
+// QML can hand nested JSON arrays back as QVariantList rather than a JS
+// array. Accept both so the resolution picker works after a Repeater
+// round-trip.
+function asList(value) {
+  if (!value) return []
+  if (Array.isArray(value)) return value
+  if (typeof value.length === "number") {
+    var list = []
+    for (var i = 0; i < value.length; i++) list.push(value[i])
+    return list
+  }
+  return []
+}
+
 // Dropdown options for a display: one entry per resolution, using the
 // highest refresh rate available for it. `display.resolutions` comes from
 // omarchy-monitor-state.
 function resolutionOptions(display) {
   var options = []
-  if (!display || !Array.isArray(display.resolutions)) return options
-  for (var i = 0; i < display.resolutions.length; i++) {
-    var mode = display.resolutions[i]
+  if (!display) return options
+  var resolutions = asList(display.resolutions)
+  for (var i = 0; i < resolutions.length; i++) {
+    var mode = resolutions[i]
     if (!mode || !mode.width || !mode.height) continue
     var value = mode.width + "x" + mode.height
     options.push({
@@ -161,9 +176,10 @@ function resolutionOptions(display) {
 
 // Build the exact "WxH@R" argument for `niri msg output <name> mode`.
 function modeString(display, resolution) {
-  if (!display || !Array.isArray(display.resolutions)) return ""
-  for (var i = 0; i < display.resolutions.length; i++) {
-    var mode = display.resolutions[i]
+  if (!display) return ""
+  var resolutions = asList(display.resolutions)
+  for (var i = 0; i < resolutions.length; i++) {
+    var mode = resolutions[i]
     if (!mode) continue
     if ((mode.width + "x" + mode.height) !== resolution) continue
     return resolution + "@" + fixedHz(mode.refresh_rate)
