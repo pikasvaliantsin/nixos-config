@@ -32,6 +32,52 @@ let
     ];
     text = builtins.readFile ./mime-defaults.sh;
   };
+  # Keep the laptop panel attached to the right edge of the external monitor
+  # for every HDMI mode, including runtime mode changes from the Display
+  # panel. niri's auto placement already does this when eDP has no position,
+  # but this also covers config reloads/hotplug and any future layout changes.
+  niriBin = "${config.home.profileDirectory}/bin/niri";
+
+  niriOutputLayout = pkgs.writeShellApplication {
+    name = "niri-output-layout";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.coreutils
+    ];
+    text = ''
+      NIRI="${niriBin}"
+
+      apply() {
+        local out hdmi_w hdmi_x edp_x
+        out=$("$NIRI" msg --json outputs 2>/dev/null) || return 0
+        hdmi_w=$(printf '%s' "$out" | jq -r '."HDMI-A-1".logical.width // empty')
+        [ -n "$hdmi_w" ] || return 0
+        hdmi_x=$(printf '%s' "$out" | jq -r '."HDMI-A-1".logical.x // empty')
+        edp_x=$(printf '%s' "$out" | jq -r '."eDP-1".logical.x // empty')
+
+        if [ "$hdmi_x" != "0" ]; then
+          "$NIRI" msg output HDMI-A-1 position set 0 0 >/dev/null 2>&1 || true
+        fi
+        if [ "$edp_x" != "$hdmi_w" ]; then
+          "$NIRI" msg output eDP-1 position set "$hdmi_w" 0 >/dev/null 2>&1 || true
+        fi
+      }
+
+      # niri may not be up yet when the user service starts.
+      while ! "$NIRI" msg version >/dev/null 2>&1; do
+        sleep 1
+      done
+
+      apply
+
+      "$NIRI" msg event-stream 2>/dev/null | while IFS= read -r line; do
+        case "$line" in
+          *"Outputs changed"*|*"Config loaded successfully"*) apply ;;
+        esac
+      done
+    '';
+  };
+
 in
 {
   imports = [
@@ -98,6 +144,23 @@ in
   xdg.configFile = {
     "niri/config.kdl".source = mkLink "config.kdl";
     "niri/binds.kdl".source = mkLink "binds.kdl";
+  };
+
+  # Держит eDP-1 левым краем у правого края HDMI-A-1 при любом режиме.
+  # Конфиг niri делает это через auto-placement (HDMI pinned x=0, eDP без
+  # position), но сервис дополнительно ловит runtime-смены режима из панели.
+  systemd.user.services.niri-output-layout = {
+    Unit = {
+      Description = "Attach eDP-1 to the right edge of HDMI-A-1";
+      After = [ "graphical-session.target" ];
+      PartOf = [ "graphical-session.target" ];
+    };
+    Service = {
+      ExecStart = "${niriOutputLayout}/bin/niri-output-layout";
+      Restart = "always";
+      RestartSec = 1;
+    };
+    Install.WantedBy = [ "graphical-session.target" ];
   };
 
   xdg.userDirs = {
