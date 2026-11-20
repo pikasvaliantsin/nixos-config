@@ -355,6 +355,7 @@
   "monitor.level.softGlow": "Мягкое свечение",
   "monitor.level.solarFlare": "Солнечная вспышка",
   "monitor.level.sunBlast": "Солнечный удар",
+  "monitor.modeFailed": "Не удалось применить настройку монитора",
   "monitor.resolution": "РАЗРЕШЕНИЕ",
   "monitor.scale": "МАСШТАБ",
   "monitor.textSize": "РАЗМЕР ТЕКСТА",

@@ -42,7 +42,7 @@ displays=$(printf '%s' "$outputs" | jq -c --arg focused "$focused" '
         | map(max_by(.refresh_rate))
         | sort_by(-(.width * .height), -.width, -.height)
       )
-    }]')
+    }] | sort_by(.name)')
 
 printf '%s\n' "$brightness"
 printf '%s\n' "$internal"

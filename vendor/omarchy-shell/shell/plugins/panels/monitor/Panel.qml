@@ -455,7 +455,19 @@ Panel {
   Process {
     id: actionProc
     stdout: StdioCollector { waitForEnd: true }
+    onExited: function(code) {
+      if (code === 0) return
+      notifyProc.command = ["notify-send", "-a", Commons.I18n.t("monitor.display"),
+        "-u", "normal", Commons.I18n.t("monitor.display"),
+        Commons.I18n.t("monitor.modeFailed")]
+      if (!notifyProc.running) notifyProc.running = true
+    }
     onRunningChanged: if (!running) root.refresh()
+  }
+
+  Process {
+    id: notifyProc
+    stdout: StdioCollector { waitForEnd: true }
   }
 
   // Applies text size via the CLI, which rewrites the shell override file;
@@ -854,6 +866,7 @@ Panel {
                 Dropdown {
                   width: parent.width
                   visible: modelData.enabled
+                  controlled: true
                   label: Commons.I18n.t("monitor.resolution")
                   fontFamily: root.bar.fontFamily
                   foreground: root.bar.foreground

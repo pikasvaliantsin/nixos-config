@@ -333,6 +333,7 @@
   "monitor.level.softGlow": "Soft glow",
   "monitor.level.solarFlare": "Solar flare",
   "monitor.level.sunBlast": "Sun blast",
+  "monitor.modeFailed": "Could not apply the monitor setting",
   "monitor.resolution": "RESOLUTION",
   "monitor.scale": "SCALE",
   "monitor.textSize": "TEXT SIZE",

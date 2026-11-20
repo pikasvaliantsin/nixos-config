@@ -32,6 +32,10 @@ Item {
   property int rowHeight: Style.spacing.controlHeight
   property int popupRowHeight: Style.spacing.popupRowHeight
   property bool showLabel: true
+  // When true the parent owns `value`; selecting an option only emits
+  // changed. Use it when the value is bound to a model that refreshes
+  // after the action, so the trigger reflects the real state.
+  property bool controlled: false
 
   // Panel-cursor flag. When true, the trigger renders the shared
   // hover-cursor state. Active Qt focus defaults to the same visuals.
@@ -207,7 +211,7 @@ Item {
           function selectCurrent() {
             if (currentIndex < 0 || currentIndex >= root.options.length) return
             var v = root.optionValue(root.options[currentIndex])
-            root.value = v
+            if (!root.controlled) root.value = v
             root.changed(v)
             popup.close()
           }
