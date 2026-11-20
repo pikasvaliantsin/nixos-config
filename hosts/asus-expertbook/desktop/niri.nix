@@ -84,7 +84,7 @@
         output "eDP-1" {
             mode "1920x1080@60.164"
             scale 1
-            position x=1920 y=0
+            // No position: niri puts it right of the pinned HDMI output.
         }
       '';
     };
