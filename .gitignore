@@ -21,6 +21,8 @@ home-manager/.home-manager-*
 *.age
 # --- Secrets Data ---
 secrets/secrets.decrypted
+# WireGuard client config: never commit, even if recreated
+secrets/wg_client.conf
 # --- Editors ---
 *.swp
 *.swo

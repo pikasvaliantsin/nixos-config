@@ -51,18 +51,27 @@
               "zone": "Europe/Minsk",
               "lat": 52.4345,
               "lon": 30.9754,
-              "region": "Homyel’ Voblasc’, BY"
+              "region": "Homyel’ Voblasc’, BY",
+              "people": [
+                "Me"
+              ]
             },
             {
               "name": "Yekaterinburg",
-              "zone": "Asia/Yekaterinburg"
+              "zone": "Asia/Yekaterinburg",
+              "people": [
+                "Danya"
+              ]
             },
             {
               "name": "Las Vegas",
               "zone": "America/Los_Angeles",
               "lat": 36.17497,
               "lon": -115.13722,
-              "region": "Nevada, US"
+              "region": "Nevada, US",
+              "people": [
+                "Formula 1"
+              ]
             }
           ],
           "hour24": true,
@@ -80,7 +89,6 @@
           "id": "omarchy.tray",
           "pinned": [],
           "hidden": [
-            "udiskie",
             "dank-calendar"
           ]
         },

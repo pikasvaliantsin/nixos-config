@@ -11,6 +11,12 @@
 #
 # Почему не hosts в префиксе: Wine резолвит имена через glibc хоста
 # (/etc/hosts, systemd-resolved), файл внутри drive_c игнорируется.
+#
+# nft разворачивает cgroupv2-путь в cgroup id при загрузке правил, поэтому
+# правила можно ставить только когда rf4sim.slice уже существует. Сервис на
+# boot падал с "Could not parse cgroupsv2 path": слайс создаётся только при
+# запуске rf4sim. Поэтому guard вызывается из rf4sim после systemd-run и
+# снимается на выходе.
 { pkgs, ... }:
 
 let
@@ -34,24 +40,43 @@ let
       }
     }
   '';
+
+  netguard = pkgs.writeShellScriptBin "rf4sim-netguard" ''
+    set -eu
+    NFT="${pkgs.nftables}/bin/nft"
+
+    case "''${1:-}" in
+      start)
+        "$NFT" delete table inet rf4simguard 2>/dev/null || true
+        "$NFT" -f ${rules}
+        ;;
+      stop)
+        "$NFT" delete table inet rf4simguard 2>/dev/null || true
+        ;;
+      *)
+        echo "usage: $0 start|stop" >&2
+        exit 2
+        ;;
+    esac
+  '';
 in
 {
-  systemd.services.rf4sim-netguard = {
-    description = "nftables egress guard for the local RF4 client slice";
-    wantedBy = [ "multi-user.target" ];
-    after = [
-      "firewall.service"
-      "docker.service"
-    ];
-    serviceConfig = {
-      Type = "oneshot";
-      RemainAfterExit = true;
-    };
-    script = ''
-      set -eu
-      # Идемпотентно: своя таблица, чужие правила не трогаем.
-      ${pkgs.nftables}/bin/nft delete table inet rf4simguard 2>/dev/null || true
-      ${pkgs.nftables}/bin/nft -f ${rules}
-    '';
-  };
+  environment.systemPackages = [ netguard ];
+
+  # Только этот скрипт, только start|stop. Полный nft пользователю не выдаём.
+  security.sudo.extraRules = [
+    {
+      users = [ "valen" ];
+      commands = [
+        {
+          command = "${netguard}/bin/rf4sim-netguard";
+          options = [ "NOPASSWD" ];
+        }
+        {
+          command = "/run/current-system/sw/bin/rf4sim-netguard";
+          options = [ "NOPASSWD" ];
+        }
+      ];
+    }
+  ];
 }

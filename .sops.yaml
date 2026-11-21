@@ -15,6 +15,10 @@
 # ────────────────────────────────────────────────────────────────────────────
 
 creation_rules:
+  # tutmed-bot: dotenv с логином/ПИНом портала и токенами уведомлений
+  - path_regex: secrets/tutmed\.env$
+    # host key (нужен для расшифровки при boot) + текущий личный ключ valen
+    age: age1ps03aszfl65ny2rm8mn3xjguf78t7lr5t0w06x2p7vzrmchc3auqv9ypcl,age1hf6z0nqxerpzhndun97hghplqtvljwdfkhj082p6jsu03j65fvgqclg5w8
   - path_regex: secrets/secrets\.yaml$
     # AGE-ключи: хостовый SSH-ключ (обязательно) + личный master key (опционально)
     # Разделяются запятой. sops-init подставляет их автоматически.

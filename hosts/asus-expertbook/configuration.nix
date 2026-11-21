@@ -14,6 +14,8 @@ _:
     ./system/networking.nix
     ./system/printing.nix
     ./system/services.nix
+    ./system/containers.nix
+    ./system/rf4sim-guard.nix
     ./system/fingerprint.nix
     ./system/graphics.nix
     ./system/gaming.nix

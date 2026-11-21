@@ -5,8 +5,8 @@
 # фиксированного релиза.
 #
 #   rf4-install /путь/к/установщику.exe   — однократная установка игры
-#   rf4                                    — игра: Xwayland + lsfg 2x
-#   rf4-gamescope                          — 1600x900 + FSR + lsfg 2x (апскейл)
+#   rf4                                    — игра: Wine Wayland + LSFG 2x
+#   rf4-gamescope                          — 1680x720 (21:9) + FSR + LSFG 3x
 #   rf4-native                             — псевдоним rf4
 #   bite-alarm                             — звук при появлении значка рыбки
 #
@@ -69,6 +69,10 @@ let
     export GAMEID="0"
     export WINEPREFIX="${prefix}"
 
+    # Xalia — слой доступности Wine. Игре он не нужен, но в Xwayland-
+    # варианте (gamescope) запускается отдельным процессом и ест CPU.
+    export PROTON_USE_XALIA="0"
+
     # Твои твики DXVK. tearFree не ставим: с VRR и lsfg он форсирует FIFO
     # и ломает адаптивную синхронизацию (в PortProton dxvk.conf по умолчанию).
     export DXVK_CONFIG="d3d11.samplerAnisotropy=0;d3d11.maxTessFactor=0;d3d11.disableMsaa=True;dxvk.maxChunkSize=32;dxvk.gpl=True"
@@ -99,6 +103,22 @@ let
     fi
   '';
 
+  # Необязательный MangoHud. Основной счётчик — DXVK_HUD (RF4_HUD), он
+  # переживает umu/pressure-vessel. MangoHud полезен для frametime/GPU,
+  # но с umu может не подняться, поэтому включается только вручную:
+  #   RF4_MANGOHUD=1 rf4
+  #   RF4_MANGOHUD=1 RF4_MANGOHUD_CONFIG=fps,frametime,gpu_stats rf4
+  hudEnv = ''
+    if [ "''${RF4_MANGOHUD:-0}" = "1" ]; then
+      export PATH="${lib.makeBinPath [ pkgs.mangohud ]}:$PATH"
+      export XDG_DATA_DIRS="${pkgs.mangohud}/share''${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}"
+      export MANGOHUD="1"
+      export MANGOHUD_CONFIG="''${RF4_MANGOHUD_CONFIG:-fps,frametime,gpu_stats,cpu_stats}"
+      # Не дублировать оверлеи: MangoHud заменяет DXVK HUD.
+      export DXVK_HUD=""
+    fi
+  '';
+
   # Привилегированный тюнинг APU на время игры. Скрипт ставит
   # platform_profile=performance, amdgpu DPM high и swappiness=100,
   # а на выходе возвращает сохранённые значения. sudo -n разрешён
@@ -126,35 +146,100 @@ let
     fi
   '';
 
-  # Основной режим: Xwayland + генерация кадров 2x.
+  # Unity/RF4 does not follow the compositor's output mode: it reads its own
+  # Settings.dat and Unity registry on every start. Write the requested
+  # resolution there. Called from rf4 with the monitor mode and from
+  # rf4-gamescope with the gamescope internal size (1680x720).
+  syncResolutionFn = ''
+    sync_rf4_resolution() {
+      local w="$1" h="$2"
+      [ -n "$w" ] && [ -n "$h" ] || return 0
+
+      local settings tmp reg
+      settings="$WINEPREFIX/drive_c/users/steamuser/AppData/Roaming/RussianFishingLLC/RussianFishing4/Settings.dat"
+      if [ -f "$settings" ]; then
+        tmp=$(mktemp)
+        {
+          printf '\xEF\xBB\xBF'
+          ${pkgs.jq}/bin/jq --argjson w "$w" --argjson h "$h" \
+            '.video.screenMode = 0 | .video.screenW = $w | .video.screenH = $h' "$settings" \
+            | ${pkgs.gnused}/bin/sed 's/$/\r/'
+        } > "$tmp"
+        mv "$tmp" "$settings"
+      fi
+
+      reg="$WINEPREFIX/user.reg"
+      if [ -f "$reg" ]; then
+        ${pkgs.gnused}/bin/sed -i \
+          -e "s|^\"Screenmanager Resolution Width_h182942802\"=dword:.*|\"Screenmanager Resolution Width_h182942802\"=dword:$(printf '%08x' "$w")|" \
+          -e "s|^\"Screenmanager Resolution Width Default_h680557497\"=dword:.*|\"Screenmanager Resolution Width Default_h680557497\"=dword:$(printf '%08x' "$w")|" \
+          -e "s|^\"Screenmanager Resolution Height_h2627697771\"=dword:.*|\"Screenmanager Resolution Height_h2627697771\"=dword:$(printf '%08x' "$h")|" \
+          -e "s|^\"Screenmanager Resolution Height Default_h1380706816\"=dword:.*|\"Screenmanager Resolution Height Default_h1380706816\"=dword:$(printf '%08x' "$h")|" \
+          -e "s|^\"Screenmanager Resolution Window Width_h2524650974\"=dword:.*|\"Screenmanager Resolution Window Width_h2524650974\"=dword:$(printf '%08x' "$w")|" \
+          -e "s|^\"Screenmanager Resolution Window Height_h1684712807\"=dword:.*|\"Screenmanager Resolution Window Height_h1684712807\"=dword:$(printf '%08x' "$h")|" \
+          -e 's|^"Screenmanager Resolution Use Native_h1405027254"=dword:.*|"Screenmanager Resolution Use Native_h1405027254"=dword:00000000|' \
+          -e 's|^"Screenmanager Resolution Use Native Default_h1405981789"=dword:.*|"Screenmanager Resolution Use Native Default_h1405981789"=dword:00000000|' \
+          -e 's|^"Screenmanager Fullscreen mode_h3630240806"=dword:.*|"Screenmanager Fullscreen mode_h3630240806"=dword:00000001|' \
+          -e 's|^"Screenmanager Fullscreen mode Default_h401710285"=dword:.*|"Screenmanager Fullscreen mode Default_h401710285"=dword:00000001|' \
+          "$reg" || true
+      fi
+    }
+  '';
+
+  # Для нативного запуска: физический текущий режим HDMI из niri.
+  # Disable with RF4_SYNC_RESOLUTION=0; RF4_OUTPUT selects the niri output.
+  syncResolution = ''
+    if [ "''${RF4_SYNC_RESOLUTION:-1}" = "1" ] && command -v niri >/dev/null 2>&1; then
+      out="''${RF4_OUTPUT:-HDMI-A-1}"
+      json=$(niri msg --json outputs 2>/dev/null || true)
+      # Физический текущий режим, а не logical: при scale != 1 логический
+      # размер меньше, и игра получила бы неверное разрешение.
+      w=$(printf '%s' "$json" | ${pkgs.jq}/bin/jq -r --arg out "$out" '.[$out] as $o | ($o.modes[$o.current_mode].width // $o.logical.width) // empty' 2>/dev/null || true)
+      h=$(printf '%s' "$json" | ${pkgs.jq}/bin/jq -r --arg out "$out" '.[$out] as $o | ($o.modes[$o.current_mode].height // $o.logical.height) // empty' 2>/dev/null || true)
+      sync_rf4_resolution "$w" "$h"
+    fi
+  '';
+
+  # Основной режим: Wine Wayland, без Gamescope и с генерацией 2x.
   #
-  #   rf4                             — Xwayland + lsfg 2x (по умолчанию)
+  #   rf4                             — Wine Wayland + LSFG 2x (по умолчанию)
+  #   env RF4_WAYLAND=0 rf4           — принудительно Xwayland
   #   env RF4_LSFG=0 rf4              — без генерации
   #   env RF4_LSFG_MULTIPLIER=3 RF4_LSFG_FLOW_SCALE=0.5 rf4
-  #   env RF4_WAYLAND=1 rf4           — через winewayland (с lsfg нестабилен)
+  #   env RF4_MANGOHUD=1 rf4          — MangoHud вместо DXVK_HUD
   rf4 = pkgs.writeShellScriptBin "rf4" ''
     set -eu
     ${commonEnv}
 
     ${findExe}
+    ${syncResolutionFn}
+    ${syncResolution}
 
     # MangoHud не переживает запуск через umu/pressure-vessel, поэтому FPS
     # показываем средствами DXVK (базовый FPS игры):
     #   RF4_HUD=fps — включён, RF4_HUD= — выключен.
+    #   RF4_HUD=fps,frametimes,gpuload — FPS + график времени кадра + GPU.
     export DXVK_HUD="''${RF4_HUD-fps}"
+    ${hudEnv}
 
-    # Слой lsfg-vk падает в презентации через Wayland-WSI
-    # (wsi_wl_swapchain_queue_present -> vk_drm_syncobj_wait_many),
-    # поэтому по умолчанию Xwayland. Wayland включается вручную:
-    #   RF4_WAYLAND=1 rf4
-    if [ "''${RF4_WAYLAND:-0}" = "1" ]; then
+    # Xwayland-satellite 0.8.x после смены режима выхода продолжает отдавать
+    # старый (issue #251), и RF4 сохраняет 1920x1080. Wine Wayland читает
+    # режим напрямую у niri, поэтому он основной. Xwayland: RF4_WAYLAND=0.
+    if [ "''${RF4_WAYLAND:-1}" = "1" ]; then
       export PROTON_ENABLE_WAYLAND="1"
+      export PROTON_WAYLAND_MONITOR="''${RF4_OUTPUT:-HDMI-A-1}"
+    else
+      unset PROTON_ENABLE_WAYLAND PROTON_WAYLAND_MONITOR || true
     fi
 
     # Для плавности нужен VRR; включаем на выходе монитора (RF4_VRR=0 — не трогать).
     if [ "''${RF4_VRR:-1}" = "1" ] && command -v niri >/dev/null 2>&1; then
       niri msg output "''${RF4_OUTPUT:-HDMI-A-1}" vrr on >/dev/null 2>&1 || true
     fi
+
+    # Генерация включена по умолчанию: базовые ~20 FPS иначе выглядят
+    # ровно как 20 FPS. Выключить: RF4_LSFG=0 rf4.
+    export RF4_LSFG="''${RF4_LSFG:-1}"
 
     ${lsfgEnv}
     ${powerTune}
@@ -165,6 +250,105 @@ let
   # Старое имя основного режима — оставлено для совместимости.
   rf4-native = pkgs.writeShellScriptBin "rf4-native" ''
     exec ${rf4}/bin/rf4 "$@"
+  '';
+
+  # ========================================
+  # ЛОКАЛЬНЫЙ СЕРВЕР (rf4_server_simulator)
+  # ========================================
+  #
+  # Клиент для локалки — отдельная физическая копия префикса
+  # (~/Games/rf4-sim), запускается в cgroup rf4sim.slice. nftables-правила
+  # (hosts/asus-expertbook/system/rf4sim-guard.nix) заворачивают весь его
+  # TCP 443/9341/7515 на 127.0.0.1 и дропают любой трафик вне loopback:
+  # подключиться к официальному серверу он не может физически.
+  # Лаунчер (и его автообновление) не запускается — только rf4_x64.exe.
+  rf4sim = pkgs.writeShellScriptBin "rf4sim" ''
+    set -eu
+    ${commonEnv}
+    export WINEPREFIX="$HOME/Games/rf4-sim"
+
+    # Язык клиента — русский, как в официальном префиксе. Прямой запуск
+    # rf4_x64.exe иногда сбрасывает ключ на системный en-US.
+    ${pkgs.gnused}/bin/sed -i \
+      's|^"Language_h3872303031"=hex:.*|"Language_h3872303031"=hex:72,75,2d,52,55,00|' \
+      "$WINEPREFIX/user.reg" 2>/dev/null || true
+
+    if [ "''${RF4SIM_SCOPED:-0}" != "1" ]; then
+      export RF4SIM_SCOPED=1
+      exec ${lib.getExe' pkgs.systemd "systemd-run"} --user --scope --quiet \
+        --slice=rf4sim.slice --unit=rf4sim-game -- "$0" "$@"
+    fi
+
+    exe="$WINEPREFIX/drive_c/Games/RF4/Game/rf4_x64.exe"
+    if [ ! -f "$exe" ]; then
+      echo "Нет $exe — сначала выполни rf4sim-copy" >&2
+      exit 1
+    fi
+
+    # nft резолвит cgroupv2-путь только когда rf4sim.slice уже существует.
+    # Мы внутри scope, слайс есть; ставим guard и снимаем на выходе.
+    NETGUARD="/run/current-system/sw/bin/rf4sim-netguard"
+    SUDO="/run/wrappers/bin/sudo"
+    if [ ! -x "$NETGUARD" ] || ! "$SUDO" -n "$NETGUARD" start >/dev/null 2>&1; then
+      echo "rf4sim: не удалось включить сетевую изоляцию (netguard); запуск отменён" >&2
+      exit 1
+    fi
+    trap '"$SUDO" -n "$NETGUARD" stop >/dev/null 2>&1 || true' EXIT INT TERM HUP
+
+    export DXVK_HUD="''${RF4_HUD-fps}"
+
+    # Клиент сайтовой версии требует регион; без него падает
+    # Region initialization failed.
+    if [ "$#" -eq 0 ]; then
+      set -- -region RU
+    fi
+    ${umu} "$exe" "$@"
+  '';
+
+  # Физическая копия клиента (на btrfs — reflink: отдельный inode, экстенты
+  # разделяются до первой записи, официальный префикс изменить невозможно).
+  # Заодно вычищается официальная сессия/настройки: локальный клиент не
+  # должен стартовать с чужим токеном.
+  rf4sim-copy = pkgs.writeShellScriptBin "rf4sim-copy" ''
+    set -eu
+    src="$HOME/Games/rf4"
+    dst="$HOME/Games/rf4-sim"
+
+    if [ -e "$dst" ] && [ "''${1:-}" != "--force" ]; then
+      echo "$dst уже существует; удали вручную или запусти с --force" >&2
+      exit 1
+    fi
+    if [ "''${1:-}" = "--force" ]; then rm -rf "$dst"; fi
+
+    echo "Копирую $src -> $dst (reflink)..."
+    cp -a --reflink=auto "$src" "$dst"
+
+    rm -rf "$dst/drive_c/users/steamuser/AppData/Roaming/RussianFishingLLC"
+    rm -rf "$dst/drive_c/users/steamuser/AppData/LocalLow/Russian Fishing LLC"
+    rm -rf "$dst/drive_c/users/steamuser/AppData/Local/RF4Launcher"
+    rm -rf "$dst/drive_c/users/steamuser/Documents/Russian Fishing 4"
+    rm -rf "$dst/drive_c/users/valen/AppData/Roaming/RussianFishingLLC"
+    rm -rf "$dst/drive_c/users/valen/AppData/LocalLow/Russian Fishing LLC"
+    rm -f "$dst/drive_c/Games/RF4/RF4Launcher.conf" "$dst/drive_c/Games/RF4/Session.conf"
+    rm -f "$dst/pfx.lock"
+    echo "Готово: $dst"
+  '';
+
+  # Импорт локального CA только в префикс локалки (не в систему).
+  rf4sim-trust = pkgs.writeShellScriptBin "rf4sim-trust" ''
+    set -eu
+    ${commonEnv}
+    export WINEPREFIX="$HOME/Games/rf4-sim"
+
+    crt="''${1:-$HOME/Games/rf4-sim/certs/server.crt}"
+    if [ ! -f "$crt" ]; then
+      echo "Нет сертификата $crt" >&2
+      exit 1
+    fi
+    winpath="Z:$(printf '%s' "$crt" | sed 's|/|\\\\|g')"
+
+    exec ${umu} "$WINEPREFIX/drive_c/windows/system32/certutil.exe" \
+      -addstore -f Root "$winpath"
   '';
 
   # Запуск для стрима: Sunshine создаёт виртуальный геймпад уже после старта
@@ -186,26 +370,43 @@ let
     exec ${rf4}/bin/rf4 "$@"
   '';
 
-  # 1600x900 (16:9) -> 2240x960 через gamescope + FSR, плюс lsfg 2x.
+  # 1680x720 (21:9) -> размер HDMI через gamescope + FSR, плюс lsfg 3x.
   # gamescope запускается через security-wrapper с CAP_SYS_NICE.
   #
   # LSFG must be loaded ONLY in the game, never in gamescope: two copies
   # insert frames twice, then gamescope's fixed refresh skips/tears them.
-  # Defaults are quality-first (2x / flow 1.0 / no performance mode) with
-  # VRR on and the game base capped at 60, no MangoHud layer.
-  # PortProton parity: RF4_LSFG_MULTIPLIER=3 RF4_LSFG_FLOW_SCALE=0.5
-  # RF4_LSFG_PERFORMANCE_MODE=1.
+  # Default profile is tuned for the iGPU (Radeon Vega 7 in Ryzen 5 5625U):
+  # 3x / flow 0.5 / performance mode. The base is capped at refresh / multiplier
+  # (40 FPS for 3x on 120 Hz) so LSFG and gamescope present a stable stream;
+  # without the cap the game outruns generation and gamescope drops frames.
+  # 4x raised nominal output but lowered base FPS and felt less responsive.
+  # VRR on; no MangoHud by default.
+  # The RF4 launcher is designed for 16:9; if its bottom buttons are cut
+  # off at 720p, launch the game directly (launcher only for login/updates).
   #
   #   rf4-gamescope
   #   env RF4_LSFG=0 rf4-gamescope          — без генерации
   #   env RF4_GS_FILTER=sgsr rf4-gamescope
-  #   env RF4_GS_OUT_W=1920 RF4_GS_OUT_H=1080 rf4-gamescope — 16:9-выход
+  #   env RF4_GS_W=1600 RF4_GS_H=900 rf4-gamescope — внутреннее 16:9
+  #   env RF4_GS_OUT_W=1920 RF4_GS_OUT_H=1080 rf4-gamescope — другой выход
   #   env RF4_GS_ADAPTIVE=0 RF4_VRR=0 rf4-gamescope — выключить VRR
-  #   env RF4_GS_MANGO=1 rf4-gamescope      — вернуть MangoHud
+  #   env RF4_GS_MANGO=0 rf4-gamescope      — выключить MangoHud (FPS)
+  #   env RF4_GS_MANGOHUD_CONFIG=fps,frametime rf4-gamescope
+  #   env RF4_GS_HUD=1 RF4_HUD=fps rf4-gamescope — лёгкий DXVK HUD (базовый FPS)
   rf4-gamescope = pkgs.writeShellScriptBin "rf4-gamescope" ''
     set -eu
     ${commonEnv}
+    ${syncResolutionFn}
     ${lsfgEnv}
+
+    # 1680x720 + FSR на Vega 7 (5625U): 3x / flow 0.5 / performance.
+    # База ограничена refresh/multiplier (40 FPS для 3x на 120 Гц), иначе
+    # игра обгоняет генерацию и gamescope выбрасывает кадры.
+    export LSFGVK_MULTIPLIER="''${RF4_LSFG_MULTIPLIER:-3}"
+    export LSFGVK_FLOW_SCALE="''${RF4_LSFG_FLOW_SCALE:-0.5}"
+    export LSFGVK_PERFORMANCE_MODE="''${RF4_LSFG_PERFORMANCE_MODE:-1}"
+    MULT="''${RF4_LSFG_MULTIPLIER:-3}"
+    if ! [[ "$MULT" =~ ^[1-9][0-9]*$ ]]; then MULT=3; fi
 
     ${findExe}
     ${powerTune}
@@ -213,8 +414,6 @@ let
     # LSFG включён только для игры. gamescope получает жёсткий disable,
     # а команда после -- снимает его обратно для umu/Wine.
     LSFG_OFF="''${DISABLE_LSFGVK:-0}"
-    MULT="''${RF4_LSFG_MULTIPLIER:-2}"
-    if ! [[ "$MULT" =~ ^[1-9][0-9]*$ ]]; then MULT=2; fi
 
     GAME_ENV=(${pkgs.coreutils}/bin/env)
     GAME_ENV+=(-u VK_LOADER_LAYERS_DISABLE)
@@ -255,54 +454,67 @@ let
       GS="${lib.getExe pkgs.gamescope}"
     fi
 
-    GS_W="''${RF4_GS_W:-1600}"
-    GS_H="''${RF4_GS_H:-900}"
-    # Output resolution: the monitor runs a custom 2240x960@120 mode, but
-    # for a clean 16:9 picture use RF4_GS_OUT_W=1920 RF4_GS_OUT_H=1080
-    # together with the monitor's native 1920x1080@120 mode.
-    GS_OUT_W="''${RF4_GS_OUT_W:-2240}"
-    GS_OUT_H="''${RF4_GS_OUT_H:-960}"
+    GS_W="''${RF4_GS_W:-1680}"
+    GS_H="''${RF4_GS_H:-720}"
+    # Игра должна видеть ровно тот размер, который рендерит gamescope:
+    # иначе RF4 остаётся в 2240x960 из нативного запуска и просит лишнее.
+    if [ "''${RF4_GS_SYNC_RESOLUTION:-1}" = "1" ]; then
+      sync_rf4_resolution "$GS_W" "$GS_H"
+    fi
+    # Output follows the niri HDMI physical mode, so a mode change in the
+    # Display panel does not need RF4_GS_OUT_* overrides.
+    niri_w=""
+    niri_h=""
+    if command -v niri >/dev/null 2>&1; then
+      json=$(niri msg --json outputs 2>/dev/null || true)
+      niri_w=$(printf '%s' "$json" | ${pkgs.jq}/bin/jq -r --arg out "''${RF4_OUTPUT:-HDMI-A-1}" '.[$out] as $o | ($o.modes[$o.current_mode].width // $o.logical.width) // empty' 2>/dev/null || true)
+      niri_h=$(printf '%s' "$json" | ${pkgs.jq}/bin/jq -r --arg out "''${RF4_OUTPUT:-HDMI-A-1}" '.[$out] as $o | ($o.modes[$o.current_mode].height // $o.logical.height) // empty' 2>/dev/null || true)
+    fi
+    GS_OUT_W="''${RF4_GS_OUT_W:-}"
+    GS_OUT_H="''${RF4_GS_OUT_H:-}"
+    [ -n "$GS_OUT_W" ] || GS_OUT_W="''${niri_w:-1920}"
+    [ -n "$GS_OUT_H" ] || GS_OUT_H="''${niri_h:-1080}"
     GS_R="''${RF4_GS_R:-120}"
     GS_FILTER="''${RF4_GS_FILTER:-fsr}"
     GS_SHARP="''${RF4_GS_SHARPNESS:-5}"
 
-    ARGS=(-w "$GS_W" -h "$GS_H" -W "$GS_OUT_W" -H "$GS_OUT_H" -r "$GS_R" -S "''${RF4_GS_SCALER:-fit}")
-    if [ "$GS_FILTER" != "none" ]; then
-      ARGS+=(-F "$GS_FILTER" --fsr-sharpness "$GS_SHARP")
-    fi
-
-    # The DXVK base cap follows the LSFG multiplier: 60 for 2x on 120 Hz,
-    # 40 for 3x, 30 for 4x. gamescope's own limit stays at the output
-    # refresh; generated frames must not be clipped to the base rate.
+    # Ограничение базового FPS: сгенерированные кадры должны укладываться
+    # в refresh выхода. Без этого игра рисует выше 1/N refresh, LSFG
+    # перегенерирует, а gamescope выбрасывает лишние кадры (рывки).
     if [ "$LSFG_OFF" = "1" ]; then
       GS_LIMIT="''${RF4_GS_LIMIT:-0}"
     else
       GS_LIMIT="''${RF4_GS_LIMIT:-$((GS_R / MULT))}"
     fi
-    if [ -n "$GS_LIMIT" ] && [ "$GS_LIMIT" != "0" ] && [ "$GS_LIMIT" != "off" ]; then
-      if [ "$LSFG_OFF" != "1" ]; then
-        # Redundant cap at the DXVK swapchain. Some gamescope versions
-        # ignore --framerate-limit; without this the game runs above the
-        # base rate, LSFG generates too many frames and gamescope drops them.
-        export DXVK_CONFIG="$DXVK_CONFIG;dxgi.maxFrameRate=$GS_LIMIT"
-      fi
+    if [ -n "$GS_LIMIT" ] && [ "$GS_LIMIT" != "0" ] && [ "$GS_LIMIT" != "off" ] && [ "$LSFG_OFF" != "1" ]; then
+      export DXVK_CONFIG="$DXVK_CONFIG;dxgi.maxFrameRate=$GS_LIMIT"
     fi
 
-    # gamescope's limit must sit at the output refresh, not at the LSFG base:
-    # a 30 FPS base with 4x generation still has to present 120 FPS, and
-    # --framerate-limit is applied by some gamescope versions to the output.
+    ARGS=(-w "$GS_W" -h "$GS_H" -W "$GS_OUT_W" -H "$GS_OUT_H" -r "$GS_R" -S "''${RF4_GS_SCALER:-fit}")
     ARGS+=(--framerate-limit "$GS_R")
+    if [ "$GS_FILTER" != "none" ]; then
+      ARGS+=(-F "$GS_FILTER" --fsr-sharpness "$GS_SHARP")
+    fi
 
     if [ "''${RF4_GS_ADAPTIVE:-1}" = "1" ]; then
       ARGS+=(--adaptive-sync)
     fi
-    if [ "''${RF4_GS_MANGO:-0}" = "1" ]; then
+    # MangoHud через gamescope: единственный счётчик, который показывает
+    # output FPS (с учётом LSFG), а не базовый FPS игры. Выключить:
+    # RF4_GS_MANGO=0 rf4-gamescope.
+    if [ "''${RF4_GS_MANGO:-1}" = "1" ]; then
       export PATH="${lib.makeBinPath [ pkgs.mangohud ]}:$PATH"
+      export MANGOHUD_CONFIG="''${RF4_GS_MANGOHUD_CONFIG:-fps}"
       ARGS+=(--mangoapp)
     fi
 
-    # DXVK HUD не нужен: MangoHud только по запросу.
-    unset DXVK_HUD
+    # Счётчик без тяжёлого MangoHud: DXVK HUD внутри игры.
+    #   RF4_GS_HUD=1 RF4_HUD=fps rf4-gamescope
+    if [ "''${RF4_GS_HUD:-0}" = "1" ]; then
+      export DXVK_HUD="''${RF4_HUD:-fps}"
+    else
+      unset DXVK_HUD
+    fi
 
     ${pkgs.coreutils}/bin/env \
       DISABLE_LSFGVK=1 \
@@ -421,6 +633,9 @@ in
     pkgs.umu-launcher
     rf4
     rf4-native
+    rf4sim
+    rf4sim-copy
+    rf4sim-trust
     rf4-stream
     rf4-gamescope
     rf4-wheel-xtest
@@ -468,5 +683,23 @@ in
     categories = [ "Game" ];
     type = "Application";
     startupNotify = true;
+  };
+
+  # Отдельный ярлык для gamescope-профиля: 1680x720 + FSR + LSFG.
+  # Окно gamescope имеет app-id "gamescope", поэтому привязываем его
+  # через StartupWMClass, чтобы док показывал имя и иконку RF4.
+  xdg.desktopEntries."rf4-gamescope" = {
+    name = "Russian Fishing 4 (Gamescope)";
+    genericName = "Fishing simulator";
+    comment = "Русская Рыбалка 4 через gamescope: 1680x720 + FSR + LSFG";
+    exec = "rf4-gamescope";
+    icon = "rf4";
+    terminal = false;
+    categories = [ "Game" ];
+    type = "Application";
+    startupNotify = true;
+    settings = {
+      StartupWMClass = "gamescope";
+    };
   };
 }
