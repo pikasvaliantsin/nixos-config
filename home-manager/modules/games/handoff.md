@@ -114,14 +114,18 @@ gamescope 3.17.0; префикс — reflink-копия PortProton-префик�
 
 1. Установка рядом с CachyOS (ветка `gaming-test`):
    ```bash
-   sudo nix run github:nix-community/disko -- \
-     --mode destroy,format,mount --flake /tmp/nixos-config#gaming-test
-   sudo nixos-install --flake /tmp/nixos-config#gaming-test
+   # disko берётся из flake.lock, без ручного хэша
+   nix run .#disko -- --mode destroy,format,mount --flake .#gaming-test
+   nixos-install --flake .#gaming-test
    ```
    Форматируются только `RF4TEST-ROOT` и `RF4TEST-ESP`; загрузчик ставится
    в отдельный ESP, CachyOS на sda остаётся. Вход: `valen` / `rf4test`.
    Полная установка на sda+nvme — `#asus-expertbook` (там свой полнодисковый
    disko, сносит всё).
+
+   Если разделы уже размечены предыдущим запуском disko, повторно его
+   запускать не нужно: достаточно смонтировать существующие сабволюмы
+   `@`, `@home`, `@nix`, `@log` и `RF4TEST-ESP`, затем `nixos-install`.
 2. Префикс: `~/Games/rf4/pfx`. После установки можно скопировать готовый из
    CachyOS (раздел `/dev/nvme0n1p2`, 43 ГиБ):
    ```bash

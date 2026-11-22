@@ -57,6 +57,10 @@
       formatter.${system} = pkgs.nixfmt;
 
       packages.${system} = {
+        # disko из flake.lock (тот же input, что и nixosModules.disko).
+        # Запуск: nix run .#disko -- --mode ... --flake .#host
+        disko = disko.packages.${system}.disko;
+
         openide = pkgs.callPackage ./pkgs/openide { };
         ayugram-ffmpeg6 = pkgs.callPackage ./pkgs/ayugram-ffmpeg6 { inherit inputs; };
         omarchy-shell = pkgs.callPackage ./pkgs/omarchy-shell { };
