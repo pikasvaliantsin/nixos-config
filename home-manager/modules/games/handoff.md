@@ -7,9 +7,27 @@
 специализаций здесь нет.
 
 Для установки **рядом с CachyOS** добавлен тестовый хост `gaming-test`:
-тот же конфиг, но disko форматирует только `RF4TEST-ROOT` / `RF4TEST-ESP`
-(198 ГиБ + 1 ГиБ на nvme0n1). CachyOS, `/home` и прочее не затрагиваются.
+disko форматирует только `RF4TEST-ROOT` / `RF4TEST-ESP` (198 ГиБ + 1 ГиБ
+на nvme0n1). CachyOS, `/home` и прочее не затрагиваются.
 На тестовой установке sops не импортируется: вход `valen` / `rf4test`.
+
+Хост намеренно минимальный:
+
+- система: hardware/boot/locale/network/services/graphics/nix/users/packages
+  из `asus-expertbook`, плюс `custom-edid`; ядро — стандартное
+  `linuxPackages_latest`;
+- графическая сессия: niri + Xwayland + greetd/tuigreet, **без** DMS,
+  dank-greeter, dux и Omarchy;
+- игры: только `programs.gamescope` с `CAP_SYS_NICE` и `gamemode`,
+  **без** Steam, Sunshine, input-remapper и power-tune;
+- home: только `core`, `games/rf4.nix`, Firefox, OpenCode, foot, MangoHud;
+  **без** nixvim, superwhisper, Zen, Telegram, DMS/dux и FS25.
+
+Важно: `home-manager/home.nix` (полный домашний конфиг) в этом хосте
+**не используется**. Именно из-за него первая попытка установки собирала
+FS25 и прочие пользовательские модули: `home.nix` импортирует
+`./modules/games/fs25.nix` и весь остальной home, независимо от того, что
+в `rf4.nix` оставлен один профиль.
 
 Что установлено из RF4:
 

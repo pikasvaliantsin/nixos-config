@@ -3,8 +3,12 @@
 #
 # Отличия от asus-expertbook/configuration.nix:
 #   - ./disko.nix вместо полнодискового ../asus-expertbook/disko.nix;
-#   - не импортируется sops.nix: для тестовой установки вход valen/rf4test,
-#     иначе новый host-ключ не сможет расшифровать secrets/secrets.yaml;
+#   - не импортируется sops.nix: для тестовой установки вход valen/rf4test;
+#   - вместо desktop/niri.nix (DMS + dank-greeter + dux) — минимальный niri;
+#   - вместо system/gaming.nix (Steam, Sunshine, input-remapper) — только
+#     gamescope с CAP_SYS_NICE и gamemode;
+#   - не импортируются printing, containers, fingerprint, rf4sim-guard,
+#     nix-cache, omarchy-sudo;
 #   - hostName = gaming-test.
 {
   lib,
@@ -21,21 +25,16 @@
     ../asus-expertbook/system/sleep-policy.nix
     ../asus-expertbook/system/locale.nix
     ../asus-expertbook/system/networking.nix
-    ../asus-expertbook/system/printing.nix
     ../asus-expertbook/system/services.nix
-    ../asus-expertbook/system/containers.nix
-    ../asus-expertbook/system/rf4sim-guard.nix
-    ../asus-expertbook/system/fingerprint.nix
     ../asus-expertbook/system/graphics.nix
-    ../asus-expertbook/system/gaming.nix
     ../asus-expertbook/system/nix.nix
-    ../asus-expertbook/system/nix-cache.nix
-    ../asus-expertbook/system/omarchy-sudo.nix
     ../asus-expertbook/system/users.nix
     ../asus-expertbook/system/packages.nix
 
-    ../asus-expertbook/desktop/niri.nix
     ../asus-expertbook/desktop/custom-edid.nix
+
+    ./desktop.nix
+    ./gaming.nix
   ];
 
   networking.hostName = "gaming-test";

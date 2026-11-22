@@ -119,7 +119,9 @@
                   "$target.$(${pkgs.coreutils}/bin/date +%Y%m%d-%H%M%S).backup"
               '';
               extraSpecialArgs = { inherit inputs; };
-              users.valen.imports = [ ./home-manager/home.nix ];
+              # Минимальный home только для теста: без nixvim/superwhisper/
+              # dux/Omarchy/FS25 и прочих пользовательских модулей.
+              users.valen.imports = [ ./hosts/gaming-test/home.nix ];
             };
           }
         ];
