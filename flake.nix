@@ -99,5 +99,30 @@
           }
         ];
       };
+
+      # Тестовая установка рядом с CachyOS: тот же конфиг, но disko
+      # форматирует только RF4TEST-ROOT / RF4TEST-ESP (см. hosts/gaming-test).
+      nixosConfigurations.gaming-test = nixpkgs.lib.nixosSystem {
+        specialArgs = { inherit inputs; };
+        modules = [
+          disko.nixosModules.disko
+          ./hosts/gaming-test/configuration.nix
+          home-manager.nixosModules.home-manager
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              backupCommand = pkgs.writeShellScript "hm-backup" ''
+                set -euo pipefail
+                target="$1"
+                ${pkgs.coreutils}/bin/mv -- "$target" \
+                  "$target.$(${pkgs.coreutils}/bin/date +%Y%m%d-%H%M%S).backup"
+              '';
+              extraSpecialArgs = { inherit inputs; };
+              users.valen.imports = [ ./home-manager/home.nix ];
+            };
+          }
+        ];
+      };
     };
 }

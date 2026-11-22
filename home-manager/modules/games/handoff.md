@@ -3,8 +3,13 @@
 Состояние на 2026-11-22. Ветка `gaming-test` от снимка `77ce17d`.
 
 Цель ветки: **один игровой профиль — `rf4-gs`** — на текущем `configuration.nix`
-и **стандартном ядре** (`linuxPackages_latest`). Никаких CachyOS-ядер,
-специализаций и минимальных хостов здесь нет.
+и **стандартном ядре** (`linuxPackages_latest`). Никаких CachyOS-ядер и
+специализаций здесь нет.
+
+Для установки **рядом с CachyOS** добавлен тестовый хост `gaming-test`:
+тот же конфиг, но disko форматирует только `RF4TEST-ROOT` / `RF4TEST-ESP`
+(198 ГиБ + 1 ГиБ на nvme0n1). CachyOS, `/home` и прочее не затрагиваются.
+На тестовой установке sops не импортируется: вход `valen` / `rf4test`.
 
 Что установлено из RF4:
 
@@ -89,14 +94,30 @@ gamescope 3.17.0; префикс — reflink-копия PortProton-префик�
 
 ## Что делать на NixOS
 
-1. `nixos-install`/`switch` этой ветки; играть через `rf4-gs`.
-2. Префикс: `~/Games/rf4/pfx`. Можно скопировать готовый из CachyOS
-   (`/home/valen/Games/rf4/pfx`) или поставить через `rf4-install`.
-3. Смотреть **базовый** FPS: в `rf4-gs` MangoHud показывает output; для базы
+1. Установка рядом с CachyOS (ветка `gaming-test`):
+   ```bash
+   sudo nix run github:nix-community/disko -- \
+     --mode destroy,format,mount --flake /tmp/nixos-config#gaming-test
+   sudo nixos-install --flake /tmp/nixos-config#gaming-test
+   ```
+   Форматируются только `RF4TEST-ROOT` и `RF4TEST-ESP`; загрузчик ставится
+   в отдельный ESP, CachyOS на sda остаётся. Вход: `valen` / `rf4test`.
+   Полная установка на sda+nvme — `#asus-expertbook` (там свой полнодисковый
+   disko, сносит всё).
+2. Префикс: `~/Games/rf4/pfx`. После установки можно скопировать готовый из
+   CachyOS (раздел `/dev/nvme0n1p2`, 43 ГиБ):
+   ```bash
+   sudo mount /dev/nvme0n1p2 /mnt/cachy
+   mkdir -p ~/Games/rf4
+   cp -a /mnt/cachy/valen/Games/rf4/pfx ~/Games/rf4/
+   ```
+   Или поставить через `rf4-install`. На 198 ГиБ влезает.
+3. Играть: `rf4-gs` из терминала.
+4. Смотреть **базовый** FPS: в `rf4-gs` MangoHud показывает output; для базы
    `RF4_GS_HUD=1 RF4_HUD=fps rf4-gs` (DXVK HUD).
-4. Стандартное ядро. Если захочется тестировать CachyOS-ядро — отдельно,
+5. Стандартное ядро. Если захочется тестировать CachyOS-ядро — отдельно,
    через `github:xddxdd/nix-cachyos-kernel`, не в этой ветке.
-5. Проверить, что gamescope идёт через `/run/wrappers/bin/gamescope` (cap) и
+6. Проверить, что gamescope идёт через `/run/wrappers/bin/gamescope` (cap) и
    в логе нет «No CAP_SYS_NICE»; `--rt` уже в аргументах.
 
 ## Чего не делать
