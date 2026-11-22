@@ -1,9 +1,17 @@
+# Разметка основного диска — NVMe.
+#
+# Samsung PM9A1 (MZVL2512HCJQ-00B00) имеет дефект ухода в D3/низкое
+# потребление, поэтому платформа живёт с полным запретом сна
+# (system/sleep-policy.nix), а не с обходом питания диска.
+#
+# /dev/sda (медленный SATA SSD) намеренно НЕ описан: disko его не трогает.
+# Диск остаётся как есть — под эксперименты с другими ОС и некритичные данные.
 {
   disko.devices = {
     disk = {
       system = {
         type = "disk";
-        device = "/dev/sda";
+        device = "/dev/nvme0n1";
         content = {
           type = "gpt";
           partitions = {
@@ -22,9 +30,10 @@
             };
             swap = {
               size = "8G";
+              # Hibernation запрещён sleep-policy.nix, поэтому resumeDevice
+              # не задаём: swap нужен только как резерв для zram.
               content = {
                 type = "swap";
-                resumeDevice = true;
               };
             };
             root = {
@@ -57,25 +66,8 @@
                       "space_cache=v2"
                     ];
                   };
-                };
-              };
-            };
-          };
-        };
-      };
-
-      fast-storage = {
-        type = "disk";
-        device = "/dev/nvme0n1";
-        content = {
-          type = "gpt";
-          partitions = {
-            home = {
-              size = "100%";
-              content = {
-                type = "btrfs";
-                extraArgs = [ "-f" ];
-                subvolumes = {
+                  # /home теперь на том же NVMe: отдельный сабтом сохраняет
+                  # прежние mount-опции и возможность снапшотов.
                   "@home" = {
                     mountpoint = "/home";
                     mountOptions = [
