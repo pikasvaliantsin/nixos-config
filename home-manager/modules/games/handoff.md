@@ -170,6 +170,235 @@ gamescope 3.17.0; префикс — reflink-копия PortProton-префик�
   `~/Games/rf4/pfx/drive_c/games/RF4/log.txt`; Unity:
   `~/Games/rf4/pfx/drive_c/users/steamuser/AppData/LocalLow/Russian Fishing LLC/Russian Fishing 4/Player.log`.
 
+## Инвентарь CachyOS-префикса (PortProton)
+
+Снято 2026-11-22 с `/dev/nvme0n1p2` (`/mnt/cachy/valen/Games/rf4/pfx`,
+только чтение) до того, как этот префикс отработал на NixOS. Нужно, чтобы
+после полной переустановки было видно, чем именно «хорошо работавшая»
+версия отличалась от чистого `rf4-install`.
+
+### Происхождение и версии
+
+- префикс — reflink-копия PortProton-префикса, созданного `wine-lg 11-10`
+  (`.wine_ver = WINE_LG_11-10`, `version = 11.0-100`);
+- запускался через umu 1.4.3 (steamrt4) + **GE-Proton11-12 из nix-сборки**
+  (`config_info` ссылается на `/nix/store/w700j12…-proton-ge-bin-GE-Proton11-12-…`),
+  то есть Proton на CachyOS и на NixOS — один и тот же билд, обновления
+  префикса по существу не было;
+- `GAMEID=0`, `WINEPREFIX=~/Games/rf4`, внутри — `pfx/`;
+- игра: `RF4Launcher 4.0.18085` (лог 22.11.2026 19:36), каталог
+  `drive_c/games/RF4`, 42 ГиБ; весь префикс — 43 ГиБ;
+- окружение CachyOS: gamescope 3.17.0, Mesa 26.3.1, ядро 7.3.5-cachyos
+  (см. таблицу тестов выше).
+
+Это **только данные**: ни одного Linux-бинарника и ни одного пакета
+PortProton для работы на NixOS не нужно.
+
+### Что скопировано
+
+Содержимое `pfx/` → `~/Games/rf4/` (корень WINEPREFIX): `drive_c`,
+`system.reg`, `user.reg`, `userdef.reg`, `dosdevices`,
+`creation_sync_guard`, `.update-timestamp`, `winetricks.log`, `.wine_ver`.
+Служебные файлы umu из родительского `rf4/` (`config_info`, `version`,
+`tracked_files`, `pfx.lock`) не копировались — umu создаёт их сам при первом
+запуске (вместе с `gstreamer-1.0/` и `shadercache/`); после запуска игры на
+NixOS они появились заново. `pfx -> .` создаётся Proton'ом (и продублирован
+вручную).
+
+### winetricks-лог (verb'ы, применённые PortProton)
+
+Это канонический список того, что ставилось в префикс:
+
+```
+d3dx9
+d3dcompiler_33
+d3dcompiler_34
+d3dcompiler_35
+d3dcompiler_36
+d3dcompiler_37
+d3dcompiler_38
+d3dcompiler_39
+d3dcompiler_40
+d3dcompiler_41
+d3dcompiler_42
+d3dcompiler_43
+d3dcompiler_46
+d3dcompiler_47
+d3dx10_33
+d3dx10_34
+d3dx10_35
+d3dx10_36
+d3dx10_37
+d3dx10_38
+d3dx10_39
+d3dx10_40
+d3dx10_41
+d3dx10_42
+d3dx10_43
+d3dx11_42
+d3dx11_43
+d3dx9_24
+d3dx9_25
+d3dx9_26
+d3dx9_27
+d3dx9_28
+d3dx9_29
+d3dx9_30
+d3dx9_31
+d3dx9_32
+d3dx9_33
+d3dx9_34
+d3dx9_35
+d3dx9_36
+d3dx9_37
+d3dx9_38
+d3dx9_39
+d3dx9_40
+d3dx9_41
+d3dx9_42
+d3dx9_43
+vcrun2022
+isolate_home
+sandbox
+mfc42
+faudio
+andale
+arial
+comicsans
+courier
+georgia
+impact
+times
+trebuchet
+verdana
+webdings
+corefonts
+calibri
+physx
+tahoma
+lucida
+7zip
+openal
+vcrun2005
+vcrun2008
+vcrun2010
+vcrun2012
+vcrun2013
+based_on_default
+```
+
+`isolate_home` и `sandbox` — служебные для PortProton (изоляция домашнего
+каталога и sandboxing), для umu/Proton не нужны и на игру не влияют.
+
+### Глобальные DLL-override'ы (user.reg)
+
+```
+[Software\\Wine\\DllOverrides]
+"*atl100"="native,builtin"  "*atl110"="native,builtin"  "*atl120"="native,builtin"
+"*atl80"="native,builtin"   "*atl90"="native,builtin"
+"*avcodec-58"="native"      "*avutil-56"="native"        "*swresample-3"="native"
+"*concrt140"="native,builtin"  "*FAudio"="native"  "*libwinpthread-1"="native"
+"*SDL2"="native"
+"*msvcm80"="native,builtin"   "*msvcm90"="native,builtin"
+"*msvcp80"="native,builtin"   "*msvcp90"="native,builtin"
+"*msvcp100"="native,builtin"  "*msvcp110"="native,builtin"
+"*msvcp120"="native,builtin"  "*msvcp140"="native,builtin"
+"*msvcp140_1"="native,builtin"  "*msvcp140_2"="native,builtin"
+"*msvcp140_atomic_wait"="native,builtin"  "*msvcp140_codecvt_ids"="native,builtin"
+"*msvcr80"="native,builtin"   "*msvcr90"="native,builtin"
+"*msvcr100"="native,builtin"  "*msvcr110"="native,builtin"
+"*msvcr120"="native,builtin"
+"*vcamp140"="native,builtin"  "*vccorlib140"="native,builtin"
+"*vcomp"="native,builtin"     "*vcomp90"="native,builtin"
+"*vcomp100"="native,builtin"  "*vcomp110"="native,builtin"
+"*vcomp120"="native,builtin"  "*vcomp140"="native,builtin"
+"*vcruntime140"="native,builtin"  "*vcruntime140_1"="native,builtin"
+"*xactengine3_0"="native" … "*xactengine3_7"="native"
+```
+
+`AppDefaults` в `user.reg` содержат записи для других игр (Avengers,
+BlackOps3, FarCry5, ffxvi и т.п.); к RF4 они отношения не имеют — специфичных
+для `RF4Launcher.exe`/`rf4_x64.exe` override'ов нет. Из полезного там только
+uninstall-запись `C:\Games\RF4` (`ru.rus-fishsoft.rf4_launcher`).
+
+### Дельта против чистого umu + GE-Proton11-12 префикса
+
+Сравнение с префиксом, который `rf4-install` создал на NixOS 22.11 в 22:52
+(свежий umu/GE-Proton11-12, тот же путь и скелет: `pfx -> .`, `system.reg`,
+`dosdevices` совпали; отличались только `winetricks.log` и `.wine_ver`).
+
+| | CachyOS | свежий `rf4-install` | дельта |
+|---|---|---|---|
+| `system32` файлов | 934 | 835 | **+99** |
+| `syswow64` файлов | 966 | 875 | **+91** |
+| файлов в `windows/Fonts` | 48 | 20 | **+28** (27 шрифтов + `corefonts.installed`) |
+
+Состав дельты (system32 / syswow64):
+
+| Группа | system32 | syswow64 | примеры |
+|---|---|---|---|
+| MFC | 56 | 58 | `mfc100/110/120/140{,.u,chs,cht,deu,enu,esn,fra,ita,jpn,kor,rus}`, `mfcm*`; `mfc42/u` — только в syswow64 |
+| XAudio2 | 7 | 7 | `xactengine2_{1,2,3,5,6,8,10}` |
+| VC runtime | 6 | 6 | `vcamp110/120/140`, `vccorlib110/120`, `vcruntime140_threads` |
+| PhysX | 3 | 3 | `PhysXLoader*`, `PhysXDevice*`, `PhysXUpdateLoader*` |
+| D3DX CS | 2 | 2 | `d3dcsx_42`, `d3dcsx_43` |
+| OpenAL | 2 | 2 | `OpenAL32.dll`, `wrap_oal.dll` |
+| FFmpeg | 3 | — | `avcodec-58`, `avutil-56`, `swresample-3` |
+| XAPOFX | 1 | 1 | `XAPOFX1_0.dll` |
+| CUDA | 1 | 1 | `cudart64_65` / `cudart32_65` |
+| FAudio | 1 | — | `FAudio.dll` |
+| SDL2 / pthread | 2 | — | `SDL2.dll`, `libwinpthread-1.dll` |
+| wine-lg / старый набор | 15 | 11 | `winegstreamer`, `wineopenxr`, `chakra`, `cldapi`, `ndfapi`, `rtscom`, `thumbcache`, `wkscli`, `windows.graphics`, `windows.networking.connectivity`, `capi2032`, `gphoto2.ds`, `sane.ds`, `twain_32`, `odbcad32.exe`, каталог `driverstore` |
+
+Последняя группа — DLL, которых нет в свежем umu-префиксе и которые Proton
+не копирует: они остались от wine-lg и под GE-Proton просто не используются.
+
+Шрифты сверх чистого префикса: corefonts (`arial*`, `times*`, `cour*`,
+`georgia*`, `trebuc*`, `verdana*`, `comic*`, `impact`, `andalemo`, `ariblk`),
+`calibri*`, `corefonts.installed`.
+
+Что **не** отличается: `d3dx9_*`, `d3dx10_*`, `d3dx11_*`, `d3dcompiler_*`
+есть в обоих префиксах по 47 файлов (их приносит Proton), поэтому
+одноимённые winetricks-verb'ы на дельту не влияют.
+
+### Прочее состояние префикса
+
+- `dosdevices`: `c: -> ../drive_c`, `z:`/`h:` — относительные вверх; `s: -> /home`,
+  `w: -> /mnt`, `x: -> /home/valen`, `d:/e:/f: -> /dev/sdb*` (Ventoy-флешка
+  из той сессии, Wine обновляет при старте), `com1..com32 -> /dev/ttyS*`;
+- `drive_c/users`: `steamuser` (под ним настройки игры), `valen`, `Public`;
+- `config_info` (писала umu на CachyOS): строка 1 — `11.0-100`, строки 2/3 —
+  пути nix-сборки GE-Proton11-12 (fonts/lib), строка 8 — `share/default_pfx/`,
+  строка 12 — список шаблонов DLL (`d3dcompiler_*.dll,d3dcsx*.dll,d3dx*.dll,
+  …msvcp1*.dll,vcruntime1*.dll,ucrtbase.dll,comctl32.dll,ntdll.dll,vulkan-1.dll,…`),
+  которые umu учитывает; фактически все они в префиксе присутствовали;
+- `tracked_files` многократно упоминает `drive_c/windows/{system32,syswow64}/nvcuda.dll` —
+  umu/Proton переустанавливал заглушку nvcuda (NVIDIA-API при iGPU не нужен).
+
+### Что это значит при полной переустановке
+
+1. `rf4-install` даст тот же путь, `pfx -> .` и тот же скелет реестра, но
+   **подмножество**: без 99/91 DLL, 28 файлов шрифтов, `winetricks.log`,
+   `.wine_ver` и без `Games`-редистов PortProton. Чистый префикс на NixOS
+   ещё не проверялся на запуск игры.
+2. Если на чистом префиксе игра заработает — ничего восстанавливать не нужно.
+   Если нет (типичные симптомы: падение лаунчера/игры на `msvcp*.dll`,
+   отсутствие звука XAudio2/OpenAL) — доставлять в префикс:
+   `vcrun2005/2008/2010/2012/2013/2022`, `mfc42`, `faudio`, `openal`,
+   `physx`, `corefonts`/`calibri` (d3dx/d3dcompiler ставить бессмысленно —
+   Proton их и так приносит).
+3. Проще и надёжнее — держать бэкап проверенного префикса (43 ГиБ):
+   ```bash
+   cp -a --reflink=auto ~/Games/rf4 /path/to/backup/rf4
+   # восстановление:
+   rsync -a /path/to/backup/rf4/ ~/Games/rf4/
+   ln -sfn . ~/Games/rf4/pfx   # Proton создаёт и сам
+   rf4-gs
+   ```
+4. Проверка после восстановления: `drive_c/games/RF4/log.txt` (лаунчер),
+   `…/LocalLow/Russian Fishing LLC/Russian Fishing 4/Player.log` (Unity),
+   базовый FPS — `RF4_GS_HUD=1 RF4_HUD=fps rf4-gs`.
+
 ## Примечание про sudo (на будущее)
 
 `pam_faillock` на CachyOS блокирует аккаунт после 3 неудачных попыток, включая
