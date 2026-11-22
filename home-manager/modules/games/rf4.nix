@@ -7,6 +7,7 @@
 #   rf4-install /путь/к/установщику.exe   — однократная установка игры
 #   rf4                                    — игра: Wine Wayland + LSFG 2x
 #   rf4-gamescope                          — 1680x720 (21:9) + FSR + LSFG 3x
+#   rf4-gs                                 — 1890x810 linear + LSFG 3x/0.5 (CachyOS-профиль)
 #   rf4-native                             — псевдоним rf4
 #   bite-alarm                             — звук при появлении значка рыбки
 #
@@ -155,8 +156,10 @@ let
       local w="$1" h="$2"
       [ -n "$w" ] && [ -n "$h" ] || return 0
 
-      local settings tmp reg
-      settings="$WINEPREFIX/drive_c/users/steamuser/AppData/Roaming/RussianFishingLLC/RussianFishing4/Settings.dat"
+      local settings tmp reg wpfx
+      wpfx="$WINEPREFIX"
+      [ -d "$WINEPREFIX/pfx/drive_c" ] && wpfx="$WINEPREFIX/pfx"
+      settings="$wpfx/drive_c/users/steamuser/AppData/Roaming/RussianFishingLLC/RussianFishing4/Settings.dat"
       if [ -f "$settings" ]; then
         tmp=$(mktemp)
         {
@@ -168,7 +171,7 @@ let
         mv "$tmp" "$settings"
       fi
 
-      reg="$WINEPREFIX/user.reg"
+      reg="$wpfx/user.reg"
       if [ -f "$reg" ]; then
         ${pkgs.gnused}/bin/sed -i \
           -e "s|^\"Screenmanager Resolution Width_h182942802\"=dword:.*|\"Screenmanager Resolution Width_h182942802\"=dword:$(printf '%08x' "$w")|" \
@@ -492,6 +495,9 @@ let
 
     ARGS=(-w "$GS_W" -h "$GS_H" -W "$GS_OUT_W" -H "$GS_OUT_H" -r "$GS_R" -S "''${RF4_GS_SCALER:-fit}")
     ARGS+=(--framerate-limit "$GS_R")
+    # Security-wrapper из gaming.nix уже даёт gamescope CAP_SYS_NICE, но без
+    # --rt он не используется: композитор пейсит кадры без realtime → рывки.
+    ARGS+=(--rt)
     if [ "$GS_FILTER" != "none" ]; then
       ARGS+=(-F "$GS_FILTER" --fsr-sharpness "$GS_SHARP")
     fi
@@ -521,6 +527,16 @@ let
       VK_LOADER_LAYERS_DISABLE=VK_LAYER_LSFGVK_frame_generation \
       "$GS" "''${ARGS[@]}" -f --force-grab-cursor -- "''${GAME_ENV[@]}" \
       ${umu} "$exe"
+  '';
+
+  # Готовый профиль, проверенный на CachyOS: 1890x810 -> 2240x960 linear,
+  # LSFG 3x / flow 0.5 / performance, VRR, mangoapp. Запуск из терминала.
+  rf4-gs = pkgs.writeShellScriptBin "rf4-gs" ''
+    exec env \
+      RF4_GS_W=1890 RF4_GS_H=810 RF4_GS_FILTER=none RF4_GS_SCALER=fit \
+      RF4_GS_ADAPTIVE=1 RF4_GS_MANGO=1 \
+      RF4_LSFG_MULTIPLIER=3 RF4_LSFG_FLOW_SCALE=0.5 RF4_LSFG_PERFORMANCE_MODE=1 \
+      ${rf4-gamescope}/bin/rf4-gamescope "$@"
   '';
 
   # D-pad -> F13–F16 (input-remapper), демон превращает их в XTEST-колесо.
@@ -629,77 +645,12 @@ let
   '';
 in
 {
+  # Для теста оставляем ровно один игровой профиль — rf4-gs.
+  # rf4-gamescope остаётся внутренней реализацией (на неё ссылается rf4-gs),
+  # но отдельной командой не устанавливается.
   home.packages = [
     pkgs.umu-launcher
-    rf4
-    rf4-native
-    rf4sim
-    rf4sim-copy
-    rf4sim-trust
-    rf4-stream
-    rf4-gamescope
-    rf4-wheel-xtest
+    rf4-gs
     rf4-install
-    bite-alarm
-    bite-alarm-toggle
-    reel-hold
   ];
-
-  # Иконка игры (извлечена из RF4Launcher.exe).
-  home.file.".local/share/icons/hicolor/256x256/apps/rf4.png".source = ./rf4.png;
-
-  # DMS для app-id вида steam_app_N игнорирует Icon из .desktop и всегда ищет
-  # иконку темы с именем steam_icon_N. GAMEID=0 → steam_icon_0.
-  home.file.".local/share/icons/hicolor/256x256/apps/steam_icon_0.png" = {
-    source = ./rf4.png;
-    force = true;
-  };
-
-  systemd.user.services.rf4-wheel-xtest = {
-    Unit = {
-      Description = "RF4 gamepad D-pad -> XTEST wheel";
-      After = [ "graphical-session.target" ];
-    };
-    Service = {
-      ExecStart = "${rf4-wheel-xtest}/bin/rf4-wheel-xtest";
-      Environment = [ "DISPLAY=:0" ];
-      Restart = "always";
-      RestartSec = 1;
-    };
-    Install.WantedBy = [ "graphical-session.target" ];
-  };
-
-  xdg.enable = true;
-
-  # DMS подменяет app-id "steam_app_0" на "steam_icon_0" (см. appIdSubstitutions),
-  # поэтому desktop-файл называется так же — тогда док находит имя и иконку.
-  xdg.desktopEntries."steam_icon_0" = {
-    name = "Russian Fishing 4";
-    genericName = "Fishing simulator";
-    comment = "Русская Рыбалка 4 (сайтовая версия) через umu + GE-Proton";
-    exec = "rf4";
-    icon = "rf4";
-    terminal = false;
-    categories = [ "Game" ];
-    type = "Application";
-    startupNotify = true;
-  };
-
-  # Отдельный ярлык для gamescope-профиля: 1680x720 + FSR + LSFG.
-  # Окно gamescope имеет app-id "gamescope", поэтому привязываем его
-  # через StartupWMClass, чтобы док показывал имя и иконку RF4.
-  xdg.desktopEntries."rf4-gamescope" = {
-    name = "Russian Fishing 4 (Gamescope)";
-    genericName = "Fishing simulator";
-    comment = "Русская Рыбалка 4 через gamescope: 1680x720 + FSR + LSFG";
-    exec = "rf4-gamescope";
-    icon = "rf4";
-    terminal = false;
-    categories = [ "Game" ];
-    type = "Application";
-    startupNotify = true;
-    settings = {
-      StartupWMClass = "gamescope";
-    };
-  };
 }
